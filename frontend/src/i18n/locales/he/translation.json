@@ -90,12 +90,19 @@
     "extractionFailedTitle": "החילוץ האוטומטי נכשל",
     "extractionFailedBody": "לא הצלחנו לקרוא את הקבלה באופן אוטומטי. עדיין ניתן להזין את הפרטים ידנית למטה — התמונה כבר נשמרה.",
     "reviewAndConfirm": "סקירה ואישור",
-    "confidence": "{{value}}% ביטחון",
+    "qualityScore": "{{value}}% איכות חילוץ",
     "confirmAndSave": "אישור ושמירה",
     "successMessage": "ההוצאה נשמרה. מעביר אתכם לרשימת ההוצאות...",
+    "mode": {
+      "demo": "מצב הדגמה — הנתונים מופקים באמצעות מנוע מדומה",
+      "ai": "חילוץ AI פעיל"
+    },
     "warnings": {
       "receipt_number_not_confident": "מספר הקבלה לא זוהה בביטחון מספיק ונותר ריק.",
-      "vat_amount_not_confident": "סכום המע\"מ לא זוהה בביטחון מספיק ונותר ריק."
+      "vat_amount_not_confident": "סכום המע\"מ לא זוהה בביטחון מספיק ונותר ריק.",
+      "business_name_not_confident": "שם העסק לא זוהה בביטחון מספיק ונותר ריק.",
+      "total_not_confident": "הסכום הכולל לא זוהה בביטחון מספיק ונותר ריק.",
+      "date_not_confident": "התאריך לא זוהה בביטחון מספיק ונותר ריק."
     },
     "errors": {
       "alreadyConfirmed": "הקבלה הזו כבר אושרה ונשמרה בעבר.",

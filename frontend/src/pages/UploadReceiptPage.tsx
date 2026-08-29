@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { ExpenseForm } from '../components/ExpenseForm'
+import { ExtractionModeBadge } from '../components/ExtractionModeBadge'
 import { ReceiptDropzone } from '../components/ReceiptDropzone'
 import { LoadingState } from '../components/StatusStates'
 import { uploadReceipt, confirmReceipt } from '../services/receiptService'
@@ -99,7 +100,10 @@ export function UploadReceiptPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">{t('uploadReceipt.title')}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold text-slate-900">{t('uploadReceipt.title')}</h1>
+          <ExtractionModeBadge />
+        </div>
         <p className="mt-1 text-sm text-slate-500">{t('uploadReceipt.subtitle')}</p>
       </div>
 
@@ -138,7 +142,7 @@ export function UploadReceiptPage() {
             <h2 className="text-base font-semibold text-slate-900">{t('uploadReceipt.reviewAndConfirm')}</h2>
             {typeof confidence === 'number' && (
               <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                {t('uploadReceipt.confidence', { value: Math.round(confidence * 100) })}
+                {t('uploadReceipt.qualityScore', { value: Math.round(confidence * 100) })}
               </span>
             )}
           </div>

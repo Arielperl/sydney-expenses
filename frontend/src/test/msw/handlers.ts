@@ -35,4 +35,7 @@ export const handlers = [
   http.get(`${API_BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
   http.get(`${API_BASE}/expenses`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/dashboard/stats`, () => HttpResponse.json(emptyDashboardStats)),
+  http.get(`${API_BASE}/system/capabilities`, () =>
+    HttpResponse.json({ receipt_extraction_provider: 'mock', receipt_extraction_mode: 'demo' }),
+  ),
 ]

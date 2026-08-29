@@ -1,11 +1,15 @@
+import logging
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_receipt_extractor, get_upload_service
+from app.core.config import get_settings
 from app.database import get_db
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.schemas.expense import ExpenseRead, expense_to_read
-from app.schemas.receipt import ReceiptConfirmRequest, ReceiptUploadResponse
+from app.schemas.receipt import ExtractedReceiptData, ReceiptConfirmRequest, ReceiptUploadResponse
 from app.services.extraction.base import ReceiptExtractor
 from app.services.receipt_lifecycle_service import (
     ReceiptUploadAlreadyConfirmedError,
@@ -15,7 +19,18 @@ from app.services.receipt_lifecycle_service import (
 )
 from app.services.upload_service import FileTooLargeError, UnsupportedFileTypeError, UploadService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/receipts", tags=["receipts"])
+
+
+def _missing_required_fields(extracted: ExtractedReceiptData) -> list[str]:
+    missing = []
+    if not extracted.business_name:
+        missing.append("business_name")
+    if extracted.total is None:
+        missing.append("total")
+    return missing
 
 
 @router.post("/upload", response_model=ReceiptUploadResponse)
@@ -33,10 +48,21 @@ async def upload_receipt(
     upload_repository = ReceiptUploadRepository(db)
     pending_upload = upload_repository.create_pending(stored_filename)
     image_url = upload_service.image_url(stored_filename)
+    provider = get_settings().receipt_extractor_provider
 
+    started_at = time.perf_counter()
     try:
         extracted = extractor.extract(stored_path)
     except Exception as exc:  # noqa: BLE001 - extraction provider failures are expected and handled here
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        # Structured, safe metadata only — never the image, extracted text, or a key.
+        logger.info(
+            "receipt_extraction result=failure provider=%s duration_ms=%.1f upload_id=%s error_category=%s",
+            provider,
+            duration_ms,
+            pending_upload.id,
+            type(exc).__name__,
+        )
         return ReceiptUploadResponse(
             upload_id=pending_upload.id,
             receipt_image_url=image_url,
@@ -44,6 +70,15 @@ async def upload_receipt(
             extracted_data=None,
             error_message=f"Receipt extraction failed: {exc}",
         )
+
+    duration_ms = (time.perf_counter() - started_at) * 1000
+    logger.info(
+        "receipt_extraction result=success provider=%s duration_ms=%.1f upload_id=%s missing_fields=%s",
+        provider,
+        duration_ms,
+        pending_upload.id,
+        ",".join(_missing_required_fields(extracted)) or "none",
+    )
 
     return ReceiptUploadResponse(
         upload_id=pending_upload.id,

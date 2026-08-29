@@ -1,0 +1,28 @@
+{
+  "receipts": [
+    {
+      "filename": "example-groceries.jpg",
+      "expected": {
+        "business_name": "Example Market",
+        "receipt_number": "12345",
+        "date": "2026-01-15",
+        "total": "184.90",
+        "vat": "26.65",
+        "currency": "ILS",
+        "category": "groceries"
+      }
+    },
+    {
+      "filename": "example-dining-hebrew.jpg",
+      "expected": {
+        "business_name": "בית קפה לדוגמה",
+        "receipt_number": null,
+        "date": "2026-02-03",
+        "total": "42.00",
+        "vat": null,
+        "currency": "ILS",
+        "category": "dining"
+      }
+    }
+  ]
+}

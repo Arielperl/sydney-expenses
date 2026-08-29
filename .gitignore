@@ -20,6 +20,11 @@ backend/*.db-journal
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# Local receipt-extraction evaluation data (real receipts + real labels — never commit)
+backend/evaluation_receipts/
+backend/evaluation/manifest.json
+backend/evaluation/results/
+
 # Node / frontend
 frontend/node_modules/
 frontend/dist/

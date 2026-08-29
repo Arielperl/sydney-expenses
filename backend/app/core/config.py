@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -17,6 +18,14 @@ class Settings(BaseSettings):
     cors_allowed_origins: list[str] = ["http://localhost:5173"]
     default_currency: str = "ILS"
     pending_upload_expiry_hours: int = 24
+
+    # Receipt extraction provider. "mock" (default) needs no external credentials and
+    # never leaves the machine; "openai" sends the receipt image to OpenAI.
+    receipt_extractor_provider: Literal["mock", "openai"] = "mock"
+    openai_api_key: str | None = None
+    openai_receipt_model: str | None = None
+    openai_timeout_seconds: float = 30.0
+    openai_max_retries: int = 2
 
 
 @lru_cache
