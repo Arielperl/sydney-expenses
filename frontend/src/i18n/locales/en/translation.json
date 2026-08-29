@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "expenses": "Expenses",
+    "addExpense": "Add expense",
+    "uploadReceipt": "Upload receipt",
+    "mainNavigation": "Main navigation"
+  },
+  "language": {
+    "switcherLabel": "Language",
+    "hebrew": "Hebrew",
+    "english": "English"
+  },
+  "common": {
+    "loading": "Loading…",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "edit": "Edit",
+    "close": "Close",
+    "closeDialog": "Close dialog"
+  },
+  "categories": {
+    "groceries": "Groceries",
+    "dining": "Dining",
+    "transport": "Transport",
+    "utilities": "Utilities",
+    "health": "Health",
+    "shopping": "Shopping",
+    "entertainment": "Entertainment",
+    "travel": "Travel",
+    "housing": "Housing",
+    "other": "Other"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your spending at a glance.",
+    "emptyTitle": "No expenses yet",
+    "emptyDescription": "Add your first expense manually, or upload a receipt to get started.",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "vsLastMonth": "vs last month",
+    "spendingByCategory": "Spending by category",
+    "currentMonth": "Current month",
+    "recentExpenses": "Recent expenses",
+    "viewAll": "View all"
+  },
+  "expenses": {
+    "title": "Expenses",
+    "subtitle": "Search, filter, and manage your expenses.",
+    "searchPlaceholder": "Search by business name…",
+    "searchLabel": "Search by business name",
+    "categoryFilterLabel": "Filter by category",
+    "allCategories": "All categories",
+    "dateFromLabel": "From date",
+    "dateToLabel": "To date",
+    "emptyTitle": "No expenses found",
+    "emptyDescription": "Try adjusting your filters, or add a new expense.",
+    "columnBusiness": "Business",
+    "columnCategory": "Category",
+    "columnDate": "Date",
+    "columnAmount": "Amount",
+    "columnActions": "Actions",
+    "editAction": "Edit {{name}}",
+    "deleteAction": "Delete {{name}}",
+    "editTitle": "Edit expense",
+    "deleteTitle": "Delete expense",
+    "deleteConfirm": "Are you sure you want to delete <bold>{{name}}</bold>? This cannot be undone.",
+    "saveChanges": "Save changes"
+  },
+  "addExpense": {
+    "title": "Add expense",
+    "subtitle": "Manually record an expense.",
+    "successMessage": "Expense saved. Redirecting to your expenses…"
+  },
+  "uploadReceipt": {
+    "title": "Upload receipt",
+    "subtitle": "Upload a photo of your receipt and review the extracted details before saving.",
+    "dropzoneText": "Drag and drop a receipt image, or",
+    "chooseImage": "Choose an image",
+    "chooseDifferentImage": "Choose a different image",
+    "fileHint": "JPEG, PNG, or WebP. Up to 10 MB.",
+    "previewAlt": "Receipt preview",
+    "analyzing": "Analyzing receipt…",
+    "uploadFailedTitle": "Upload failed",
+    "extractionFailedTitle": "Automatic extraction failed",
+    "extractionFailedBody": "We could not read this receipt automatically. You can still enter the details manually below — the image has already been saved.",
+    "reviewAndConfirm": "Review and confirm",
+    "confidence": "{{value}}% confidence",
+    "confirmAndSave": "Confirm and save",
+    "successMessage": "Expense saved. Redirecting to your expenses…",
+    "warnings": {
+      "receipt_number_not_confident": "Receipt number could not be read confidently and was left blank.",
+      "vat_amount_not_confident": "VAT amount could not be determined and was left blank."
+    },
+    "errors": {
+      "alreadyConfirmed": "This receipt has already been confirmed and saved.",
+      "uploadNotFound": "The uploaded receipt could not be found. Please upload it again.",
+      "uploadExpired": "This upload is no longer available. Please upload the receipt again."
+    }
+  },
+  "form": {
+    "businessName": "Business name",
+    "businessNamePlaceholder": "e.g. Shufersal",
+    "receiptNumber": "Receipt number",
+    "amount": "Amount",
+    "vatAmount": "VAT amount",
+    "currency": "Currency",
+    "category": "Category",
+    "expenseDate": "Expense date",
+    "paymentMethod": "Payment method",
+    "paymentMethodPlaceholder": "e.g. Credit card",
+    "notes": "Notes",
+    "saveExpense": "Save expense"
+  },
+  "validation": {
+    "businessNameRequired": "Business name is required",
+    "businessNameTooLong": "Business name is too long",
+    "receiptNumberTooLong": "Receipt number is too long",
+    "amountInvalid": "Amount must be a number",
+    "amountNegative": "Amount cannot be negative",
+    "vatInvalid": "VAT amount must be a number",
+    "vatNegative": "VAT cannot be negative",
+    "vatExceedsAmount": "VAT cannot be greater than the amount",
+    "currencyLength": "Use a 3-letter currency code",
+    "dateRequired": "Date is required",
+    "dateTooOld": "Date is too far in the past",
+    "dateFuture": "Date cannot be in the future",
+    "paymentMethodTooLong": "Payment method is too long",
+    "notesTooLong": "Notes are too long"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "validationFailed": "Please check the highlighted fields and try again."
+  }
+}

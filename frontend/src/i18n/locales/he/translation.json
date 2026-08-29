@@ -1,0 +1,140 @@
+{
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "expenses": "הוצאות",
+    "addExpense": "הוספת הוצאה",
+    "uploadReceipt": "העלאת קבלה",
+    "mainNavigation": "ניווט ראשי"
+  },
+  "language": {
+    "switcherLabel": "שפה",
+    "hebrew": "עברית",
+    "english": "אנגלית"
+  },
+  "common": {
+    "loading": "טוען...",
+    "somethingWentWrong": "משהו השתבש",
+    "tryAgain": "נסו שוב",
+    "cancel": "ביטול",
+    "save": "שמירה",
+    "saving": "שומר...",
+    "delete": "מחיקה",
+    "deleting": "מוחק...",
+    "edit": "עריכה",
+    "close": "סגירה",
+    "closeDialog": "סגירת חלון"
+  },
+  "categories": {
+    "groceries": "מצרכים",
+    "dining": "מסעדות",
+    "transport": "תחבורה",
+    "utilities": "חשבונות",
+    "health": "בריאות",
+    "shopping": "קניות",
+    "entertainment": "בידור",
+    "travel": "נסיעות",
+    "housing": "דיור",
+    "other": "אחר"
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "subtitle": "מבט כולל על ההוצאות שלכם.",
+    "emptyTitle": "עדיין אין הוצאות",
+    "emptyDescription": "הוסיפו הוצאה ידנית ראשונה, או העלו קבלה כדי להתחיל.",
+    "thisMonth": "החודש",
+    "lastMonth": "חודש שעבר",
+    "vsLastMonth": "לעומת החודש שעבר",
+    "spendingByCategory": "הוצאות לפי קטגוריה",
+    "currentMonth": "החודש הנוכחי",
+    "recentExpenses": "הוצאות אחרונות",
+    "viewAll": "הצגת הכול"
+  },
+  "expenses": {
+    "title": "הוצאות",
+    "subtitle": "חיפוש, סינון וניהול ההוצאות שלכם.",
+    "searchPlaceholder": "חיפוש לפי שם עסק...",
+    "searchLabel": "חיפוש לפי שם עסק",
+    "categoryFilterLabel": "סינון לפי קטגוריה",
+    "allCategories": "כל הקטגוריות",
+    "dateFromLabel": "מתאריך",
+    "dateToLabel": "עד תאריך",
+    "emptyTitle": "לא נמצאו הוצאות",
+    "emptyDescription": "נסו לשנות את הסינון, או הוסיפו הוצאה חדשה.",
+    "columnBusiness": "עסק",
+    "columnCategory": "קטגוריה",
+    "columnDate": "תאריך",
+    "columnAmount": "סכום",
+    "columnActions": "פעולות",
+    "editAction": "עריכת {{name}}",
+    "deleteAction": "מחיקת {{name}}",
+    "editTitle": "עריכת הוצאה",
+    "deleteTitle": "מחיקת הוצאה",
+    "deleteConfirm": "האם אתם בטוחים שברצונכם למחוק את <bold>{{name}}</bold>? לא ניתן לבטל פעולה זו.",
+    "saveChanges": "שמירת שינויים"
+  },
+  "addExpense": {
+    "title": "הוספת הוצאה",
+    "subtitle": "רישום ידני של הוצאה.",
+    "successMessage": "ההוצאה נשמרה. מעביר אתכם לרשימת ההוצאות..."
+  },
+  "uploadReceipt": {
+    "title": "העלאת קבלה",
+    "subtitle": "העלו תמונה של הקבלה וסקרו את הנתונים שחולצו ממנה לפני השמירה.",
+    "dropzoneText": "גררו לכאן תמונת קבלה, או",
+    "chooseImage": "בחירת תמונה",
+    "chooseDifferentImage": "בחירת תמונה אחרת",
+    "fileHint": "JPEG,‏ PNG או WebP. עד 10MB.",
+    "previewAlt": "תצוגה מקדימה של הקבלה",
+    "analyzing": "מנתח את הקבלה...",
+    "uploadFailedTitle": "ההעלאה נכשלה",
+    "extractionFailedTitle": "החילוץ האוטומטי נכשל",
+    "extractionFailedBody": "לא הצלחנו לקרוא את הקבלה באופן אוטומטי. עדיין ניתן להזין את הפרטים ידנית למטה — התמונה כבר נשמרה.",
+    "reviewAndConfirm": "סקירה ואישור",
+    "confidence": "{{value}}% ביטחון",
+    "confirmAndSave": "אישור ושמירה",
+    "successMessage": "ההוצאה נשמרה. מעביר אתכם לרשימת ההוצאות...",
+    "warnings": {
+      "receipt_number_not_confident": "מספר הקבלה לא זוהה בביטחון מספיק ונותר ריק.",
+      "vat_amount_not_confident": "סכום המע\"מ לא זוהה בביטחון מספיק ונותר ריק."
+    },
+    "errors": {
+      "alreadyConfirmed": "הקבלה הזו כבר אושרה ונשמרה בעבר.",
+      "uploadNotFound": "הקבלה שהועלתה לא נמצאה. נסו להעלות אותה מחדש.",
+      "uploadExpired": "ההעלאה הזו כבר אינה זמינה. אנא העלו את הקבלה מחדש."
+    }
+  },
+  "form": {
+    "businessName": "שם העסק",
+    "businessNamePlaceholder": "לדוגמה: שופרסל",
+    "receiptNumber": "מספר קבלה",
+    "amount": "סכום",
+    "vatAmount": "סכום מע\"מ",
+    "currency": "מטבע",
+    "category": "קטגוריה",
+    "expenseDate": "תאריך ההוצאה",
+    "paymentMethod": "אמצעי תשלום",
+    "paymentMethodPlaceholder": "לדוגמה: כרטיס אשראי",
+    "notes": "הערות",
+    "saveExpense": "שמירת ההוצאה"
+  },
+  "validation": {
+    "businessNameRequired": "שם העסק הוא שדה חובה",
+    "businessNameTooLong": "שם העסק ארוך מדי",
+    "receiptNumberTooLong": "מספר הקבלה ארוך מדי",
+    "amountInvalid": "הסכום חייב להיות מספר",
+    "amountNegative": "הסכום לא יכול להיות שלילי",
+    "vatInvalid": "סכום המע\"מ חייב להיות מספר",
+    "vatNegative": "סכום המע\"מ לא יכול להיות שלילי",
+    "vatExceedsAmount": "סכום המע\"מ לא יכול להיות גבוה מהסכום הכולל",
+    "currencyLength": "יש להזין קוד מטבע בן 3 אותיות",
+    "dateRequired": "יש להזין תאריך",
+    "dateTooOld": "התאריך רחוק מדי בעבר",
+    "dateFuture": "התאריך לא יכול להיות בעתיד",
+    "paymentMethodTooLong": "אמצעי התשלום ארוך מדי",
+    "notesTooLong": "ההערות ארוכות מדי"
+  },
+  "errors": {
+    "generic": "משהו השתבש. נסו שוב.",
+    "validationFailed": "בדקו את השדות המסומנים ונסו שוב."
+  }
+}
