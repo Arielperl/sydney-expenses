@@ -36,6 +36,12 @@ export const handlers = [
   http.get(`${API_BASE}/expenses`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/dashboard/stats`, () => HttpResponse.json(emptyDashboardStats)),
   http.get(`${API_BASE}/system/capabilities`, () =>
-    HttpResponse.json({ receipt_extraction_provider: 'mock', receipt_extraction_mode: 'demo' }),
+    HttpResponse.json({
+      receipt_extraction_provider: 'mock',
+      receipt_extraction_mode: 'demo',
+      real_ai_enabled: false,
+      ollama_available: null,
+      tesseract_available: null,
+    }),
   ),
 ]

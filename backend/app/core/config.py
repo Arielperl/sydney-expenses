@@ -20,12 +20,19 @@ class Settings(BaseSettings):
     pending_upload_expiry_hours: int = 24
 
     # Receipt extraction provider. "mock" (default) needs no external credentials and
-    # never leaves the machine; "openai" sends the receipt image to OpenAI.
-    receipt_extractor_provider: Literal["mock", "openai"] = "mock"
+    # never leaves the machine; "local" runs Tesseract OCR + a local Ollama model,
+    # never leaving the machine either; "openai" sends the receipt image to OpenAI.
+    receipt_extractor_provider: Literal["mock", "local", "openai"] = "mock"
     openai_api_key: str | None = None
     openai_receipt_model: str | None = None
     openai_timeout_seconds: float = 30.0
     openai_max_retries: int = 2
+
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_receipt_model: str = "gemma3:12b"
+    ollama_timeout_seconds: float = 120.0
+    ollama_max_retries: int = 2
+    tesseract_languages: str = "heb+eng"
 
 
 @lru_cache

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -8,6 +8,7 @@ import { ExtractionModeBadge } from '../components/ExtractionModeBadge'
 import { ReceiptDropzone } from '../components/ReceiptDropzone'
 import { LoadingState } from '../components/StatusStates'
 import { uploadReceipt, confirmReceipt } from '../services/receiptService'
+import { getSystemCapabilities } from '../services/systemService'
 import { toApiError } from '../services/apiClient'
 import type { ExpenseFormInput, ExpenseFormValues } from '../schemas/expense'
 import type { ExtractedReceiptData, ReceiptUploadResponse } from '../types/receipt'
@@ -97,6 +98,15 @@ export function UploadReceiptPage() {
   const confirmError = confirmMutation.isError ? toApiError(confirmMutation.error) : null
   const confirmErrorTranslationKey = confirmError ? confirmErrorKey(confirmError.status) : null
 
+  const { data: capabilities } = useQuery({
+    queryKey: ['system-capabilities'],
+    queryFn: getSystemCapabilities,
+    staleTime: Infinity,
+    retry: 1,
+  })
+  const showOllamaUnavailableWarning =
+    capabilities?.receipt_extraction_mode === 'local' && capabilities.ollama_available === false
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
@@ -106,6 +116,15 @@ export function UploadReceiptPage() {
         </div>
         <p className="mt-1 text-sm text-slate-500">{t('uploadReceipt.subtitle')}</p>
       </div>
+
+      {showOllamaUnavailableWarning && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800"
+        >
+          {t('uploadReceipt.errors.ollamaUnavailable')}
+        </div>
+      )}
 
       {showSuccess && (
         <div

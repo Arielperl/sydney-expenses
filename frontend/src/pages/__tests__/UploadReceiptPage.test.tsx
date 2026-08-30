@@ -158,6 +158,72 @@ describe('UploadReceiptPage', () => {
     expect(await screen.findByText('AI extraction active')).toBeInTheDocument()
   })
 
+  it('shows the local-mode label in Hebrew when the backend reports the local provider', async () => {
+    server.use(
+      http.get(CAPABILITIES_URL, () =>
+        HttpResponse.json({
+          receipt_extraction_provider: 'local',
+          receipt_extraction_mode: 'local',
+          real_ai_enabled: true,
+          ollama_available: true,
+          tesseract_available: true,
+        }),
+      ),
+    )
+    renderWithProviders(<UploadReceiptPage />)
+    expect(await screen.findByText('חילוץ מקומי פעיל — הנתונים נשארים במחשב')).toBeInTheDocument()
+  })
+
+  it('shows the local-mode label in English when the backend reports the local provider', async () => {
+    await i18n.changeLanguage('en')
+    server.use(
+      http.get(CAPABILITIES_URL, () =>
+        HttpResponse.json({
+          receipt_extraction_provider: 'local',
+          receipt_extraction_mode: 'local',
+          real_ai_enabled: true,
+          ollama_available: true,
+          tesseract_available: true,
+        }),
+      ),
+    )
+    renderWithProviders(<UploadReceiptPage />)
+    expect(await screen.findByText('Local extraction active — your data stays on this computer')).toBeInTheDocument()
+  })
+
+  it('shows a helpful message when Ollama is not running in local mode', async () => {
+    server.use(
+      http.get(CAPABILITIES_URL, () =>
+        HttpResponse.json({
+          receipt_extraction_provider: 'local',
+          receipt_extraction_mode: 'local',
+          real_ai_enabled: true,
+          ollama_available: false,
+          tesseract_available: true,
+        }),
+      ),
+    )
+    renderWithProviders(<UploadReceiptPage />)
+    expect(await screen.findByText(/Ollama/)).toBeInTheDocument()
+  })
+
+  it('does not show the Ollama warning when Ollama is reachable', async () => {
+    server.use(
+      http.get(CAPABILITIES_URL, () =>
+        HttpResponse.json({
+          receipt_extraction_provider: 'local',
+          receipt_extraction_mode: 'local',
+          real_ai_enabled: true,
+          ollama_available: true,
+          tesseract_available: true,
+        }),
+      ),
+    )
+    renderWithProviders(<UploadReceiptPage />)
+    await screen.findByText('חילוץ מקומי פעיל — הנתונים נשארים במחשב')
+    expect(screen.queryByText(/Ollama/)).not.toBeInTheDocument()
+  })
+
   it('reaches the review form with a partial extraction, showing warnings for missing fields', async () => {
     const user = userEvent.setup()
     server.use(

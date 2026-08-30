@@ -3,6 +3,7 @@
 Run from backend/ with the venv active:
 
     python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider mock
+    python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider local --max-files 5
     python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider openai --max-files 5
 
 Real receipts and real manifests must never be committed to git — put them in
@@ -20,6 +21,7 @@ from pathlib import Path
 
 from app.core.config import get_settings
 from app.services.extraction.exceptions import ReceiptExtractionError
+from app.services.extraction.local_extractor import LocalReceiptExtractor
 from app.services.extraction.mock import MockReceiptExtractor
 from app.services.extraction.openai_extractor import OpenAIReceiptExtractor
 
@@ -40,6 +42,8 @@ def _field_matches(expected: object, actual: object) -> bool:
 def build_extractor(provider: str, dry_run: bool):
     if dry_run or provider == "mock":
         return MockReceiptExtractor()
+    if provider == "local":
+        return LocalReceiptExtractor(get_settings())
     return OpenAIReceiptExtractor(get_settings())
 
 
@@ -59,7 +63,7 @@ def _actual_fields(result) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--manifest", required=True, help="Path to a manifest JSON file")
-    parser.add_argument("--provider", choices=["mock", "openai"], default="mock")
+    parser.add_argument("--provider", choices=["mock", "local", "openai"], default="mock")
     parser.add_argument(
         "--dry-run", action="store_true", help="Force the mock provider regardless of --provider (no API calls)"
     )

@@ -8,6 +8,7 @@ python-multipart==0.0.20
 python-dotenv==1.0.1
 pillow==11.1.0
 openai==3.6.0
+pytesseract==0.3.13
 
 pytest==8.3.4
 httpx==0.28.1

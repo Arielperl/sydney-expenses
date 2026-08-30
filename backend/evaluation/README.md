@@ -38,6 +38,12 @@ cd backend && source .venv/bin/activate
 # Mock provider — no API key needed, no network calls, safe to run anytime:
 python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider mock
 
+# Local provider — free, fully offline (Tesseract OCR + a local Ollama model).
+# Requires Ollama running (`ollama serve`) with the model pulled beforehand.
+# Slower per receipt than the other two (a 12B local model on a laptop), so
+# --max-files still matters for how long a run takes, even though it's free.
+python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider local --max-files 5
+
 # Real OpenAI provider — costs money per receipt, requires OPENAI_API_KEY/
 # OPENAI_RECEIPT_MODEL in backend/.env. --max-files caps the cost.
 python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider openai --max-files 5
