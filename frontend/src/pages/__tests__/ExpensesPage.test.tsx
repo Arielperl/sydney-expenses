@@ -69,4 +69,43 @@ describe('ExpensesPage', () => {
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith(expense.id))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
+
+  // Regression test for a real bug: the date-range filter used to sit in a rigid
+  // `grid-cols-4` cell whose default `min-width: auto` let two native date inputs
+  // (which refuse to shrink below their intrinsic content width) overflow the
+  // filters card in RTL. Asserting the class structure here — not exact pixel
+  // sizes, which jsdom can't measure — makes that regression hard to reintroduce
+  // without this test failing.
+  it('keeps the filter fields on a shrink-safe, non-fixed-width responsive layout', async () => {
+    server.use(http.get(EXPENSES_URL, () => HttpResponse.json([])))
+    renderWithProviders(<ExpensesPage />)
+    await waitFor(() => expect(screen.getByText('לא נמצאו הוצאות')).toBeInTheDocument())
+
+    const dateFromInput = screen.getByLabelText('מתאריך')
+    const dateToInput = screen.getByLabelText('עד תאריך')
+    const dateGroup = dateFromInput.parentElement
+    expect(dateGroup).not.toBeNull()
+
+    // The two date inputs and their shared wrapper must be able to shrink (the
+    // actual fix) instead of keeping their native intrinsic width.
+    for (const element of [dateFromInput, dateToInput, dateGroup as HTMLElement]) {
+      expect(element.className).toContain('min-w-0')
+    }
+    // Each date input shares the row evenly rather than claiming full width.
+    expect(dateFromInput.className).toContain('flex-1')
+    expect(dateToInput.className).toContain('flex-1')
+
+    // No field in the filter bar may use a fixed pixel width/min-width, which is
+    // exactly what caused the original overflow (an unshrinkable intrinsic size).
+    const filterCard = dateGroup!.parentElement
+    expect(filterCard).not.toBeNull()
+    for (const field of Array.from(filterCard!.children)) {
+      expect(field.className).not.toMatch(/\bw-\[\d/)
+      expect(field.className).not.toMatch(/\bmin-w-\[\d/)
+    }
+
+    // The card itself wraps onto multiple rows rather than forcing a fixed
+    // column count that squeezes any one field.
+    expect(filterCard!.className).toContain('flex-wrap')
+  })
 })

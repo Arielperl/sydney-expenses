@@ -77,8 +77,8 @@ export function ExpensesPage() {
         <p className="mt-1 text-sm text-slate-500">{t('expenses.subtitle')}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4">
-        <div className="sm:col-span-2">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap">
+        <div className="min-w-0 sm:flex-[2_2_240px]">
           <label htmlFor="search" className="sr-only">
             {t('expenses.searchLabel')}
           </label>
@@ -90,7 +90,7 @@ export function ExpensesPage() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <div>
+        <div className="min-w-0 sm:flex-1 sm:basis-40">
           <label htmlFor="category-filter" className="sr-only">
             {t('expenses.categoryFilterLabel')}
           </label>
@@ -108,18 +108,18 @@ export function ExpensesPage() {
             ))}
           </select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2 sm:flex-1 sm:basis-56">
           <input
             aria-label={t('expenses.dateFromLabel')}
             type="date"
-            className={inputClasses}
+            className={`${inputClasses} min-w-0 flex-1`}
             value={dateFrom}
             onChange={(event) => setDateFrom(event.target.value)}
           />
           <input
             aria-label={t('expenses.dateToLabel')}
             type="date"
-            className={inputClasses}
+            className={`${inputClasses} min-w-0 flex-1`}
             value={dateTo}
             onChange={(event) => setDateTo(event.target.value)}
           />
