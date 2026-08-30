@@ -14,7 +14,7 @@ Receiptly is a local-first, AI-ready receipt and expense manager with a provider
 
 **Frontend:** React, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Hook Form, Zod, Recharts, React Router, i18next / react-i18next, lucide-react
 
-**Backend:** Python, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, SQLite, Pillow, pytesseract (Tesseract OCR), Ollama (local LLM runtime, via its HTTP API), OpenAI Python SDK, pytest
+**Backend:** Python, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, SQLite or PostgreSQL (including Supabase), psycopg, Pillow, pytesseract (Tesseract OCR), Ollama (local LLM runtime, via its HTTP API), OpenAI Python SDK, pytest
 
 **Frontend testing:** Vitest, React Testing Library, user-event, jsdom, MSW
 
@@ -248,6 +248,7 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
   - Ran the same image through the actual running FastAPI app end-to-end in `local` mode (`RECEIPT_EXTRACTOR_PROVIDER=local`): `POST /api/receipts/upload` → real local extraction → reviewed/corrected the low-confidence fields → `POST /api/receipts/confirm` → expense saved (HTTP 201) → appeared via `GET /api/expenses`. `GET /api/system/capabilities` correctly reported `ollama_available: true` and `tesseract_available: true`. The server log was grepped for any OpenAI reference — none found, confirming no external network call occurred.
 - `npm test` (Vitest + RTL + MSW, frontend, 40 tests) — Hebrew-default/English-switch/persistence, the globe-icon language switcher (open/select/checkmark/Escape/outside-click/arrow-keys), manual expense validation, upload loading/failure states, extracted-data confirmation (full and partial), duplicate-confirmation conflict handling, provider-failure manual fallback, mock/local/AI-mode badge labels in both languages, the Ollama-unavailable warning banner, expense edit/delete, dashboard empty/populated states, and Israel-timezone-safe local date handling. All passing.
 - `tsc -b`, `oxlint`, `npm run build` — all clean.
+- Alembic migrations and create/read/update/delete operations were verified against a live Supabase PostgreSQL database; local development still defaults to SQLite when `DATABASE_URL` is not configured.
 - Manual end-to-end verification in-browser (mock mode for the UI walkthrough): Hebrew RTL layout, switch to English/LTR, manual add, receipt upload → extraction → confirm → save, duplicate-confirmation attempt, edit, delete with image cleanup, dashboard totals/percentage-change/category chart, and mobile viewport in both languages. The local-mode UI (badge, Ollama-unavailable banner) was verified live against the real local stack described above.
 - **Not performed:** a live request to the real OpenAI API. The `openai` provider is verified end-to-end against a scripted fake client, not against the real service — do not treat it as field-verified until you've run it with a real key.
 
@@ -270,7 +271,7 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 
 - Run a real, field-labeled accuracy evaluation of both the local and OpenAI providers against a representative set of real (not synthetic) photographed receipts, and record actual numbers here — including a same-receipt-set comparison between the two.
 - Add authentication if the app moves beyond single-user local use.
-- Swap SQLite for PostgreSQL and local disk storage for cloud storage when deploying beyond a single machine (the repository/service layering was written to make this a config change, not a rewrite).
+- Move receipt images from local disk to cloud object storage before deploying the backend beyond a single machine; PostgreSQL/Supabase database support is already in place.
 - Code-split the frontend bundle (currently a single ~270 KB gzipped chunk, flagged by the Vite build but not a functional issue at this scale).
 
 ## Commands reference
