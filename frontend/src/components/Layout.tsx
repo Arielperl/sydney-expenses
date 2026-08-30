@@ -23,27 +23,28 @@ export function Layout() {
   return (
     <div className="min-h-full">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
               R
             </span>
             <span className="text-lg font-semibold text-slate-900">Receiptly</span>
           </div>
-          <nav aria-label={t('nav.mainNavigation')} className="flex flex-wrap items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => navLinkClasses(isActive)}
-              >
-                {t(`nav.${item.key}`)}
-              </NavLink>
-            ))}
-            <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:inline-block" aria-hidden="true" />
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+            <nav aria-label={t('nav.mainNavigation')} className="flex flex-wrap items-center gap-1">
+              {NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => navLinkClasses(isActive)}
+                >
+                  {t(`nav.${item.key}`)}
+                </NavLink>
+              ))}
+            </nav>
             <LanguageSwitcher />
-          </nav>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
