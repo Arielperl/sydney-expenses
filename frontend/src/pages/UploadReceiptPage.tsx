@@ -12,18 +12,35 @@ import { getSystemCapabilities } from '../services/systemService'
 import { toApiError } from '../services/apiClient'
 import type { ExpenseFormInput, ExpenseFormValues } from '../schemas/expense'
 import type { ExtractedReceiptData, ReceiptUploadResponse } from '../types/receipt'
-import { todayIsoDate } from '../lib/format'
+import { groupWarnings, type WarningGroup } from '../lib/warnings'
 
+// Below this quality-score threshold, so little was extracted that showing
+// the ordinary "review and confirm" heading (with a near-0% badge) next to
+// an almost entirely empty form would read as if something went wrong with
+// the form itself, rather than "we just couldn't read this receipt well".
+const INSUFFICIENT_EXTRACTION_THRESHOLD = 0.15
+
+const WARNING_GROUP_STYLES: Record<WarningGroup, string> = {
+  recovered: 'border-sky-400/40 bg-sky-50 text-sky-800',
+  review: 'border-amber-400/40 bg-amber-50 text-amber-800',
+  attention: 'border-slate-300 bg-slate-50 text-slate-600',
+}
+
+// An unrecognized amount/date must never be silently replaced with 0 or
+// today's date — either would look like a real extracted value instead of
+// the "we couldn't read this" signal it actually is. Leaving the field
+// empty forces the (already-required) form validation to visibly prompt the
+// user for it, instead of letting a wrong guess slip through unnoticed.
 function extractedToFormValues(data: ExtractedReceiptData | null): Partial<ExpenseFormInput> {
   if (!data) return {}
   return {
     business_name: data.business_name ?? '',
     receipt_number: data.receipt_number ?? '',
-    amount: data.total ?? 0,
+    amount: data.total ?? '',
     vat_amount: data.vat ?? '',
     currency: data.currency || 'ILS',
     category: data.category,
-    expense_date: data.date ?? todayIsoDate(),
+    expense_date: data.date ?? '',
   }
 }
 
@@ -94,7 +111,11 @@ export function UploadReceiptPage() {
   }
 
   const confidence = uploadResult?.extracted_data?.confidence
-  const warnings = uploadResult?.extracted_data?.warnings ?? []
+  const warningGroups = groupWarnings(uploadResult?.extracted_data?.warnings ?? [])
+  const isInsufficientExtraction =
+    uploadResult?.extraction_succeeded === true &&
+    typeof confidence === 'number' &&
+    confidence < INSUFFICIENT_EXTRACTION_THRESHOLD
   const confirmError = confirmMutation.isError ? toApiError(confirmMutation.error) : null
   const confirmErrorTranslationKey = confirmError ? confirmErrorKey(confirmError.status) : null
 
@@ -155,23 +176,40 @@ export function UploadReceiptPage() {
         </div>
       )}
 
+      {uploadResult && uploadResult.extraction_succeeded && isInsufficientExtraction && (
+        <div className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">{t('uploadReceipt.insufficientExtractionTitle')}</p>
+          <p className="mt-1">{t('uploadReceipt.insufficientExtractionBody')}</p>
+        </div>
+      )}
+
       {uploadResult && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-900">{t('uploadReceipt.reviewAndConfirm')}</h2>
-            {typeof confidence === 'number' && (
-              <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+            {typeof confidence === 'number' && !isInsufficientExtraction && (
+              <span
+                className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700"
+                title={t('uploadReceipt.qualityScoreExplanation')}
+              >
                 {t('uploadReceipt.qualityScore', { value: Math.round(confidence * 100) })}
               </span>
             )}
           </div>
 
-          {warnings.length > 0 && (
-            <ul className="mb-4 space-y-1 rounded-lg border border-amber-400/40 bg-amber-50 p-3 text-xs text-amber-800">
-              {warnings.map((warning) => (
-                <li key={warning}>⚠ {t(`uploadReceipt.warnings.${warning}`, warning)}</li>
-              ))}
-            </ul>
+          {(['review', 'attention', 'recovered'] as const).map((group) =>
+            warningGroups[group].length > 0 ? (
+              <div key={group} className={`mb-3 rounded-lg border p-3 text-xs ${WARNING_GROUP_STYLES[group]}`}>
+                <p className="mb-1 font-semibold">{t(`uploadReceipt.warningGroups.${group}`)}</p>
+                <ul className="space-y-1">
+                  {warningGroups[group].map((warning) => (
+                    <li key={warning}>
+                      {t(`uploadReceipt.warnings.${warning}`, t('uploadReceipt.warnings.extraction_incomplete'))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null,
           )}
 
           {confirmError && (

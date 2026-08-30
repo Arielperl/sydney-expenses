@@ -301,4 +301,167 @@ describe('UploadReceiptPage', () => {
 
     expect(await screen.findByText('ההוצאה נשמרה. מעביר אתכם לרשימת ההוצאות...')).toBeInTheDocument()
   })
+
+  it('leaves the amount field empty (never 0) when the total could not be determined', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          upload_id: 'upload-4',
+          receipt_image_url: '/uploads/upload-4.png',
+          extraction_succeeded: true,
+          extracted_data: {
+            business_name: 'Some Store',
+            receipt_number: null,
+            date: '2026-08-22',
+            total: null,
+            vat: null,
+            currency: 'ILS',
+            category: 'other',
+            confidence: 0.1,
+            warnings: ['total_not_confident'],
+          },
+          error_message: null,
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('סקירה ואישור')
+    const amountInput = screen.getByLabelText(/^סכום\s*\*?$/) as HTMLInputElement
+    expect(amountInput.value).toBe('')
+  })
+
+  it('leaves the date field empty (never today) when the receipt date could not be determined', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          upload_id: 'upload-5',
+          receipt_image_url: '/uploads/upload-5.png',
+          extraction_succeeded: true,
+          extracted_data: {
+            business_name: 'Some Store',
+            receipt_number: null,
+            date: null,
+            total: '20.00',
+            vat: null,
+            currency: 'ILS',
+            category: 'other',
+            confidence: 0.3,
+            warnings: ['date_not_confident'],
+          },
+          error_message: null,
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('סקירה ואישור')
+    const dateInput = screen.getByLabelText(/^תאריך ההוצאה\s*\*?$/) as HTMLInputElement
+    expect(dateInput.value).toBe('')
+  })
+
+  it('shows the insufficient-extraction state instead of a misleading near-empty form', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          upload_id: 'upload-6',
+          receipt_image_url: '/uploads/upload-6.png',
+          extraction_succeeded: true,
+          extracted_data: {
+            business_name: null,
+            receipt_number: null,
+            date: null,
+            total: null,
+            vat: null,
+            currency: 'ILS',
+            category: 'other',
+            confidence: 0,
+            warnings: ['business_name_not_confident', 'total_not_confident'],
+          },
+          error_message: null,
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    expect(await screen.findByText('לא הצלחנו לזהות מספיק פרטים')).toBeInTheDocument()
+    // The quality-score badge itself is not shown in this state — it would
+    // just read "0%" next to an almost entirely empty form.
+    expect(screen.queryByText(/% איכות חילוץ/)).not.toBeInTheDocument()
+  })
+
+  it('groups a recovered-from-OCR value separately from a genuine source conflict, deduplicated', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          upload_id: 'upload-7',
+          receipt_image_url: '/uploads/upload-7.png',
+          extraction_succeeded: true,
+          extracted_data: {
+            business_name: 'Some Store',
+            receipt_number: null,
+            date: '2026-08-22',
+            total: '60.50',
+            vat: '9.22',
+            currency: 'ILS',
+            category: 'other',
+            confidence: 0.5,
+            // Deliberately includes a duplicate to verify de-duplication.
+            warnings: ['total_from_ocr', 'total_from_ocr', 'vat_conflicting_sources'],
+          },
+          error_message: null,
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('סקירה ואישור')
+    expect(screen.getByText('מולא מתוך טקסט הקבלה — כדאי לוודא')).toBeInTheDocument()
+    expect(screen.getByText('שני מקורות זיהוי סתרו זה את זה — כדאי לוודא')).toBeInTheDocument()
+    expect(screen.getAllByText('סכום כולל')).toHaveLength(1)
+  })
+
+  it('never shows a raw, untranslated warning code in Hebrew mode', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          upload_id: 'upload-8',
+          receipt_image_url: '/uploads/upload-8.png',
+          extraction_succeeded: true,
+          extracted_data: {
+            business_name: 'Some Store',
+            receipt_number: null,
+            date: '2026-08-22',
+            total: '20.00',
+            vat: null,
+            currency: 'ILS',
+            category: 'other',
+            confidence: 0.4,
+            warnings: ['some_unrecognized_free_text_warning_from_the_model'],
+          },
+          error_message: null,
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('סקירה ואישור')
+    expect(screen.queryByText('some_unrecognized_free_text_warning_from_the_model')).not.toBeInTheDocument()
+    expect(screen.getByText('לא ניתן היה לזהות חלק מהפרטים בביטחון מספיק.')).toBeInTheDocument()
+  })
 })

@@ -95,14 +95,22 @@
     "uploadFailedTitle": "ההעלאה נכשלה",
     "extractionFailedTitle": "החילוץ האוטומטי נכשל",
     "extractionFailedBody": "לא הצלחנו לקרוא את הקבלה באופן אוטומטי. עדיין ניתן להזין את הפרטים ידנית למטה — התמונה כבר נשמרה.",
+    "insufficientExtractionTitle": "לא הצלחנו לזהות מספיק פרטים",
+    "insufficientExtractionBody": "לתמונת הקבלה הזו לא היה מספיק פירוט קריא כדי למלא את הטופס באופן אוטומטי. עדיין ניתן להזין את הפרטים ידנית למטה — התמונה כבר נשמרה.",
     "reviewAndConfirm": "סקירה ואישור",
     "qualityScore": "{{value}}% איכות חילוץ",
+    "qualityScoreExplanation": "מדד השלמות/איכות המבוסס על כמות השדות שזוהו וכמות ההסתייגויות שעלו — לא הסתברות מדודה לכך שהערכים נכונים.",
     "confirmAndSave": "אישור ושמירה",
     "successMessage": "ההוצאה נשמרה. מעביר אתכם לרשימת ההוצאות...",
     "mode": {
       "demo": "מצב הדגמה — הנתונים מופקים באמצעות מנוע מדומה",
       "local": "חילוץ מקומי פעיל — הנתונים נשארים במחשב",
       "ai": "חילוץ AI פעיל"
+    },
+    "warningGroups": {
+      "recovered": "מולא מתוך טקסט הקבלה — כדאי לוודא",
+      "review": "שני מקורות זיהוי סתרו זה את זה — כדאי לוודא",
+      "attention": "לא ניתן היה לזהות"
     },
     "warnings": {
       "receipt_number_not_confident": "מספר הקבלה לא זוהה בביטחון מספיק ונותר ריק.",
@@ -111,7 +119,20 @@
       "total_not_confident": "הסכום הכולל לא זוהה בביטחון מספיק ונותר ריק.",
       "date_not_confident": "התאריך לא זוהה בביטחון מספיק ונותר ריק.",
       "category_not_confident": "הקטגוריה לא זוהתה בביטחון מספיק ונקבעה כ'אחר'.",
-      "ocr_unavailable": "זיהוי טקסט מקומי (OCR) לא היה זמין עבור תמונה זו; החילוץ התבסס על התמונה בלבד."
+      "ocr_unavailable": "זיהוי טקסט מקומי (OCR) לא היה זמין עבור תמונה זו; החילוץ התבסס על התמונה בלבד.",
+      "business_name_from_ocr": "שם העסק",
+      "receipt_number_from_ocr": "מספר קבלה",
+      "date_from_ocr": "תאריך",
+      "total_from_ocr": "סכום כולל",
+      "vat_from_ocr": "סכום מע\"מ",
+      "currency_from_ocr": "מטבע",
+      "business_name_conflicting_sources": "שם העסק",
+      "receipt_number_conflicting_sources": "מספר קבלה",
+      "date_conflicting_sources": "תאריך",
+      "total_conflicting_sources": "סכום כולל",
+      "vat_conflicting_sources": "סכום מע\"מ",
+      "currency_conflicting_sources": "מטבע",
+      "extraction_incomplete": "לא ניתן היה לזהות חלק מהפרטים בביטחון מספיק."
     },
     "errors": {
       "alreadyConfirmed": "הקבלה הזו כבר אושרה ונשמרה בעבר.",

@@ -17,9 +17,14 @@ export const expenseFormSchema = z
       .min(1, 'validation.businessNameRequired')
       .max(255, 'validation.businessNameTooLong'),
     receipt_number: z.string().trim().max(100, 'validation.receiptNumberTooLong').optional().or(z.literal('')),
-    amount: z.coerce
-      .number({ message: 'validation.amountInvalid' })
-      .min(0, 'validation.amountNegative'),
+    // An empty string must never silently coerce to 0 (JavaScript's Number('')
+    // is 0, not NaN) — it is remapped to undefined first, which z.number()
+    // correctly rejects as invalid, so a still-unknown amount visibly blocks
+    // submission instead of quietly saving as a zero-amount expense.
+    amount: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number({ message: 'validation.amountInvalid' }).min(0, 'validation.amountNegative'),
+    ),
     vat_amount: z.union([
       z.coerce.number({ message: 'validation.vatInvalid' }).min(0, 'validation.vatNegative'),
       z.literal(''),

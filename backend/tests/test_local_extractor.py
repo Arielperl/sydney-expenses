@@ -95,7 +95,7 @@ def _valid_image(tmp_path):
 
 def _extractor_with_no_ocr(settings, client):
     extractor = LocalReceiptExtractor(settings, http_client=client)
-    extractor._run_ocr = lambda path: ("", None)  # bypass real Tesseract in unit tests
+    extractor._run_ocr = lambda path: ("", [], None, None)  # bypass real Tesseract in unit tests
     return extractor
 
 
@@ -275,15 +275,15 @@ def test_non_transient_error_is_not_retried(tmp_path):
 
 
 def test_hebrew_and_english_ocr_text_is_included_in_the_prompt(tmp_path, monkeypatch):
-    import app.services.extraction.local_extractor as local_extractor_module
+    import app.services.extraction.ocr_selection as ocr_selection_module
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang):
+        def image_to_string(image, lang=None, config=None):
             assert lang == "heb+eng"
             return "שופרסל\nTOTAL: 42.50"
 
-    monkeypatch.setattr(local_extractor_module, "pytesseract", _FakePytesseract)
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
     client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
     extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
@@ -295,14 +295,14 @@ def test_hebrew_and_english_ocr_text_is_included_in_the_prompt(tmp_path, monkeyp
 
 
 def test_tesseract_failure_falls_back_to_image_only_extraction(tmp_path, monkeypatch):
-    import app.services.extraction.local_extractor as local_extractor_module
+    import app.services.extraction.ocr_selection as ocr_selection_module
 
     class _FailingPytesseract:
         @staticmethod
-        def image_to_string(image, lang):
+        def image_to_string(image, lang=None, config=None):
             raise RuntimeError("tesseract binary not found")
 
-    monkeypatch.setattr(local_extractor_module, "pytesseract", _FailingPytesseract)
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FailingPytesseract)
 
     client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
     extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
@@ -314,16 +314,16 @@ def test_tesseract_failure_falls_back_to_image_only_extraction(tmp_path, monkeyp
 
 
 def test_sensitive_ocr_content_is_not_logged(tmp_path, monkeypatch, caplog):
-    import app.services.extraction.local_extractor as local_extractor_module
+    import app.services.extraction.ocr_selection as ocr_selection_module
 
     secret_text = "שם פרטי: ישראל ישראלי מספר כרטיס 4111111111111111"
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang):
+        def image_to_string(image, lang=None, config=None):
             raise RuntimeError(secret_text)  # simulate an error that could embed OCR text
 
-    monkeypatch.setattr(local_extractor_module, "pytesseract", _FakePytesseract)
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
     client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
     extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
@@ -418,3 +418,85 @@ def test_system_capabilities_reports_local_mode(client, monkeypatch):
         assert "key" not in str(body).lower()
     finally:
         get_settings.cache_clear()
+
+
+# --- Deterministic parser + merge, end-to-end through the real extractor ----
+
+
+def test_parser_recovers_a_value_the_model_missed(tmp_path, monkeypatch):
+    """End-to-end: the model returns total=null, but a deterministic label
+    match in the OCR text recovers it, and the prompt itself carries that
+    candidate as a hint for the model to verify."""
+    import app.services.extraction.ocr_selection as ocr_selection_module
+
+    class _FakePytesseract:
+        @staticmethod
+        def image_to_string(image, lang=None, config=None):
+            return 'סה"כ לתשלום 60.50\nתאריך: 30/09/2013'
+
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
+
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json(total=None, date=None, vat=None))])
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+
+    result = extractor.extract(_valid_image(tmp_path))
+
+    assert result.total == Decimal("60.50")
+    assert result.date == __import__("datetime").date(2013, 9, 30)
+    assert "total_from_ocr" in result.warnings
+    assert "date_from_ocr" in result.warnings
+    # The stale "not confident" warning must not survive alongside a value
+    # that was, in fact, successfully recovered.
+    assert "total_not_confident" not in result.warnings
+    assert "date_not_confident" not in result.warnings
+
+    prompt = client.last_payload["prompt"]
+    assert "deterministic text-pattern pass" in prompt
+    assert "60.5" in prompt
+
+
+def test_conflicting_model_and_parser_values_are_surfaced_as_a_warning(tmp_path, monkeypatch):
+    import app.services.extraction.ocr_selection as ocr_selection_module
+
+    class _FakePytesseract:
+        @staticmethod
+        def image_to_string(image, lang=None, config=None):
+            return 'סה"כ לתשלום 60.50'
+
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
+
+    # The model insists on a different total than the clearly labeled OCR match.
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json(total=999.00))])
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+
+    result = extractor.extract(_valid_image(tmp_path))
+
+    assert "total_conflicting_sources" in result.warnings
+    # A high-confidence, clearly labeled parser match outranks the model here.
+    assert result.total == Decimal("60.50")
+
+
+def test_full_pipeline_never_logs_ocr_text_or_image_bytes(tmp_path, monkeypatch, caplog):
+    import app.services.extraction.ocr_selection as ocr_selection_module
+
+    sensitive_receipt_text = 'שם פרטי: ישראל ישראלי\nסה"כ לתשלום 60.50\nמספר כרטיס 4111111111111111'
+
+    class _FakePytesseract:
+        @staticmethod
+        def image_to_string(image, lang=None, config=None):
+            return sensitive_receipt_text
+
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
+
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+
+    with caplog.at_level("DEBUG"):
+        result = extractor.extract(_valid_image(tmp_path))
+
+    assert result.total is not None  # sanity: extraction actually ran
+    for record in caplog.records:
+        message = record.getMessage()
+        assert sensitive_receipt_text not in message
+        assert "4111111111111111" not in message
+        assert "ישראל ישראלי" not in message

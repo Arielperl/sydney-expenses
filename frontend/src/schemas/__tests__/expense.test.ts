@@ -61,4 +61,25 @@ describe('expenseFormSchema', () => {
     const result = expenseFormSchema.safeParse(validPayload({ vat_amount: '' }))
     expect(result.success).toBe(true)
   })
+
+  it('rejects an empty amount instead of silently treating it as 0', () => {
+    // JavaScript's Number('') is 0, not NaN — a naive z.coerce.number() would
+    // accept an empty amount field as a valid zero-amount expense. This is
+    // the regression test for that exact bug.
+    const result = expenseFormSchema.safeParse(validPayload({ amount: '' }))
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toBe('validation.amountInvalid')
+  })
+
+  it('rejects a missing amount field entirely', () => {
+    const payload = validPayload()
+    delete (payload as Record<string, unknown>).amount
+    const result = expenseFormSchema.safeParse(payload)
+    expect(result.success).toBe(false)
+  })
+
+  it('still accepts a genuine zero amount', () => {
+    const result = expenseFormSchema.safeParse(validPayload({ amount: 0 }))
+    expect(result.success).toBe(true)
+  })
 })
