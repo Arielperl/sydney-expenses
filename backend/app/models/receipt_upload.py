@@ -26,6 +26,7 @@ class ReceiptUpload(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     stored_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_provider: Mapped[str] = mapped_column(String(32), nullable=False, server_default="local")
     status: Mapped[ReceiptUploadStatus] = mapped_column(
         Enum(ReceiptUploadStatus, native_enum=False), nullable=False, default=ReceiptUploadStatus.PENDING
     )

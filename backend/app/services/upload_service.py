@@ -5,14 +5,9 @@ from fastapi import UploadFile
 from PIL import Image
 
 from app.core.config import Settings
+from app.services.storage.formats import EXTENSION_BY_VERIFIED_FORMAT
 
 CHUNK_SIZE_BYTES = 1024 * 1024  # 1 MB
-
-_EXTENSION_BY_VERIFIED_FORMAT = {
-    "JPEG": ".jpg",
-    "PNG": ".png",
-    "WEBP": ".webp",
-}
 
 
 class UnsupportedFileTypeError(ValueError):
@@ -24,22 +19,29 @@ class FileTooLargeError(ValueError):
 
 
 class UploadService:
-    """Validates and persists uploaded receipt images to the local uploads directory.
+    """Validates an uploaded receipt image and stages it as a local temp file.
 
     The client-supplied content type and filename are never trusted: the file is
     streamed to disk in bounded chunks (rejecting it as soon as it exceeds the size
-    limit) and then the actual image bytes are verified with Pillow. The stored
-    filename is always server-generated from the verified format, which also rules
-    out path traversal.
+    limit) and then the actual image bytes are verified with Pillow.
+
+    This service only produces a verified, local temp file — it never decides where
+    the image is permanently stored. That decision belongs to a `ReceiptStorage`
+    implementation (see app/services/storage/), which is what lets the same staged
+    temp file be used both for the storage upload and for local OCR/vision receipt
+    extraction, regardless of which storage provider is configured. Callers are
+    responsible for deleting the returned temp file once they are done with it
+    (typically in a `finally` block).
     """
 
     def __init__(self, settings: Settings):
         self._settings = settings
-        self._uploads_dir = Path(settings.uploads_dir)
-        self._uploads_dir.mkdir(parents=True, exist_ok=True)
+        self._staging_dir = Path(settings.uploads_dir)
+        self._staging_dir.mkdir(parents=True, exist_ok=True)
 
-    async def save(self, file: UploadFile) -> tuple[str, str]:
-        temp_path = self._uploads_dir / f".tmp-{uuid.uuid4().hex}"
+    async def stage(self, file: UploadFile) -> tuple[Path, str]:
+        """Streams and verifies the upload, returning (temp_path, verified_format)."""
+        temp_path = self._staging_dir / f".tmp-{uuid.uuid4().hex}"
         total_bytes = 0
         try:
             with temp_path.open("wb") as buffer:
@@ -57,19 +59,11 @@ class UploadService:
                 raise UnsupportedFileTypeError("Uploaded file is empty.")
 
             verified_format = self._verify_image(temp_path)
-            extension = _EXTENSION_BY_VERIFIED_FORMAT.get(verified_format)
-            if extension is None:
+            if verified_format not in EXTENSION_BY_VERIFIED_FORMAT:
                 raise UnsupportedFileTypeError(
                     f"Unsupported image format '{verified_format}'. Allowed formats: JPEG, PNG, WEBP."
                 )
-
-            final_filename = f"{uuid.uuid4().hex}{extension}"
-            final_path = self._uploads_dir / final_filename
-            temp_path.rename(final_path)
-            return final_filename, str(final_path)
-        except (FileTooLargeError, UnsupportedFileTypeError):
-            temp_path.unlink(missing_ok=True)
-            raise
+            return temp_path, verified_format
         except Exception:
             temp_path.unlink(missing_ok=True)
             raise
@@ -87,29 +81,6 @@ class UploadService:
                 "The uploaded file is not a valid JPEG, PNG, or WebP image."
             ) from exc
 
-    def resolve_path(self, filename: str) -> Path | None:
-        """Resolves a stored filename to its path, rejecting any attempt at traversal."""
-        if not filename or "/" in filename or "\\" in filename:
-            return None
-        candidate = (self._uploads_dir / filename).resolve()
-        if candidate.parent != self._uploads_dir.resolve():
-            return None
-        if not candidate.exists():
-            return None
-        return candidate
-
-    def delete(self, filename: str) -> bool:
-        """Best-effort deletion of a stored file. Returns True if deletion succeeded."""
-        path = self.resolve_path(filename)
-        if path is None:
-            return False
-        try:
-            path.unlink()
-            return True
-        except OSError:
-            return False
-
-    def image_url(self, filename: str | None) -> str | None:
-        if not filename:
-            return None
-        return f"/uploads/{filename}"
+    @staticmethod
+    def cleanup(temp_path: Path) -> None:
+        temp_path.unlink(missing_ok=True)

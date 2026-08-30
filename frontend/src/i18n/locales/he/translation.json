@@ -71,7 +71,12 @@
     "editTitle": "עריכת הוצאה",
     "deleteTitle": "מחיקת הוצאה",
     "deleteConfirm": "האם אתם בטוחים שברצונכם למחוק את <bold>{{name}}</bold>? לא ניתן לבטל פעולה זו.",
-    "saveChanges": "שמירת שינויים"
+    "saveChanges": "שמירת שינויים",
+    "viewReceipt": "צפייה בקבלה",
+    "viewReceiptAction": "צפייה בקבלה של {{name}}",
+    "viewReceiptTitle": "קבלה של {{name}}",
+    "receiptImageAlt": "תמונת קבלה של {{name}}",
+    "receiptImageUnavailable": "לא ניתן היה לטעון את תמונת הקבלה. ייתכן שפג תוקפה או שהוסרה."
   },
   "addExpense": {
     "title": "הוספת הוצאה",

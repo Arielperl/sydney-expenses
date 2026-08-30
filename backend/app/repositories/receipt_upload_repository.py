@@ -10,8 +10,12 @@ class ReceiptUploadRepository:
     def __init__(self, db: Session):
         self._db = db
 
-    def create_pending(self, stored_filename: str) -> ReceiptUpload:
-        upload = ReceiptUpload(stored_filename=stored_filename, status=ReceiptUploadStatus.PENDING)
+    def create_pending(self, stored_filename: str, storage_provider: str) -> ReceiptUpload:
+        upload = ReceiptUpload(
+            stored_filename=stored_filename,
+            storage_provider=storage_provider,
+            status=ReceiptUploadStatus.PENDING,
+        )
         self._db.add(upload)
         self._db.commit()
         self._db.refresh(upload)

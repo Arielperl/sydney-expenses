@@ -48,6 +48,7 @@ class Expense(Base):
     expense_date: Mapped[date] = mapped_column(Date, nullable=False)
     payment_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
     receipt_image_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    storage_provider: Mapped[str | None] = mapped_column(String(32), nullable=True, server_default="local")
     extraction_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     extraction_status: Mapped[ExtractionStatus] = mapped_column(
         Enum(ExtractionStatus, native_enum=False), nullable=False, default=ExtractionStatus.MANUAL

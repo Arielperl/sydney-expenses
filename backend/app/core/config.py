@@ -34,6 +34,43 @@ class Settings(BaseSettings):
     ollama_max_retries: int = 2
     tesseract_languages: str = "heb+eng"
 
+    # Receipt image storage provider. "local" (default) writes to uploads_dir on
+    # disk and needs no external credentials — the safe default for a fresh clone
+    # and for the automated test suite. "supabase" stores images in a private
+    # Supabase Storage bucket, served back to the frontend only via freshly
+    # generated, time-limited signed URLs (never a permanent public URL).
+    storage_provider: Literal["local", "supabase"] = "local"
+    supabase_url: str | None = None
+    supabase_secret_key: str | None = None
+    supabase_storage_bucket: str | None = None
+    supabase_signed_url_ttl_seconds: int = 3600
+
+
+class StorageConfigurationError(RuntimeError):
+    """Raised at startup when STORAGE_PROVIDER=supabase but required Supabase
+    configuration is missing. Deliberately fails fast rather than silently
+    falling back to local storage, so a misconfigured deployment never
+    surprises an operator by writing receipts to an ephemeral local disk."""
+
+
+def validate_storage_settings(settings: Settings) -> None:
+    if settings.storage_provider != "supabase":
+        return
+    missing = [
+        name
+        for name, value in (
+            ("SUPABASE_URL", settings.supabase_url),
+            ("SUPABASE_SECRET_KEY", settings.supabase_secret_key),
+            ("SUPABASE_STORAGE_BUCKET", settings.supabase_storage_bucket),
+        )
+        if not value
+    ]
+    if missing:
+        raise StorageConfigurationError(
+            "STORAGE_PROVIDER=supabase requires the following environment "
+            f"variable(s) to be set: {', '.join(missing)}."
+        )
+
 
 @lru_cache
 def get_settings() -> Settings:

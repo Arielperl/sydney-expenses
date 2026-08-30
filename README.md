@@ -8,7 +8,7 @@ Receiptly is a local-first, AI-ready receipt and expense manager with a provider
 
 ## Status
 
-**Hardened MVP with two pluggable real-AI extraction providers.** The complete flow — manual expense entry, receipt upload, extraction (mock, local, or OpenAI), confirmation, storage, and dashboard reporting — runs end-to-end locally, in Hebrew (default) or English, with decimal-safe money handling and a real image-validated upload pipeline.
+**Hardened MVP with two pluggable real-AI extraction providers and provider-independent receipt image storage.** The complete flow — manual expense entry, receipt upload, extraction (mock, local, or OpenAI), confirmation, image storage (local disk or private Supabase Storage), and dashboard reporting — runs end-to-end, in Hebrew (default) or English, with decimal-safe money handling and a real image-validated upload pipeline.
 
 ## Tech stack
 
@@ -37,6 +37,7 @@ receiptly/  (repository: sydney-expenses)
 │   │   ├── models/       SQLAlchemy ORM models (Expense, ReceiptUpload)
 │   │   ├── schemas/       Pydantic request/response models (Decimal money)
 │   │   ├── services/extraction/  ReceiptExtractor interface, mock + local (Ollama/Tesseract) + OpenAI providers
+│   │   ├── services/storage/     ReceiptStorage interface, local-disk + Supabase Storage providers
 │   │   ├── services/      Business logic (uploads, dashboard, receipt lifecycle)
 │   │   ├── repositories/  Database access layer
 │   │   └── database.py
@@ -44,7 +45,7 @@ receiptly/  (repository: sydney-expenses)
 │   ├── scripts/          cleanup_uploads.py — expires stale pending uploads
 │   ├── evaluation/        Manual accuracy-evaluation CLI (see its own README)
 │   ├── tests/            pytest suite
-│   └── uploads/          Locally stored receipt images (gitignored)
+│   └── uploads/          Locally stored receipt images when STORAGE_PROVIDER=local (gitignored)
 ├── .env.example
 └── .gitignore
 ```
@@ -156,6 +157,38 @@ The mode badge is fed by `GET /api/system/capabilities` — a safe endpoint that
 - *Badge stuck on "Demo mode" after switching provider* → the backend wasn't restarted, or `RECEIPT_EXTRACTOR_PROVIDER` isn't actually set in the environment the backend process reads from.
 - *Timeouts* → raise `OPENAI_TIMEOUT_SECONDS` / `OLLAMA_TIMEOUT_SECONDS` (a local 12B model is much slower than a hosted API — 120s is a reasonable starting point); transient failures (timeouts, connection errors, rate limits, 5xx) are retried up to `OPENAI_MAX_RETRIES`/`OLLAMA_MAX_RETRIES` times with backoff, non-transient errors (bad request, auth) are not retried.
 
+## Receipt image storage: local vs. Supabase
+
+Persisting the verified receipt image is behind the same kind of provider-independent interface as extraction — a `ReceiptStorage` abstraction ([base.py](backend/app/services/storage/base.py)) with two implementations, selected via `STORAGE_PROVIDER`:
+
+- **`local`** (default) — writes the verified image to `UPLOADS_DIR` on disk, served back by the API's own `/uploads/...` route. Needs no external credentials; this is what the automated test suite and a fresh clone use.
+- **`supabase`** — uploads the verified image to a **private** Supabase Storage bucket. The bucket must already exist with public access disabled (`SUPABASE_STORAGE_BUCKET`, default `receipts`); this app does not create or configure the bucket for you.
+
+**How images move through the app, regardless of provider:** an upload is first streamed to a local temp file and verified with Pillow exactly as before — nothing provider-specific happens yet. That same local temp file is then (a) handed to the configured storage provider to persist permanently, and (b) handed to the configured extraction provider for OCR/vision analysis. Extraction always reads the local temp file directly, even when the storage provider is `supabase` — this is what lets `local` extraction mode (Tesseract/Ollama) keep working unmodified no matter which storage backend is configured. The temp file is deleted in a `finally` block once both steps are done, whether they succeeded or failed.
+
+**Private bucket, signed URLs only:** the Supabase provider never calls `get_public_url` and the bucket is never made public. Only a stable **object key** (a random, server-generated name, never the original filename) is persisted in the database — never a URL, and never the service key. Every time the API returns a receipt image URL to the frontend (on upload, confirm, list, or get), it generates a **fresh, time-limited signed URL** on the spot via `create_signed_url` (TTL configured by `SUPABASE_SIGNED_URL_TTL_SECONDS`, default 1 hour); a signed URL is never cached or persisted, so it can't go stale in the database even though it does expire in the browser. If a signed URL happens to expire before the user views it (e.g. a long-open browser tab), the frontend's receipt-image view (`ReceiptImage` component) catches the `<img>` load failure and shows a plain-text fallback instead of a broken-image icon — the underlying data is never lost, only that one preview.
+
+**Storage provider is recorded per record, not read from current config:** both `Expense` and `ReceiptUpload` store their own `storage_provider` column, set at the time they were created. This means a receipt uploaded while `STORAGE_PROVIDER=local` keeps resolving through local disk even after the app is reconfigured to `supabase`, and vice versa — switching providers is never destructive to existing data. Pre-existing rows (from before this column existed) are backfilled to `local` by the Alembic migration.
+
+**Failure handling:** if the Supabase upload itself fails (network, auth, bucket misconfigured), `POST /api/receipts/upload` returns a clear `503` and no `ReceiptUpload` row is created — the user can still add the expense manually (no receipt), which never touches storage. If generating a signed URL fails for an existing record, the API returns `null` for that image URL rather than an error — the expense itself is unaffected. Deleting an expense **always** deletes the database row first and only then best-effort deletes the underlying storage object (local file or Supabase object); a storage-delete failure is logged as a warning and never blocks or reverts the database deletion — this matches the pre-existing local-only behavior and means a Supabase outage can never prevent a user from deleting an expense.
+
+**Enabling Supabase Storage:**
+
+1. In your Supabase project, create a **private** Storage bucket (public access disabled). Optionally set a max file size (10 MB matches this app's own upload limit) and restrict allowed MIME types to `image/jpeg`, `image/png`, `image/webp`.
+2. In `backend/.env` (never commit this file):
+   ```bash
+   STORAGE_PROVIDER=supabase
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_SECRET_KEY=...        # the service/secret key — never the anon/public key
+   SUPABASE_STORAGE_BUCKET=receipts
+   SUPABASE_SIGNED_URL_TTL_SECONDS=3600   # optional, default shown
+   ```
+   **Security warning:** `SUPABASE_SECRET_KEY` bypasses Row Level Security and can read/write the entire project's storage (and database, if reused elsewhere) — treat it exactly like a database superuser password. It is never logged, printed, sent to the frontend, or included in any API response; only the backend process ever reads it.
+3. Restart the backend. If `STORAGE_PROVIDER=supabase` but any of the three required variables above is missing, the app **fails fast at startup** with a clear error rather than silently falling back to local disk or degrading at request time.
+4. Run the Alembic migration (`alembic upgrade head`) against whichever database you're using — the new `storage_provider` column applies to both SQLite and Postgres.
+
+**Real end-to-end smoke test:** because mocked tests can't catch a real bucket misconfiguration, this project's own verification included a real (non-mocked) run against a live Supabase Storage bucket, using the actual `backend/.env` credentials: confirmed the bucket exists and is private, uploaded a synthetic test image, verified the object exists in the bucket, generated a signed URL and fetched it back (byte-for-byte match), deleted the object, and confirmed it was gone — leaving zero objects and zero database rows behind. To rerun this yourself, write a small script that constructs `SupabaseReceiptStorage(get_settings())` directly and exercises `store()` / `get_viewable_url()` / `delete()` against your own bucket; do not add such a script to the committed test suite, since it requires real credentials and network access.
+
 ## Prerequisites
 
 - Python 3.10+
@@ -234,12 +267,13 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - **Dashboard** — monthly total, comparison to last month, category breakdown chart, recent expenses, empty states.
 - **Expenses** — search, filter by category/date, edit, delete.
 - **Add expense** — manual entry with validation.
-- **Upload receipt** — drop an image, review the extracted fields (mock, local, or OpenAI, shown by the mode badge), confirm and save.
+- **Upload receipt** — drop an image, review the extracted fields (mock, local, or OpenAI, shown by the mode badge), confirm and save. The receipt image is stored locally or in Supabase Storage depending on `STORAGE_PROVIDER`, transparently to this flow.
 - **Language switcher** (top right) — toggle between עברית and English at any time.
+- **View receipt** (Expenses list) — appears only for expenses that have a receipt image; opens it in a modal via a freshly generated URL. Gracefully falls back to a text message if the image fails to load (e.g. an expired signed URL).
 
 ## Verification performed
 
-- `pytest` (backend, 112 tests) — expense validation (including currency normalization, VAT-vs-amount, non-finite rejection), CRUD API, decimal-precision dashboard math (e.g. `0.10 + 0.20 + 0.30 == 0.60` exactly), mock extraction, **OpenAI extractor tests against a fake/mocked client** and **local (Ollama/Tesseract) extractor tests against a fake HTTP client and mocked OCR** (provider selection for all three modes, missing-key/missing-model config errors with no key leakage, valid-response mapping, nullable/partial fields, invalid category/date/currency/VAT-vs-total handling, bounded timeout and transient-error retries, non-transient errors not retried, malformed output, Hebrew/English OCR text reaching the model prompt, Tesseract-failure image-only fallback, extraction failure still allows manual entry, no expense saved during extraction itself, sensitive OCR content never appearing in logs), real image-format verification (spoofed content type / corrupted file rejection), streamed oversized-upload rejection with no partial file left behind, `/system/capabilities` reporting for all three modes, and the full receipt-upload lifecycle (duplicate confirmation, missing/expired upload, orphan cleanup, expense deletion with safe file-cleanup-failure handling). All passing. **No real OpenAI API call and no real Ollama/Tesseract call was made in any automated test** — every local- and OpenAI-provider test injects a fake HTTP client and/or mocked OCR function.
+- `pytest` (backend, 141 tests) — expense validation (including currency normalization, VAT-vs-amount, non-finite rejection), CRUD API, decimal-precision dashboard math (e.g. `0.10 + 0.20 + 0.30 == 0.60` exactly), mock extraction, **OpenAI extractor tests against a fake/mocked client** and **local (Ollama/Tesseract) extractor tests against a fake HTTP client and mocked OCR** (provider selection for all three modes, missing-key/missing-model config errors with no key leakage, valid-response mapping, nullable/partial fields, invalid category/date/currency/VAT-vs-total handling, bounded timeout and transient-error retries, non-transient errors not retried, malformed output, Hebrew/English OCR text reaching the model prompt, Tesseract-failure image-only fallback, extraction failure still allows manual entry, no expense saved during extraction itself, sensitive OCR content never appearing in logs), real image-format verification (spoofed content type / corrupted file rejection), streamed oversized-upload rejection with no partial file left behind, `/system/capabilities` reporting for all three modes, and the full receipt-upload lifecycle (duplicate confirmation, missing/expired upload, orphan cleanup, expense deletion with safe file-cleanup-failure handling). All passing. **No real OpenAI API call and no real Ollama/Tesseract call was made in any automated test** — every local- and OpenAI-provider test injects a fake HTTP client and/or mocked OCR function.
 - A fresh temporary SQLite database built entirely via `alembic upgrade head` (no `create_all` involved), and an application import/startup check in mock mode, a safe missing-key check in `openai` mode, and a safe Ollama-unreachable check in `local` mode (pointed at a port nothing listens on) — all degrade to a clear extraction failure with manual entry still available, never a crash.
 - The evaluation CLI (`evaluation/evaluate_receipts.py`) run in `--dry-run` mode against a real generated test image (mock provider, no network).
 - **A real local smoke test was performed** — genuinely running Ollama 0.33.2 + `gemma3:12b` + Tesseract 5.5.3 (`heb`+`eng`) on this machine, with no OpenAI key configured and no OpenAI code path reachable:
@@ -251,6 +285,14 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - Alembic migrations and create/read/update/delete operations were verified against a live Supabase PostgreSQL database; local development still defaults to SQLite when `DATABASE_URL` is not configured.
 - Manual end-to-end verification in-browser (mock mode for the UI walkthrough): Hebrew RTL layout, switch to English/LTR, manual add, receipt upload → extraction → confirm → save, duplicate-confirmation attempt, edit, delete with image cleanup, dashboard totals/percentage-change/category chart, and mobile viewport in both languages. The local-mode UI (badge, Ollama-unavailable banner) was verified live against the real local stack described above.
 - **Not performed:** a live request to the real OpenAI API. The `openai` provider is verified end-to-end against a scripted fake client, not against the real service — do not treat it as field-verified until you've run it with a real key.
+- **Receipt storage (`local` and `supabase` providers)**, added alongside the existing extraction/upload work above:
+  - New `pytest` coverage (included in the 141 total): local storage store/random-names/delete/traversal-rejection, Supabase storage store/random-names/signed-URL-generation/delete against a fake Supabase client (never real credentials), every `StorageApiError` status code correctly translated to the right typed exception, the secret key never appearing in any exception message or log, `build_storage`/config-validation behavior, an invalid image never reaching a storage call at all, a `503` (and no DB row created) when storage itself fails, non-blocking expense-deletion cleanup when storage raises, and pre-existing records without an explicit `storage_provider` correctly backfilling to `local`.
+  - `alembic upgrade head` run successfully against **both** a fresh temporary SQLite database and the live Supabase PostgreSQL database (adding the new `storage_provider` column to `expenses` and `receipt_uploads`); downgrade/re-upgrade also verified on SQLite.
+  - **A real, non-mocked smoke test against the live Supabase Storage bucket** using the actual `backend/.env` credentials (never printed or logged): confirmed the bucket exists and is private, uploaded a synthetic test image, verified the object in the bucket, generated a signed URL and fetched it back with a byte-for-byte match, deleted the object, and confirmed removal — see "Real end-to-end smoke test" above.
+  - A real HTTP-level end-to-end run against the actual running backend (`STORAGE_PROVIDER=supabase`, live Supabase Postgres): upload → signed-URL image → confirm → view → delete, all via real requests, no mocks.
+  - Live browser verification: uploaded a real (synthetic, non-personal) receipt image through the actual UI, reviewed and confirmed it, opened it via the new "View receipt" action in both Hebrew/RTL and English/LTR, confirmed the image renders from a genuine Supabase signed URL, then forced the `<img>` to a broken URL and confirmed the graceful text fallback (no broken-image icon, no crash) renders correctly in both languages; also checked the mobile-width expense list layout.
+  - Confirmed no test data was left behind: zero rows in `expenses`/`receipt_uploads` and zero objects in the Supabase bucket after all of the above.
+  - `npm test`/`tsc -b`/`oxlint`/`npm run build` all re-run and passing with the new `ReceiptImage` component and "View receipt" action included.
 
 ## Security and reliability notes
 
@@ -259,8 +301,9 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - Stored filenames are always server-generated from the verified image format — the original filename/extension is discarded, which also rules out path traversal.
 - Money (`amount`, `vat_amount`) is stored as SQL `Numeric(12, 2)` and handled as Python `Decimal` throughout — dashboard aggregation never uses binary floating-point arithmetic.
 - Receipt uploads are tracked through an explicit lifecycle (`pending` → `confirmed`/`expired`/`failed`); confirmation is atomic, so replaying a confirmation request can never create a duplicate expense.
-- Deleting an expense best-effort removes its receipt image; a file-deletion failure is logged and never corrupts the database state.
-- API responses never include the server's absolute file path, only a relative `/uploads/...` URL.
+- Deleting an expense best-effort removes its receipt image (local file or Supabase object); a deletion failure is logged and never corrupts the database state or blocks the expense deletion itself.
+- API responses never include the server's absolute file path or a permanent storage URL — only a relative `/uploads/...` path (local provider) or a freshly generated, time-limited signed URL (Supabase provider), regenerated on every response and never persisted.
+- In `supabase` mode, the bucket is always private; the app never calls `get_public_url`, and `SUPABASE_SECRET_KEY` is read only by the backend process — it is never sent to the frontend, logged, or included in any API response or error message (verified in tests, including with a deliberately failing fake client whose error message contains the fake secret).
 - Only a verified, already-uploaded file inside the configured uploads directory is ever sent to any extraction provider (local or OpenAI) — the client cannot supply an arbitrary filesystem path.
 - CORS is restricted to the configured frontend origin (`http://localhost:5173` by default).
 - No secrets are hardcoded; all configuration is read from environment variables via `.env` (see `.env.example`). The OpenAI API key is never logged, printed, or included in any API response.
@@ -270,9 +313,9 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 ## What's next
 
 - Run a real, field-labeled accuracy evaluation of both the local and OpenAI providers against a representative set of real (not synthetic) photographed receipts, and record actual numbers here — including a same-receipt-set comparison between the two.
-- Add authentication if the app moves beyond single-user local use.
-- Move receipt images from local disk to cloud object storage before deploying the backend beyond a single machine; PostgreSQL/Supabase database support is already in place.
+- Add authentication if the app moves beyond single-user local use — this also applies to Supabase Storage: the bucket is accessed only via the service key from the backend, so there is currently no per-user access control on receipt images, matching the app's existing single-user model.
 - Code-split the frontend bundle (currently a single ~270 KB gzipped chunk, flagged by the Vite build but not a functional issue at this scale).
+- **Remaining storage/deployment gaps:** this app does not create or configure the Supabase bucket itself (do that once, manually, before setting `STORAGE_PROVIDER=supabase`); there's no automated retry/backoff around Supabase Storage calls the way there is for the OpenAI/Ollama extractors (a transient network blip surfaces as an immediate `503` rather than being retried); and there's no background job to catch and clean up an object that finishes uploading to Supabase but whose `ReceiptUpload` row fails to commit afterward (an extremely narrow window, and no such case has been observed, but it isn't explicitly reconciled).
 
 ## Commands reference
 

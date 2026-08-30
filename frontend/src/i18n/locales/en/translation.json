@@ -71,7 +71,12 @@
     "editTitle": "Edit expense",
     "deleteTitle": "Delete expense",
     "deleteConfirm": "Are you sure you want to delete <bold>{{name}}</bold>? This cannot be undone.",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "viewReceipt": "View receipt",
+    "viewReceiptAction": "View receipt for {{name}}",
+    "viewReceiptTitle": "Receipt for {{name}}",
+    "receiptImageAlt": "Receipt image for {{name}}",
+    "receiptImageUnavailable": "This receipt image could not be loaded. It may have expired or been removed."
   },
   "addExpense": {
     "title": "Add expense",

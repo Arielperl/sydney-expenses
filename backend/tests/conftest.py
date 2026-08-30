@@ -8,6 +8,13 @@ import pytest
 _TEST_DIR = Path(tempfile.mkdtemp(prefix="receiptly-test-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DIR / 'test.db'}"
 os.environ["UPLOADS_DIR"] = str(_TEST_DIR / "uploads")
+# The test suite must never depend on real Supabase credentials, even when the
+# developer's own backend/.env is configured for STORAGE_PROVIDER=supabase.
+# Tests that exercise SupabaseReceiptStorage do so against a fake client instead.
+os.environ["STORAGE_PROVIDER"] = "local"
+# Likewise, never let a developer's own RECEIPT_EXTRACTOR_PROVIDER (e.g. "local" or
+# "openai") leak into the suite — tests that want a specific provider set it explicitly.
+os.environ["RECEIPT_EXTRACTOR_PROVIDER"] = "mock"
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402

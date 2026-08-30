@@ -5,9 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
-from app.core.config import get_settings
+from app.core.config import get_settings, validate_storage_settings
 
 settings = get_settings()
+validate_storage_settings(settings)
 
 Path(settings.uploads_dir).mkdir(parents=True, exist_ok=True)
 

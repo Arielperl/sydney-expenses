@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { ExpenseList } from '../components/ExpenseList'
 import { Modal } from '../components/Modal'
+import { ReceiptImage } from '../components/ReceiptImage'
 import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
 import { inputClasses } from '../components/FormField'
 import { deleteExpense, listExpenses, updateExpense } from '../services/expenseService'
@@ -34,6 +35,7 @@ export function ExpensesPage() {
   const [dateTo, setDateTo] = useState('')
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
+  const [viewingReceiptExpense, setViewingReceiptExpense] = useState<Expense | null>(null)
 
   const queryClient = useQueryClient()
   const filters = { search, category, date_from: dateFrom, date_to: dateTo }
@@ -132,7 +134,24 @@ export function ExpensesPage() {
         <EmptyState title={t('expenses.emptyTitle')} description={t('expenses.emptyDescription')} />
       )}
       {!isLoading && !isError && data && data.length > 0 && (
-        <ExpenseList expenses={data} onEdit={setEditingExpense} onDelete={setDeletingExpense} />
+        <ExpenseList
+          expenses={data}
+          onEdit={setEditingExpense}
+          onDelete={setDeletingExpense}
+          onViewReceipt={setViewingReceiptExpense}
+        />
+      )}
+
+      {viewingReceiptExpense && viewingReceiptExpense.receipt_image_url && (
+        <Modal
+          title={t('expenses.viewReceiptTitle', { name: viewingReceiptExpense.business_name })}
+          onClose={() => setViewingReceiptExpense(null)}
+        >
+          <ReceiptImage
+            url={viewingReceiptExpense.receipt_image_url}
+            alt={t('expenses.receiptImageAlt', { name: viewingReceiptExpense.business_name })}
+          />
+        </Modal>
       )}
 
       {editingExpense && (

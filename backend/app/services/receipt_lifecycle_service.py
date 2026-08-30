@@ -5,10 +5,11 @@ from decimal import Decimal
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings
 from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
-from app.services.upload_service import UploadService
+from app.services.storage import StorageError, build_storage
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ def confirm_receipt_upload(
             payment_method=payment_method,
             notes=notes,
             receipt_image_path=claimed_upload.stored_filename,
+            storage_provider=claimed_upload.storage_provider,
             extraction_confidence=extraction_confidence,
             extraction_status=ExtractionStatus.CONFIRMED,
         )
@@ -92,40 +94,66 @@ def confirm_receipt_upload(
         raise
 
 
-def delete_expense_and_cleanup_receipt(db: Session, upload_service: UploadService, expense: Expense) -> bool:
+def delete_expense_and_cleanup_receipt(db: Session, settings: Settings, expense: Expense) -> bool:
     """Deletes an expense and best-effort removes its receipt image.
 
     The database delete always commits first; a failure to remove the underlying
-    file never leaves the database in an inconsistent state — it only leaves an
-    orphaned file on disk, which the cleanup job will not touch (it only targets
-    pending uploads), but which is harmless and can be cleared manually.
+    object (local file or Supabase object) never leaves the database in an
+    inconsistent state — it only leaves an orphaned object behind, which the
+    cleanup job will not touch (it only targets pending uploads), but which is
+    harmless and can be cleared manually. Storage failures are deliberately
+    non-blocking: a Supabase outage must never prevent a user from deleting an
+    expense.
     """
-    receipt_filename = expense.receipt_image_path
+    receipt_key = expense.receipt_image_path
+    provider = expense.storage_provider or "local"
     db.execute(update(ReceiptUpload).where(ReceiptUpload.expense_id == expense.id).values(expense_id=None))
     db.delete(expense)
     db.commit()
 
-    if not receipt_filename:
+    if not receipt_key:
         return True
 
-    deleted = upload_service.delete(receipt_filename)
+    try:
+        storage = build_storage(provider, settings)
+        deleted = storage.delete(receipt_key)
+    except StorageError as exc:
+        logger.warning(
+            "Failed to delete receipt object '%s' (provider=%s) for a removed expense: %s",
+            receipt_key,
+            provider,
+            exc,
+        )
+        return False
     if not deleted:
-        logger.warning("Failed to delete receipt image file '%s' for a removed expense.", receipt_filename)
+        logger.warning(
+            "Failed to delete receipt object '%s' (provider=%s) for a removed expense.", receipt_key, provider
+        )
     return deleted
 
 
-def cleanup_expired_uploads(db: Session, upload_service: UploadService, older_than_hours: int) -> int:
-    """Marks stale pending uploads as expired and removes their orphaned files.
+def cleanup_expired_uploads(db: Session, settings: Settings, older_than_hours: int) -> int:
+    """Marks stale pending uploads as expired and removes their orphaned objects.
 
-    Only ever deletes files resolved through UploadService.resolve_path, which
-    guarantees the path stays inside the configured uploads directory.
+    Best-effort: a storage failure while cleaning up one stale upload is logged
+    and never prevents the others from being marked expired.
     """
     cutoff = datetime.utcnow() - timedelta(hours=older_than_hours)
     repository = ReceiptUploadRepository(db)
     stale_uploads = repository.list_pending_older_than(cutoff)
 
     for upload in stale_uploads:
-        upload_service.delete(upload.stored_filename)
+        provider = upload.storage_provider or "local"
+        try:
+            storage = build_storage(provider, settings)
+            storage.delete(upload.stored_filename)
+        except StorageError as exc:
+            logger.warning(
+                "Failed to delete expired receipt object '%s' (provider=%s): %s",
+                upload.stored_filename,
+                provider,
+                exc,
+            )
         upload.status = ReceiptUploadStatus.EXPIRED
 
     db.commit()

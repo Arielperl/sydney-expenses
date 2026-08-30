@@ -5,6 +5,7 @@ from app.services.extraction.base import ReceiptExtractor
 from app.services.extraction.local_extractor import LocalReceiptExtractor
 from app.services.extraction.mock import MockReceiptExtractor
 from app.services.extraction.openai_extractor import OpenAIReceiptExtractor
+from app.services.storage import get_receipt_storage, resolve_receipt_image_url  # noqa: F401 - re-exported
 from app.services.upload_service import UploadService
 
 

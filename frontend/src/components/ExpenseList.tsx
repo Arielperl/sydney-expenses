@@ -8,10 +8,12 @@ export function ExpenseList({
   expenses,
   onEdit,
   onDelete,
+  onViewReceipt,
 }: {
   expenses: Expense[]
   onEdit: (expense: Expense) => void
   onDelete: (expense: Expense) => void
+  onViewReceipt: (expense: Expense) => void
 }) {
   const { t, i18n } = useTranslation()
 
@@ -55,6 +57,16 @@ export function ExpenseList({
               </td>
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-2">
+                  {expense.receipt_image_url && (
+                    <button
+                      type="button"
+                      onClick={() => onViewReceipt(expense)}
+                      className="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                      aria-label={t('expenses.viewReceiptAction', { name: expense.business_name })}
+                    >
+                      {t('expenses.viewReceipt')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onEdit(expense)}

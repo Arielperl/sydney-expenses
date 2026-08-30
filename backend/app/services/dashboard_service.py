@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.expense import Expense
 from app.schemas.dashboard import CategoryTotal, DashboardStats
 from app.schemas.expense import expense_to_read
-from app.services.upload_service import UploadService
+from app.services.storage import resolve_receipt_image_url
 
 TWO_PLACES = Decimal("0.01")
 
@@ -37,7 +37,7 @@ def _sum_decimal(values: list[Decimal]) -> Decimal:
     return _round_money(sum(values, Decimal("0")))
 
 
-def build_dashboard_stats(db: Session, upload_service: UploadService, today: date | None = None) -> DashboardStats:
+def build_dashboard_stats(db: Session, today: date | None = None) -> DashboardStats:
     today = today or date.today()
     current_start, current_end = _month_bounds(today.year, today.month)
     prev_year, prev_month = _previous_month(today.year, today.month)
@@ -72,7 +72,8 @@ def build_dashboard_stats(db: Session, upload_service: UploadService, today: dat
         select(Expense).order_by(Expense.expense_date.desc(), Expense.created_at.desc()).limit(5)
     ).all()
     recent_expenses = [
-        expense_to_read(expense, upload_service.image_url(expense.receipt_image_path)) for expense in recent
+        expense_to_read(expense, resolve_receipt_image_url(expense.storage_provider, expense.receipt_image_path))
+        for expense in recent
     ]
 
     return DashboardStats(

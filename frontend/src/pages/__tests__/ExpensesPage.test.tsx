@@ -108,4 +108,48 @@ describe('ExpensesPage', () => {
     // column count that squeezes any one field.
     expect(filterCard!.className).toContain('flex-wrap')
   })
+
+  it('shows a "view receipt" action only when the expense has a receipt image', async () => {
+    const withReceipt = makeExpense({ id: 'expense-1', receipt_image_url: 'https://fake.supabase.co/signed?token=x' })
+
+    server.use(http.get(EXPENSES_URL, () => HttpResponse.json([withReceipt])))
+    renderWithProviders(<ExpensesPage />)
+
+    await waitFor(() => expect(screen.getByText('Shufersal')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /צפייה בקבלה/ })).toBeInTheDocument()
+  })
+
+  it('does not show a "view receipt" action when the expense has no receipt image', async () => {
+    const withoutReceipt = makeExpense({ id: 'expense-1', receipt_image_url: null })
+
+    server.use(http.get(EXPENSES_URL, () => HttpResponse.json([withoutReceipt])))
+    renderWithProviders(<ExpensesPage />)
+
+    await waitFor(() => expect(screen.getByText('Shufersal')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /צפייה בקבלה/ })).not.toBeInTheDocument()
+  })
+
+  it('opens the receipt image in a modal, and falls back gracefully if the signed URL is broken', async () => {
+    const user = userEvent.setup()
+    const withReceipt = makeExpense({ id: 'expense-1', receipt_image_url: 'https://fake.supabase.co/signed?token=expired' })
+
+    server.use(http.get(EXPENSES_URL, () => HttpResponse.json([withReceipt])))
+    renderWithProviders(<ExpensesPage />)
+
+    await waitFor(() => expect(screen.getByText('Shufersal')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /צפייה בקבלה/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const image = within(dialog).getByRole('img')
+    expect(image).toHaveAttribute('src', withReceipt.receipt_image_url)
+
+    // Simulate an expired/broken signed URL: the browser fires onError, and the
+    // page must show a text fallback instead of a broken image icon.
+    image.dispatchEvent(new Event('error'))
+
+    await waitFor(() =>
+      expect(within(dialog).getByText(/לא ניתן היה לטעון את תמונת הקבלה/)).toBeInTheDocument(),
+    )
+    expect(within(dialog).queryByRole('img')).not.toBeInTheDocument()
+  })
 })
