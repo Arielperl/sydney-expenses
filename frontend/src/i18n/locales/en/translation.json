@@ -17,7 +17,8 @@
     "exampleQuestion1": "How much did I sell this month?",
     "exampleQuestion2": "Who is my biggest customer?",
     "exampleQuestion3": "How do sales trend by month?",
-    "errorMessage": "Couldn't get an answer right now, please try again."
+    "errorMessage": "Couldn't get an answer right now, please try again.",
+    "thinking": "Thinking..."
   },
   "language": {
     "switcherLabel": "Language",

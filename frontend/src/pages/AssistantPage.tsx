@@ -66,19 +66,43 @@ export function AssistantPage() {
             </div>
           </div>
         ) : (
-          messages.map((msg, index) => (
-            <div key={index} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-              <p
-                className={
-                  msg.role === 'user'
-                    ? 'max-w-[80%] rounded-lg bg-brand-600 px-3 py-2 text-sm text-white'
-                    : 'max-w-[80%] rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-900 dark:bg-stone-800 dark:text-stone-100'
-                }
-              >
-                {msg.content}
-              </p>
-            </div>
-          ))
+          <>
+            {messages.map((msg, index) => (
+              <div key={index} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                <p
+                  className={
+                    msg.role === 'user'
+                      ? 'max-w-[80%] rounded-lg bg-brand-600 px-3 py-2 text-sm text-white'
+                      : 'max-w-[80%] rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                  }
+                >
+                  {msg.content}
+                </p>
+              </div>
+            ))}
+            {isSending && (
+              <div className="flex justify-start">
+                <div
+                  role="status"
+                  aria-label={t('assistant.thinking')}
+                  className="flex items-center gap-1 rounded-lg bg-stone-100 px-3 py-2.5 dark:bg-stone-800"
+                >
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
+                    style={{ animationDelay: '300ms' }}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
         {error && <p className="text-sm text-danger-700 dark:text-danger-400">{error}</p>}
       </div>

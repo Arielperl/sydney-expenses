@@ -17,7 +17,8 @@
     "exampleQuestion1": "כמה מכרתי החודש?",
     "exampleQuestion2": "מי הלקוח הכי גדול שלי?",
     "exampleQuestion3": "איך המכירות משתנות לפי חודש?",
-    "errorMessage": "לא הצלחתי לענות כרגע, נסה שוב."
+    "errorMessage": "לא הצלחתי לענות כרגע, נסה שוב.",
+    "thinking": "חושב..."
   },
   "language": {
     "switcherLabel": "שפה",

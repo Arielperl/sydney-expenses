@@ -54,4 +54,25 @@ describe('AssistantPage', () => {
       expect(screen.getByText('תשובה')).toBeInTheDocument()
     })
   })
+
+  it('shows a thinking indicator while waiting for the reply, then hides it', async () => {
+    server.use(
+      http.post(CHAT_URL, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        return HttpResponse.json({ reply: 'תשובה סופית' })
+      }),
+    )
+    const user = userEvent.setup()
+    renderWithProviders(<AssistantPage />)
+
+    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'כמה מכרתי?')
+    await user.click(screen.getByRole('button', { name: 'שלח' }))
+
+    expect(screen.getByRole('status', { name: 'חושב...' })).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('תשובה סופית')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('status', { name: 'חושב...' })).not.toBeInTheDocument()
+  })
 })
