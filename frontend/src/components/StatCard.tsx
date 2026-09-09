@@ -19,9 +19,9 @@ export function StatCard({
   const isDecrease = hasChange && changePercent! < 0
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <p className="text-sm font-medium text-stone-500 dark:text-stone-400">{label}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100">
         {formatCurrency(amount, currency, i18n.language)}
       </p>
       {hasChange && (
@@ -29,10 +29,10 @@ export function StatCard({
           className={[
             'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
             isIncrease
-              ? 'bg-danger-50 text-danger-700'
+              ? 'bg-danger-500/10 text-danger-700 dark:text-danger-400'
               : isDecrease
-                ? 'bg-success-50 text-success-700'
-                : 'bg-slate-100 text-slate-600',
+                ? 'bg-success-500/10 text-success-700 dark:text-success-400'
+                : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
           ].join(' ')}
         >
           {isIncrease ? '▲' : isDecrease ? '▼' : '–'} {Math.abs(changePercent!).toFixed(1)}%{' '}

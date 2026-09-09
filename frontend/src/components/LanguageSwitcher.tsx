@@ -72,7 +72,7 @@ export function LanguageSwitcher() {
         aria-expanded={isOpen}
         aria-label={t('language.changeLanguage')}
         title={t('language.changeLanguage')}
-        className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+        className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 bg-white text-stone-600 shadow-sm transition-colors hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
       >
         <Globe className="h-4 w-4" aria-hidden="true" />
       </button>
@@ -81,7 +81,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t('language.switcherLabel')}
-          className="absolute end-0 z-20 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute end-0 z-20 mt-2 w-40 overflow-hidden rounded-md border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         >
           {SUPPORTED_LANGUAGES.map((language, index) => {
             const isSelected = currentLanguage === language
@@ -99,12 +99,14 @@ export function LanguageSwitcher() {
                 onClick={() => selectLanguage(language)}
                 onKeyDown={(event) => handleOptionKeyDown(event, index)}
                 className={[
-                  'flex w-full items-center justify-between gap-2 px-3 py-2 text-sm transition-colors focus:outline-none focus:bg-slate-100',
-                  isSelected ? 'font-medium text-brand-700' : 'text-slate-700 hover:bg-slate-100',
+                  'flex w-full items-center justify-between gap-2 px-3 py-2 text-sm transition-colors focus:outline-none focus:bg-stone-100 dark:focus:bg-stone-800',
+                  isSelected
+                    ? 'font-medium text-brand-700 dark:text-brand-400'
+                    : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800',
                 ].join(' ')}
               >
                 <span>{t(`language.${LABEL_KEY[language]}`)}</span>
-                {isSelected && <Check className="h-4 w-4 text-brand-600" aria-hidden="true" />}
+                {isSelected && <Check className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />}
               </button>
             )
           })}
