@@ -62,7 +62,7 @@ export function ThemeSwitcher() {
         <div
           role="listbox"
           aria-label={t('theme.switcherLabel')}
-          className="absolute end-0 z-20 mt-2 w-40 overflow-hidden rounded-md border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+          className="absolute end-0 bottom-full z-20 mb-2 w-40 overflow-hidden rounded-md border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         >
           {MODES.map((option) => {
             const isSelected = mode === option
