@@ -63,10 +63,22 @@ class Settings(BaseSettings):
     # "thinking"-style model can be cut off mid-JSON before ever reaching a
     # valid closing brace if the output token budget is too small (observed:
     # Ollama's default max output length truncated a receipt's warnings list
-    # before the required fields even finished). A larger budget costs more
-    # generation time, not memory, so this is a smaller tradeoff than
-    # ollama_num_ctx.
-    ollama_num_predict: int = 2048
+    # before the required fields even finished).
+    #
+    # Sized against ollama_timeout_seconds, not just picked generously: gemma3:12b
+    # was measured generating at a steady ~12 tokens/second on this hardware (see
+    # README "Local model choice"). At the previous default of 2048, a request that
+    # actually needed the full budget took ~170s to reach it — LONGER than the
+    # 120s client timeout below, so a request that should have failed cleanly (a
+    # truncated-but-returned response) instead always hit a network timeout first,
+    # got retried up to ollama_max_retries times, and could take 6+ minutes to
+    # finally give up. 768 tokens (~64s of generation, leaving real margin for
+    # image encoding and prompt processing within the 120s budget) is far more
+    # than any real, successful extraction has ever needed, while ensuring a
+    # response that genuinely can't converge (observed for real on a specific
+    # image, deterministically reproducible) fails via a fast, clean token-cap
+    # truncation instead of a slow multi-attempt timeout cascade.
+    ollama_num_predict: int = 768
     # Used instead of ollama_num_ctx/ollama_num_predict when the deterministic
     # OCR/spatial parser has already confidently resolved every factual field
     # (receipt_number, date, total, vat, currency) and the model is asked only
@@ -85,7 +97,7 @@ class Settings(BaseSettings):
     # why only num_predict is reduced here, never num_ctx. See README "Local
     # model choice" for the measured latency this produced.
     ollama_num_ctx_fast: int = 16384
-    ollama_num_predict_fast: int = 1024
+    ollama_num_predict_fast: int = 512
     # Deterministic sampling: temperature=0 always picks the highest-probability
     # token, and a fixed seed makes that choice reproducible run-to-run on the
     # same input — both were previously left unset (Ollama's own per-model

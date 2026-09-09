@@ -269,7 +269,12 @@ def test_upload_with_misconfigured_openai_provider_still_saves_the_file_and_allo
     from tests.conftest import VALID_PNG_BYTES
 
     monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "openai")
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    # An empty override, not delenv: delenv only removes the process env var,
+    # but Settings also reads backend/.env directly (env_file=...), so a real
+    # key configured there for local development would still be picked up —
+    # setting it explicitly to "" is what actually simulates "not configured"
+    # regardless of what a developer's own .env happens to contain.
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     get_settings.cache_clear()
     _get_receipt_extractor.cache_clear()
     try:

@@ -47,6 +47,8 @@ def build_extractor(provider: str, dry_run: bool, model_override: str | None = N
         # In-memory override only — never touches .env or any persisted config,
         # so an A/B model comparison never leaves the process that ran it.
         settings = settings.model_copy(update={"ollama_receipt_model": model_override})
+    elif model_override and provider == "openai":
+        settings = settings.model_copy(update={"openai_receipt_model": model_override})
     if provider == "local":
         return LocalReceiptExtractor(settings)
     return OpenAIReceiptExtractor(settings)
