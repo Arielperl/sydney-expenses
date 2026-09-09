@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Sun } from 'lucide-react'
+import { Check, Moon, Sun, SunMoon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,7 +7,7 @@ import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
 const MODE_ICON: Record<ThemeMode, typeof Sun> = {
   light: Sun,
   dark: Moon,
-  system: Monitor,
+  system: SunMoon,
 }
 
 const MODES: ThemeMode[] = ['light', 'dark', 'system']
