@@ -4,7 +4,19 @@
     "expenses": "הוצאות",
     "addExpense": "הוספת הוצאה",
     "uploadReceipt": "העלאת קבלה",
+    "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי"
+  },
+  "assistant": {
+    "title": "עוזר AI",
+    "subtitle": "שאל שאלות על הנתונים העסקיים שלך",
+    "inputPlaceholder": "שאל שאלה...",
+    "send": "שלח",
+    "emptyTitle": "שאל אותי משהו על העסק שלך",
+    "exampleQuestion1": "כמה מכרתי החודש?",
+    "exampleQuestion2": "מי הלקוח הכי גדול שלי?",
+    "exampleQuestion3": "איך המכירות משתנות לפי חודש?",
+    "errorMessage": "לא הצלחתי לענות כרגע, נסה שוב."
   },
   "language": {
     "switcherLabel": "שפה",

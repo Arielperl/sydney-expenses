@@ -4,7 +4,19 @@
     "expenses": "Expenses",
     "addExpense": "Add expense",
     "uploadReceipt": "Upload receipt",
+    "assistant": "AI Assistant",
     "mainNavigation": "Main navigation"
+  },
+  "assistant": {
+    "title": "AI Assistant",
+    "subtitle": "Ask questions about your business data",
+    "inputPlaceholder": "Ask a question...",
+    "send": "Send",
+    "emptyTitle": "Ask me something about your business",
+    "exampleQuestion1": "How much did I sell this month?",
+    "exampleQuestion2": "Who is my biggest customer?",
+    "exampleQuestion3": "How do sales trend by month?",
+    "errorMessage": "Couldn't get an answer right now, please try again."
   },
   "language": {
     "switcherLabel": "Language",
