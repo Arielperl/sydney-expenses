@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/expenses', key: 'expenses', end: false },
   { to: '/add-expense', key: 'addExpense', end: false },
   { to: '/upload-receipt', key: 'uploadReceipt', end: false },
+  { to: '/assistant', key: 'assistant', end: false },
 ] as const
 
 function navLinkClasses(isActive: boolean): string {

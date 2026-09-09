@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 import { Layout } from './components/Layout'
 import { AddExpensePage } from './pages/AddExpensePage'
+import { AssistantPage } from './pages/AssistantPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ExpensesPage } from './pages/ExpensesPage'
 import { UploadReceiptPage } from './pages/UploadReceiptPage'
@@ -15,6 +16,7 @@ function App() {
           <Route path="expenses" element={<ExpensesPage />} />
           <Route path="add-expense" element={<AddExpensePage />} />
           <Route path="upload-receipt" element={<UploadReceiptPage />} />
+          <Route path="assistant" element={<AssistantPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
