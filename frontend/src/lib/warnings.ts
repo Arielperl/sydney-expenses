@@ -2,6 +2,9 @@ export type WarningGroup = 'recovered' | 'review' | 'attention'
 
 const REVIEW_SUFFIX = '_conflicting_sources'
 const RECOVERED_SUFFIX = '_from_ocr'
+// Codes that don't share the _from_ocr suffix but represent the same kind of
+// "filled in from a secondary signal, worth a glance" informational warning.
+const RECOVERED_CODES = new Set(['category_from_merchant_name'])
 
 /** Groups a warning code by what it's actually telling the user, so a long
  * flat list of codes doesn't read as one undifferentiated block of noise:
@@ -12,7 +15,7 @@ const RECOVERED_SUFFIX = '_from_ocr'
  * - "attention": nothing could be determined for this field at all. */
 export function classifyWarning(code: string): WarningGroup {
   if (code.endsWith(REVIEW_SUFFIX)) return 'review'
-  if (code.endsWith(RECOVERED_SUFFIX)) return 'recovered'
+  if (code.endsWith(RECOVERED_SUFFIX) || RECOVERED_CODES.has(code)) return 'recovered'
   return 'attention'
 }
 

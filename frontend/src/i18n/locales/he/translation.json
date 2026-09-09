@@ -119,6 +119,7 @@
       "total_not_confident": "הסכום הכולל לא זוהה בביטחון מספיק ונותר ריק.",
       "date_not_confident": "התאריך לא זוהה בביטחון מספיק ונותר ריק.",
       "category_not_confident": "הקטגוריה לא זוהתה בביטחון מספיק ונקבעה כ'אחר'.",
+      "category_from_merchant_name": "קטגוריה",
       "ocr_unavailable": "זיהוי טקסט מקומי (OCR) לא היה זמין עבור תמונה זו; החילוץ התבסס על התמונה בלבד.",
       "business_name_from_ocr": "שם העסק",
       "receipt_number_from_ocr": "מספר קבלה",

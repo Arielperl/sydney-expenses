@@ -25,6 +25,7 @@ KNOWN_WARNING_CODES = {
     "total_not_confident",
     "vat_amount_not_confident",
     "category_not_confident",
+    "category_from_merchant_name",
     "ocr_unavailable",
     "business_name_from_ocr",
     "receipt_number_from_ocr",

@@ -8,7 +8,13 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # An absolute path, not ".env" — a relative path here resolves against the
+    # process's OS working directory, which does not always match backend/
+    # (e.g. when uvicorn is launched from the repo root with --app-dir backend,
+    # as .claude/launch.json does). That mismatch used to fail silently: no
+    # .env was found, so every setting silently fell back to its code default
+    # (mock extraction, default CORS origins) with no error at all.
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Receiptly API"
     database_url: str = f"sqlite:///{BACKEND_DIR / 'receiptly.db'}"
@@ -29,9 +35,66 @@ class Settings(BaseSettings):
     openai_max_retries: int = 2
 
     ollama_base_url: str = "http://localhost:11434"
+    # Re-evaluated after making local extraction deterministic-first (most
+    # factual fields now come from the OCR/spatial parser, not the vision
+    # model — see local_extractor.py): on the same private 4-receipt
+    # manifest, gemma3:12b and qwen3-vl:8b now produce IDENTICAL field-level
+    # accuracy (receipt_number 67%, date 75%, total 100%, vat 75%, currency
+    # 100%, category 50%, exact-match 1/4 for both), since the fields that
+    # used to differentiate them are largely parser-resolved for both models
+    # alike. With accuracy equal, gemma3:12b is preferred for its materially
+    # lower latency (~30s vs ~62s average on this manifest). Still fully
+    # configurable — set OLLAMA_RECEIPT_MODEL=qwen3-vl:8b to use the other.
     ollama_receipt_model: str = "gemma3:12b"
     ollama_timeout_seconds: float = 120.0
     ollama_max_retries: int = 2
+    # Explicitly requested rather than left at each model's own Ollama
+    # default: some vision models default to a small context window (observed:
+    # 4096 tokens) that overflows once the original photo, the enhanced
+    # image, and the full instruction/OCR-hint prompt are all included —
+    # the request fails outright (HTTP 400) rather than degrading gracefully.
+    # A larger context window uses more RAM/VRAM while the model is loaded.
+    # A tall receipt photo (crop-corrected, then upscaled to the target OCR
+    # width) plus the full instruction/OCR-hint prompt was observed to need
+    # more than 8192 tokens for at least one real receipt — 16384 is a
+    # deliberate middle ground, not the largest possible value.
+    ollama_num_ctx: int = 16384
+    # Also explicit rather than left at Ollama's own default: a verbose
+    # "thinking"-style model can be cut off mid-JSON before ever reaching a
+    # valid closing brace if the output token budget is too small (observed:
+    # Ollama's default max output length truncated a receipt's warnings list
+    # before the required fields even finished). A larger budget costs more
+    # generation time, not memory, so this is a smaller tradeoff than
+    # ollama_num_ctx.
+    ollama_num_predict: int = 2048
+    # Used instead of ollama_num_ctx/ollama_num_predict when the deterministic
+    # OCR/spatial parser has already confidently resolved every factual field
+    # (receipt_number, date, total, vat, currency) and the model is asked only
+    # for the two remaining semantic fields (business_name, category) — a much
+    # smaller JSON schema that reliably completes in far less generation time
+    # for a well-behaved model. Verified empirically (not guessed) against a
+    # real receipt before being set: gemma3:12b completes reliably in ~12s at
+    # these values, but a *reduced context window* specifically was measured
+    # to make qwen3-vl:8b's "thinking" behavior hang for 180s+ rather than
+    # degrade gracefully on the same request — a materially worse outcome
+    # than the full path, and the reason ollama_num_ctx_fast is kept equal to
+    # ollama_num_ctx (no reduction) rather than also shrunk. A too-small
+    # ollama_num_predict_fast is a *safer* failure mode (a parse error,
+    # automatically retried once at the full budget — see
+    # LocalReceiptExtractor.extract) than a hung/timed-out request, which is
+    # why only num_predict is reduced here, never num_ctx. See README "Local
+    # model choice" for the measured latency this produced.
+    ollama_num_ctx_fast: int = 16384
+    ollama_num_predict_fast: int = 1024
+    # Deterministic sampling: temperature=0 always picks the highest-probability
+    # token, and a fixed seed makes that choice reproducible run-to-run on the
+    # same input — both were previously left unset (Ollama's own per-model
+    # defaults), which is a real source of the run-to-run field-level variance
+    # observed on identical inputs (see README). Configurable rather than
+    # hardcoded so a specific deployment can restore sampling if it ever needs
+    # to (e.g. to compare against non-deterministic output).
+    ollama_temperature: float = 0.0
+    ollama_seed: int = 42
     tesseract_languages: str = "heb+eng"
 
     # Receipt image storage provider. "local" (default) writes to uploads_dir on

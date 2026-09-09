@@ -39,12 +39,17 @@ def _field_matches(expected: object, actual: object) -> bool:
     return _normalize(expected) == _normalize(actual)
 
 
-def build_extractor(provider: str, dry_run: bool):
+def build_extractor(provider: str, dry_run: bool, model_override: str | None = None):
     if dry_run or provider == "mock":
         return MockReceiptExtractor()
+    settings = get_settings()
+    if model_override and provider == "local":
+        # In-memory override only — never touches .env or any persisted config,
+        # so an A/B model comparison never leaves the process that ran it.
+        settings = settings.model_copy(update={"ollama_receipt_model": model_override})
     if provider == "local":
-        return LocalReceiptExtractor(get_settings())
-    return OpenAIReceiptExtractor(get_settings())
+        return LocalReceiptExtractor(settings)
+    return OpenAIReceiptExtractor(settings)
 
 
 def _actual_fields(result) -> dict:
@@ -68,6 +73,12 @@ def main() -> int:
         "--dry-run", action="store_true", help="Force the mock provider regardless of --provider (no API calls)"
     )
     parser.add_argument("--max-files", type=int, default=10, help="Maximum receipts to process (controls API cost)")
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Override OLLAMA_RECEIPT_MODEL for this run only (provider=local), e.g. --model qwen3-vl:8b. "
+        "Never written to .env or any persisted config.",
+    )
     args = parser.parse_args()
 
     manifest = json.loads(Path(args.manifest).read_text())
@@ -76,14 +87,17 @@ def main() -> int:
         print("No receipts in manifest.")
         return 0
 
-    extractor = build_extractor(args.provider, args.dry_run)
+    extractor = build_extractor(args.provider, args.dry_run, args.model)
     effective_provider = "mock" if args.dry_run else args.provider
-    print(f"Evaluating {len(receipts)} receipt(s) with provider={effective_provider}\n")
+    model_note = f" model={args.model}" if args.model and effective_provider == "local" else ""
+    print(f"Evaluating {len(receipts)} receipt(s) with provider={effective_provider}{model_note}\n")
 
     field_correct = dict.fromkeys(FIELDS, 0)
     field_total = dict.fromkeys(FIELDS, 0)
     failures = 0
     durations: list[float] = []
+    exact_matches = 0
+    scored_receipts = 0
 
     for entry in receipts:
         filename = entry["filename"]
@@ -105,14 +119,21 @@ def main() -> int:
         durations.append(duration)
 
         actual = _actual_fields(result)
+        receipt_all_correct = True
         for field in FIELDS:
             if field not in expected:
                 continue
             field_total[field] += 1
             if _field_matches(expected[field], actual[field]):
                 field_correct[field] += 1
+            else:
+                receipt_all_correct = False
 
-        print(f"  OK   {filename} ({duration:.2f}s)")
+        scored_receipts += 1
+        if receipt_all_correct:
+            exact_matches += 1
+
+        print(f"  OK   {filename} ({duration:.2f}s){'  [exact match]' if receipt_all_correct else ''}")
 
     print("\nField-level accuracy:")
     for field in FIELDS:
@@ -121,6 +142,9 @@ def main() -> int:
             continue
         accuracy = field_correct[field] / total
         print(f"  {field:<15} {field_correct[field]}/{total} ({accuracy:.0%})")
+
+    if scored_receipts:
+        print(f"\nExact-match receipts (every expected field correct): {exact_matches}/{scored_receipts}")
 
     if durations:
         avg = sum(durations) / len(durations)

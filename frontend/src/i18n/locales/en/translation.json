@@ -119,6 +119,7 @@
       "total_not_confident": "The total amount could not be read confidently and was left blank.",
       "date_not_confident": "The date could not be read confidently and was left blank.",
       "category_not_confident": "The category could not be determined confidently and was set to Other.",
+      "category_from_merchant_name": "Category",
       "ocr_unavailable": "Local text recognition (OCR) was unavailable for this image; extraction relied on the image alone.",
       "business_name_from_ocr": "Business name",
       "receipt_number_from_ocr": "Receipt number",

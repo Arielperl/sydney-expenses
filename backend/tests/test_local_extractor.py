@@ -6,13 +6,59 @@ import pytest
 
 from app.api.deps import get_receipt_extractor
 from app.core.config import get_settings
+from app.services.extraction.document_geometry import DocumentDetection
 from app.services.extraction.exceptions import (
     ReceiptExtractionParsingError,
     ReceiptExtractionProviderError,
     ReceiptExtractionTimeoutError,
 )
-from app.services.extraction.local_extractor import LocalReceiptExtractor
+from app.services.extraction.local_extractor import LocalReceiptExtractor, _OcrExtractionResult
 from app.services.extraction.mock import MockReceiptExtractor
+
+
+def _fake_image_to_data(text: str) -> dict:
+    """Builds a fake pytesseract.image_to_data()-shaped DICT output from a
+    plain multi-line string, splitting each line into words (increasing left
+    position per word) — a reasonable synthetic stand-in for real OCR word
+    boxes, sufficient for these end-to-end prompt/logging tests."""
+    data: dict[str, list] = {
+        "level": [],
+        "block_num": [],
+        "par_num": [],
+        "line_num": [],
+        "word_num": [],
+        "left": [],
+        "top": [],
+        "width": [],
+        "height": [],
+        "conf": [],
+        "text": [],
+    }
+    for line_idx, line in enumerate(text.splitlines()):
+        if not line.strip():
+            continue
+        left = 0
+        for word_idx, token in enumerate(line.split(" ")):
+            if not token:
+                continue
+            width = len(token) * 10 + 8
+            data["level"].append(5)
+            data["block_num"].append(1)
+            data["par_num"].append(1)
+            data["line_num"].append(line_idx)
+            data["word_num"].append(word_idx)
+            data["left"].append(left)
+            data["top"].append(line_idx * 40)
+            data["width"].append(width)
+            data["height"].append(28)
+            data["conf"].append(90.0)
+            data["text"].append(token)
+            left += width + 15
+    return data
+
+
+class _FakeOutputEnum:
+    DICT = "dict"
 
 
 def _raw_json(**overrides) -> str:
@@ -31,10 +77,11 @@ def _raw_json(**overrides) -> str:
 
 
 class _FakeResponse:
-    def __init__(self, json_body=None, status_code=200, raw_text: str | None = None):
+    def __init__(self, json_body=None, status_code=200, raw_text: str | None = None, thinking: str | None = None):
         self._json_body = json_body
         self.status_code = status_code
         self._raw_text = raw_text
+        self._thinking = thinking
 
     def raise_for_status(self):
         if self.status_code >= 400:
@@ -43,6 +90,8 @@ class _FakeResponse:
             raise httpx.HTTPStatusError("error", request=request, response=response)
 
     def json(self):
+        if self._thinking is not None:
+            return {"response": self._raw_text or "", "thinking": self._thinking}
         if self._raw_text is not None:
             return {"response": self._raw_text}
         if self._json_body is None:
@@ -58,10 +107,20 @@ class _FakeHttpClient:
         self._behaviors = list(behaviors)
         self.call_count = 0
         self.last_payload = None
+        self.payloads: list[dict] = []
 
     def post(self, url, json=None):
+        # Snapshot, not a bare reference: real httpx serializes the payload
+        # to bytes on the wire immediately, so a caller mutating its own
+        # `payload` dict afterward (e.g. to retry with different options)
+        # must never retroactively change what an earlier call is recorded
+        # as having actually sent.
+        import copy as _copy
+
         self.call_count += 1
-        self.last_payload = json
+        snapshot = _copy.deepcopy(json)
+        self.last_payload = snapshot
+        self.payloads.append(snapshot)
         behavior = self._behaviors.pop(0)
         if isinstance(behavior, BaseException):
             raise behavior
@@ -95,7 +154,7 @@ def _valid_image(tmp_path):
 
 def _extractor_with_no_ocr(settings, client):
     extractor = LocalReceiptExtractor(settings, http_client=client)
-    extractor._run_ocr = lambda path: ("", [], None, None)  # bypass real Tesseract in unit tests
+    extractor._run_ocr = lambda path: _OcrExtractionResult()  # bypass real Tesseract in unit tests
     return extractor
 
 
@@ -142,7 +201,8 @@ def test_maps_a_valid_structured_response(tmp_path):
 
 def test_uses_json_schema_format_and_includes_image(tmp_path):
     client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
-    extractor = _extractor_with_no_ocr(_settings_with_local(), client)
+    settings = _settings_with_local(ollama_receipt_model="gemma3:12b")
+    extractor = _extractor_with_no_ocr(settings, client)
 
     extractor.extract(_dummy_image(tmp_path))
 
@@ -151,6 +211,16 @@ def test_uses_json_schema_format_and_includes_image(tmp_path):
     assert payload["stream"] is False
     assert "properties" in payload["format"]  # a real JSON schema, not free-form
     assert len(payload["images"]) == 1
+    assert payload["options"]["num_ctx"] > 0
+
+
+def test_num_ctx_is_configurable_and_sent_explicitly(tmp_path):
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = _extractor_with_no_ocr(_settings_with_local(ollama_num_ctx=16384), client)
+
+    extractor.extract(_dummy_image(tmp_path))
+
+    assert client.last_payload["options"]["num_ctx"] == 16384
 
 
 def test_currency_is_normalized_to_uppercase(tmp_path):
@@ -221,6 +291,23 @@ def test_empty_response_raises_parsing_error(tmp_path):
         extractor.extract(_dummy_image(tmp_path))
 
 
+def test_falls_back_to_thinking_field_when_response_is_empty(tmp_path):
+    """Some models (observed: qwen3-vl) route the structured JSON output
+    through Ollama's "thinking" field instead of "response" even with a JSON
+    `format` schema requested — this must not be treated as no output at all."""
+    client = _FakeHttpClient([_FakeResponse(thinking=_raw_json(total=42.5))])
+    extractor = _extractor_with_no_ocr(_settings_with_local(), client)
+    result = extractor.extract(_dummy_image(tmp_path))
+    assert result.total == Decimal("42.50")
+
+
+def test_num_predict_is_sent_explicitly(tmp_path):
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = _extractor_with_no_ocr(_settings_with_local(ollama_num_predict=4096), client)
+    extractor.extract(_dummy_image(tmp_path))
+    assert client.last_payload["options"]["num_predict"] == 4096
+
+
 # --- Ollama availability / timeout / retries ---------------------------------
 
 
@@ -279,9 +366,11 @@ def test_hebrew_and_english_ocr_text_is_included_in_the_prompt(tmp_path, monkeyp
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
+        def image_to_data(image, lang=None, config=None, output_type=None):
             assert lang == "heb+eng"
-            return "שופרסל\nTOTAL: 42.50"
+            return _fake_image_to_data("שופרסל\nTOTAL: 42.50")
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
@@ -299,8 +388,10 @@ def test_tesseract_failure_falls_back_to_image_only_extraction(tmp_path, monkeyp
 
     class _FailingPytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
+        def image_to_data(image, lang=None, config=None, output_type=None):
             raise RuntimeError("tesseract binary not found")
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FailingPytesseract)
 
@@ -320,8 +411,10 @@ def test_sensitive_ocr_content_is_not_logged(tmp_path, monkeypatch, caplog):
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
+        def image_to_data(image, lang=None, config=None, output_type=None):
             raise RuntimeError(secret_text)  # simulate an error that could embed OCR text
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
@@ -431,8 +524,10 @@ def test_parser_recovers_a_value_the_model_missed(tmp_path, monkeypatch):
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
-            return 'סה"כ לתשלום 60.50\nתאריך: 30/09/2013'
+        def image_to_data(image, lang=None, config=None, output_type=None):
+            return _fake_image_to_data('סה"כ לתשלום 60.50\nתאריך: 30/09/2013')
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
@@ -455,25 +550,238 @@ def test_parser_recovers_a_value_the_model_missed(tmp_path, monkeypatch):
     assert "60.5" in prompt
 
 
-def test_conflicting_model_and_parser_values_are_surfaced_as_a_warning(tmp_path, monkeypatch):
+def test_conflicting_model_and_medium_confidence_parser_value_lets_model_win(tmp_path, monkeypatch):
+    """A weakly-labeled (medium-confidence) parser match is still asked of
+    the model (unlike a high-confidence one — see the exclusion test below),
+    and when the two disagree the model's value wins, but the disagreement
+    is still surfaced as a warning rather than resolved silently."""
     import app.services.extraction.ocr_selection as ocr_selection_module
+
+    calls = {"n": 0}
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
-            return 'סה"כ לתשלום 60.50'
+        def image_to_data(image, lang=None, config=None, output_type=None):
+            # Only the first of the several bounded (variant, psm) attempts
+            # finds this weak-labeled total; the rest see nothing — this
+            # keeps the field at a genuine single-attempt "medium" confidence
+            # instead of being cross-attempt-upgraded to "high" by trivially
+            # agreeing with itself across every attempt (see
+            # parse_receipt_candidates' cross-validation).
+            calls["n"] += 1
+            return _fake_image_to_data('סה"כ 60.50' if calls["n"] == 1 else "")
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
-    # The model insists on a different total than the clearly labeled OCR match.
     client = _FakeHttpClient([_FakeResponse(json_body=_raw_json(total=999.00))])
     extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
 
     result = extractor.extract(_valid_image(tmp_path))
 
     assert "total_conflicting_sources" in result.warnings
-    # A high-confidence, clearly labeled parser match outranks the model here.
-    assert result.total == Decimal("60.50")
+    assert result.total == Decimal("999.00")
+
+
+def test_high_confidence_ocr_value_excludes_field_from_model_request_and_cannot_be_overwritten(tmp_path, monkeypatch):
+    """When the deterministic parser resolves a factual field with high
+    confidence, that field must be dropped from the model's response schema
+    entirely — not merely overridden after the fact — so a stochastic model
+    answer can never even be offered as a conflicting value for it. Uses
+    synthetic values structurally similar to a real receipt this task's
+    evaluation was measured against (never the real receipt itself)."""
+    import app.services.extraction.ocr_selection as ocr_selection_module
+
+    class _FakePytesseract:
+        @staticmethod
+        def image_to_data(image, lang=None, config=None, output_type=None):
+            return _fake_image_to_data(
+                "פלסטלינה\n"
+                "חשבונית מס' קבלה 3-379380\n"
+                "תאריך: 23/08/2026\n"
+                'סה"כ לתשלום 435.90\n'
+                'מע"מ 66.49\n'
+                "₪"
+            )
+
+        Output = _FakeOutputEnum
+
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
+
+    # The model's own (fake) answer deliberately disagrees with every
+    # high-confidence field, to prove those values are structurally ignored.
+    client = _FakeHttpClient(
+        [
+            _FakeResponse(
+                json_body=_raw_json(
+                    receipt_number="000000",
+                    date="2000-01-01",
+                    total=1.0,
+                    vat=1.0,
+                    currency="USD",
+                    business_name="Plastelina",
+                    category="shopping",
+                )
+            )
+        ]
+    )
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+
+    result = extractor.extract(_valid_image(tmp_path))
+
+    schema_fields = set(client.last_payload["format"]["properties"])
+    assert schema_fields == {"business_name", "category", "warnings"}
+
+    assert result.receipt_number == "3-379380"
+    assert result.date == __import__("datetime").date(2026, 8, 23)
+    assert result.total == Decimal("435.90")
+    assert result.vat == Decimal("66.49")
+    assert result.currency == "ILS"
+
+    for code in (
+        "receipt_number_conflicting_sources",
+        "date_conflicting_sources",
+        "total_conflicting_sources",
+        "vat_conflicting_sources",
+        "currency_conflicting_sources",
+    ):
+        assert code not in result.warnings
+    for code in ("receipt_number_from_ocr", "date_from_ocr", "total_from_ocr", "vat_from_ocr", "currency_from_ocr"):
+        assert code in result.warnings
+
+    # The fast num_ctx/num_predict budgets apply once every factual field is
+    # resolved, since the response schema is then much smaller too.
+    settings = extractor._settings
+    assert client.last_payload["options"]["num_ctx"] == settings.ollama_num_ctx_fast
+    assert client.last_payload["options"]["num_predict"] == settings.ollama_num_predict_fast
+
+
+def test_fast_path_falls_back_to_full_schema_and_budget_when_response_fails_to_parse(tmp_path, monkeypatch):
+    """A "thinking"-style model's reasoning overhead does not necessarily
+    shrink just because the requested schema did — observed for real to
+    still truncate a reduced-schema response even at a generous num_predict.
+    Rather than fail the whole extraction, a parse failure on the fast path
+    is retried once with the full schema/budget combination already
+    validated to work reliably (see README "Local model choice")."""
+    import app.services.extraction.ocr_selection as ocr_selection_module
+
+    class _FakePytesseract:
+        @staticmethod
+        def image_to_data(image, lang=None, config=None, output_type=None):
+            return _fake_image_to_data(
+                "פלסטלינה\n"
+                "חשבונית מס' קבלה 3-379380\n"
+                "תאריך: 23/08/2026\n"
+                'סה"כ לתשלום 435.90\n'
+                'מע"מ 66.49\n'
+                "₪"
+            )
+
+        Output = _FakeOutputEnum
+
+    monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
+
+    client = _FakeHttpClient(
+        [
+            _FakeResponse(raw_text='{"business_name": "trunc'),  # fast-path attempt: truncated JSON
+            # The retry's own (fake) total (184.90, _raw_json's default) deliberately
+            # disagrees with the OCR-resolved 435.90 — proving the wider retry schema
+            # still can never let the model override a high-confidence parser value.
+            _FakeResponse(json_body=_raw_json(business_name="Plastelina", category="shopping")),
+        ]
+    )
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+
+    result = extractor.extract(_valid_image(tmp_path))
+
+    assert client.call_count == 2
+    assert result.category == "shopping"
+    # The value itself is protected — the retry's differing (fake) total is
+    # never used — but the genuine disagreement is still surfaced, per the
+    # "preserve disagreement warnings" merge policy (merge.merge_field).
+    assert result.total == Decimal("435.90")
+    assert "total_conflicting_sources" in result.warnings
+
+    first_payload, second_payload = client.payloads[0], client.payloads[1]
+    settings = extractor._settings
+    assert first_payload["options"]["num_ctx"] == settings.ollama_num_ctx_fast
+    assert first_payload["options"]["num_predict"] == settings.ollama_num_predict_fast
+    assert second_payload["options"]["num_ctx"] == settings.ollama_num_ctx
+    assert second_payload["options"]["num_predict"] == settings.ollama_num_predict
+    # The retry widens the schema back to every factual field, not just the
+    # originally-unresolved ones — the combination already validated safe.
+    assert set(first_payload["format"]["properties"]) == {"business_name", "category", "warnings"}
+    assert set(second_payload["format"]["properties"]) == {
+        "receipt_number",
+        "date",
+        "total",
+        "vat",
+        "currency",
+        "business_name",
+        "category",
+        "warnings",
+    }
+
+
+def test_all_null_never_defaults_to_zero_or_today(tmp_path):
+    """Nothing resolved by OCR, and the model itself reports every factual
+    field as unknown — the result must stay null, never fall back to 0 or
+    today's date."""
+    client = _FakeHttpClient(
+        [_FakeResponse(json_body=_raw_json(receipt_number=None, date=None, total=None, vat=None))]
+    )
+    extractor = _extractor_with_no_ocr(_settings_with_local(), client)
+
+    result = extractor.extract(_dummy_image(tmp_path))
+
+    assert result.total is None
+    assert result.vat is None
+    assert result.date is None
+    assert result.receipt_number is None
+
+
+def test_deterministic_sampling_options_are_sent_explicitly(tmp_path):
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = _extractor_with_no_ocr(_settings_with_local(ollama_temperature=0.0, ollama_seed=7), client)
+
+    extractor.extract(_dummy_image(tmp_path))
+
+    assert client.last_payload["options"]["temperature"] == 0.0
+    assert client.last_payload["options"]["seed"] == 7
+
+
+def test_cropped_image_only_is_sent_when_crop_is_confident(tmp_path):
+    from PIL import Image
+
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+    cropped_image = Image.new("L", (20, 20), color=200)
+    extractor._run_ocr = lambda path: _OcrExtractionResult(
+        detection=DocumentDetection(cropped=True, confidence=0.5), vision_image=cropped_image
+    )
+
+    extractor.extract(_dummy_image(tmp_path))
+
+    assert len(client.last_payload["images"]) == 1
+    # Not the raw fake-bytes original — a real (encoded) cropped image instead.
+    import base64
+
+    assert base64.b64decode(client.last_payload["images"][0]) != b"fake-bytes"
+
+
+def test_falls_back_to_original_image_when_crop_is_not_confident(tmp_path):
+    client = _FakeHttpClient([_FakeResponse(json_body=_raw_json())])
+    extractor = LocalReceiptExtractor(_settings_with_local(), http_client=client)
+    extractor._run_ocr = lambda path: _OcrExtractionResult(detection=DocumentDetection(), vision_image=None)
+
+    image_path = _dummy_image(tmp_path)
+    extractor.extract(image_path)
+
+    assert len(client.last_payload["images"]) == 1
+    import base64
+
+    assert base64.b64decode(client.last_payload["images"][0]) == b"fake-bytes"
 
 
 def test_full_pipeline_never_logs_ocr_text_or_image_bytes(tmp_path, monkeypatch, caplog):
@@ -483,8 +791,10 @@ def test_full_pipeline_never_logs_ocr_text_or_image_bytes(tmp_path, monkeypatch,
 
     class _FakePytesseract:
         @staticmethod
-        def image_to_string(image, lang=None, config=None):
-            return sensitive_receipt_text
+        def image_to_data(image, lang=None, config=None, output_type=None):
+            return _fake_image_to_data(sensitive_receipt_text)
+
+        Output = _FakeOutputEnum
 
     monkeypatch.setattr(ocr_selection_module, "pytesseract", _FakePytesseract)
 
