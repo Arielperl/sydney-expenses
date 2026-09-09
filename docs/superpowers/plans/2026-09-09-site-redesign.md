@@ -857,18 +857,14 @@ export function Layout() {
       <div className="flex-1">
         <header className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 lg:hidden dark:border-stone-800 dark:bg-stone-900">
           <BrandMark />
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            <ThemeSwitcher />
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              aria-label={t('nav.openMenu')}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
-            >
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            aria-label={t('nav.openMenu')}
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
         </header>
 
         {isDrawerOpen && (
@@ -891,6 +887,10 @@ export function Layout() {
                 </button>
               </div>
               <NavLinks onNavigate={() => setIsDrawerOpen(false)} />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher />
+                <ThemeSwitcher />
+              </div>
             </div>
           </div>
         )}

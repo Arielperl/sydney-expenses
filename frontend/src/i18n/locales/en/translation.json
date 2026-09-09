@@ -5,7 +5,8 @@
     "addExpense": "Add expense",
     "uploadReceipt": "Upload receipt",
     "assistant": "AI Assistant",
-    "mainNavigation": "Main navigation"
+    "mainNavigation": "Main navigation",
+    "openMenu": "Open menu"
   },
   "assistant": {
     "title": "AI Assistant",

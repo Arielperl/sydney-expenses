@@ -5,7 +5,8 @@
     "addExpense": "הוספת הוצאה",
     "uploadReceipt": "העלאת קבלה",
     "assistant": "עוזר AI",
-    "mainNavigation": "ניווט ראשי"
+    "mainNavigation": "ניווט ראשי",
+    "openMenu": "פתיחת תפריט"
   },
   "assistant": {
     "title": "עוזר AI",
