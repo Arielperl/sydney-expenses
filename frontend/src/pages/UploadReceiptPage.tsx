@@ -21,9 +21,9 @@ import { groupWarnings, type WarningGroup } from '../lib/warnings'
 const INSUFFICIENT_EXTRACTION_THRESHOLD = 0.15
 
 const WARNING_GROUP_STYLES: Record<WarningGroup, string> = {
-  recovered: 'border-sky-400/40 bg-sky-50 text-sky-800',
-  review: 'border-amber-400/40 bg-amber-50 text-amber-800',
-  attention: 'border-slate-300 bg-slate-50 text-slate-600',
+  recovered: 'border-sky-400/40 bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300',
+  review: 'border-amber-400/40 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300',
+  attention: 'border-stone-300 bg-stone-50 text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400',
 }
 
 // An unrecognized amount/date must never be silently replaced with 0 or
@@ -132,16 +132,16 @@ export function UploadReceiptPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-slate-900">{t('uploadReceipt.title')}</h1>
+          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.title')}</h1>
           <ExtractionModeBadge />
         </div>
-        <p className="mt-1 text-sm text-slate-500">{t('uploadReceipt.subtitle')}</p>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('uploadReceipt.subtitle')}</p>
       </div>
 
       {showOllamaUnavailableWarning && (
         <div
           role="alert"
-          className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800"
+          className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
         >
           {t('uploadReceipt.errors.ollamaUnavailable')}
         </div>
@@ -150,46 +150,46 @@ export function UploadReceiptPage() {
       {showSuccess && (
         <div
           role="status"
-          className="rounded-lg border border-success-500/30 bg-success-50 p-3 text-sm text-success-700"
+          className="rounded-lg border border-success-500/30 bg-success-50 p-3 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400"
         >
           {t('uploadReceipt.successMessage')}
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
         <ReceiptDropzone onFileSelected={handleFileSelected} previewUrl={previewUrl} />
       </div>
 
       {uploadMutation.isPending && <LoadingState label={t('uploadReceipt.analyzing')} />}
 
       {uploadMutation.isError && (
-        <div role="alert" className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-sm text-danger-700">
+        <div role="alert" className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-400">
           <p className="font-semibold">{t('uploadReceipt.uploadFailedTitle')}</p>
           <p className="mt-1">{toApiError(uploadMutation.error).message}</p>
         </div>
       )}
 
       {uploadResult && !uploadResult.extraction_succeeded && (
-        <div className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           <p className="font-semibold">{t('uploadReceipt.extractionFailedTitle')}</p>
           <p className="mt-1">{t('uploadReceipt.extractionFailedBody')}</p>
         </div>
       )}
 
       {uploadResult && uploadResult.extraction_succeeded && isInsufficientExtraction && (
-        <div className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           <p className="font-semibold">{t('uploadReceipt.insufficientExtractionTitle')}</p>
           <p className="mt-1">{t('uploadReceipt.insufficientExtractionBody')}</p>
         </div>
       )}
 
       {uploadResult && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-900">{t('uploadReceipt.reviewAndConfirm')}</h2>
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.reviewAndConfirm')}</h2>
             {typeof confidence === 'number' && !isInsufficientExtraction && (
               <span
-                className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700"
+                className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
                 title={t('uploadReceipt.qualityScoreExplanation')}
               >
                 {t('uploadReceipt.qualityScore', { value: Math.round(confidence * 100) })}
@@ -215,7 +215,7 @@ export function UploadReceiptPage() {
           {confirmError && (
             <div
               role="alert"
-              className="mb-4 rounded-lg border border-danger-500/30 bg-danger-50 p-3 text-sm text-danger-700"
+              className="mb-4 rounded-lg border border-danger-500/30 bg-danger-50 p-3 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-400"
             >
               <p>{confirmErrorTranslationKey ? t(confirmErrorTranslationKey) : confirmError.message}</p>
               {confirmErrorTranslationKey === 'uploadReceipt.errors.alreadyConfirmed' && (

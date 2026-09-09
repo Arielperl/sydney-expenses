@@ -75,11 +75,11 @@ export function ExpensesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">{t('expenses.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('expenses.subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('expenses.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('expenses.subtitle')}</p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap">
+      <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap dark:border-stone-800 dark:bg-stone-900">
         <div className="min-w-0 sm:flex-[2_2_240px]">
           <label htmlFor="search" className="sr-only">
             {t('expenses.searchLabel')}
@@ -168,7 +168,7 @@ export function ExpensesPage() {
 
       {deletingExpense && (
         <Modal title={t('expenses.deleteTitle')} onClose={() => setDeletingExpense(null)}>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-stone-600 dark:text-stone-400">
             <Trans
               i18nKey="expenses.deleteConfirm"
               values={{ name: deletingExpense.business_name }}
@@ -184,7 +184,7 @@ export function ExpensesPage() {
             <button
               type="button"
               onClick={() => setDeletingExpense(null)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
             >
               {t('common.cancel')}
             </button>

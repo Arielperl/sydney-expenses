@@ -31,8 +31,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">{t('dashboard.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('dashboard.subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.title')}</h1>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('dashboard.subtitle')}</p>
       </div>
 
       {!hasAnyExpenses ? (
@@ -49,7 +49,7 @@ export function DashboardPage() {
               </Link>
               <Link
                 to="/upload-receipt"
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
               >
                 {t('nav.uploadReceipt')}
               </Link>
@@ -69,32 +69,32 @@ export function DashboardPage() {
           </div>
 
           {data.totals_by_category.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">{t('dashboard.spendingByCategory')}</h2>
-              <p className="text-sm text-slate-500">{t('dashboard.currentMonth')}</p>
+            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.spendingByCategory')}</h2>
+              <p className="text-sm text-stone-500 dark:text-stone-400">{t('dashboard.currentMonth')}</p>
               <div className="mt-4">
                 <CategoryChart data={data.totals_by_category} currency={currency} />
               </div>
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <h2 className="text-base font-semibold text-slate-900">{t('dashboard.recentExpenses')}</h2>
-              <Link to="/expenses" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          <div className="rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-stone-800">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.recentExpenses')}</h2>
+              <Link to="/expenses" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
                 {t('dashboard.viewAll')}
               </Link>
             </div>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-stone-100 dark:divide-stone-800">
               {data.recent_expenses.map((expense) => (
                 <li key={expense.id} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{expense.business_name}</p>
-                    <p className="text-xs text-slate-500">{formatDate(expense.expense_date, i18n.language)}</p>
+                    <p className="truncate font-medium text-stone-900 dark:text-stone-100">{expense.business_name}</p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">{formatDate(expense.expense_date, i18n.language)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <CategoryBadge category={expense.category} />
-                    <span className="font-medium text-slate-900">
+                    <span className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
                       {formatCurrency(expense.amount, expense.currency, i18n.language)}
                     </span>
                   </div>
