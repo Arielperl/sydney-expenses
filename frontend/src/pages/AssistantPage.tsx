@@ -42,7 +42,7 @@ export function AssistantPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[70vh] max-w-2xl flex-col">
+    <div className="flex h-[70vh] flex-col">
       <div>
         <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('assistant.title')}</h1>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('assistant.subtitle')}</p>
