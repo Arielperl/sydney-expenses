@@ -24,6 +24,13 @@
     "hebrew": "Hebrew",
     "english": "English"
   },
+  "theme": {
+    "switcherLabel": "Theme",
+    "changeTheme": "Change theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "common": {
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong",

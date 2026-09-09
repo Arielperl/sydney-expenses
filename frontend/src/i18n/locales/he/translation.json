@@ -24,6 +24,13 @@
     "hebrew": "עברית",
     "english": "אנגלית"
   },
+  "theme": {
+    "switcherLabel": "מצב תצוגה",
+    "changeTheme": "שינוי מצב תצוגה",
+    "light": "בהיר",
+    "dark": "כהה",
+    "system": "לפי המערכת"
+  },
   "common": {
     "loading": "טוען...",
     "somethingWentWrong": "משהו השתבש",
