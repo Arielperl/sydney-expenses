@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     openai_receipt_model: str | None = None
     openai_timeout_seconds: float = 30.0
     openai_max_retries: int = 2
+    # Separate from openai_receipt_model: the assistant chat is a text/tool-calling
+    # task, never vision, so it always uses the cheaper mini model regardless of
+    # which (possibly more expensive) model OPENAI_RECEIPT_MODEL is set to.
+    openai_assistant_model: str = "gpt-4o-mini"
 
     ollama_base_url: str = "http://localhost:11434"
     # Re-evaluated after making local extraction deterministic-first (most
