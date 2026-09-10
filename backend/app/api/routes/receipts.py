@@ -100,6 +100,8 @@ async def upload_receipt(
             ",".join(_missing_required_fields(extracted)) or "none",
         )
 
+        upload_repository.save_extraction(pending_upload, extracted)
+
         match_outcome = apply_match_result(db, pending_upload, extracted)
         logger.info(
             "receipt_reconciliation decision=%s upload_id=%s expense_id=%s",

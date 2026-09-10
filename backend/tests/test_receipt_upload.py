@@ -42,6 +42,26 @@ def test_upload_accepts_valid_png(client):
     assert body["upload_id"]
 
 
+def test_upload_persists_extraction_snapshot_on_the_receipt_upload_row(client, db_session):
+    response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    body = response.json()
+    extracted = body["extracted_data"]
+
+    upload = db_session.get(ReceiptUpload, body["upload_id"])
+    assert upload is not None
+    assert upload.extracted_business_name == extracted["business_name"]
+    assert upload.extracted_receipt_number == extracted["receipt_number"]
+    assert str(upload.extracted_date) == extracted["date"]
+    assert str(upload.extracted_total) == extracted["total"]
+    assert upload.extracted_currency == extracted["currency"]
+    assert upload.extracted_category.value == extracted["category"]
+    assert upload.extraction_confidence == extracted["confidence"]
+    assert upload.extraction_warnings == extracted["warnings"]
+
+
 def test_upload_rejects_unsupported_content_type(client):
     response = client.post(
         "/api/receipts/upload",
