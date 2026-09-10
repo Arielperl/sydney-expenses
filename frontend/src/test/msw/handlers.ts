@@ -8,6 +8,10 @@ export const emptyDashboardStats = {
   percentage_change: null,
   totals_by_category: [],
   recent_expenses: [],
+  missing_documents_count: 0,
+  missing_documents_total: '0.00',
+  matches_awaiting_confirmation_count: 0,
+  document_attachment_rate: null,
 }
 
 export function makeExpense(overrides: Record<string, unknown> = {}) {
@@ -25,6 +29,14 @@ export function makeExpense(overrides: Record<string, unknown> = {}) {
     receipt_image_url: null,
     extraction_confidence: null,
     extraction_status: 'manual',
+    source: 'manual',
+    external_id: null,
+    source_provider: null,
+    raw_description: null,
+    occurred_at: null,
+    document_status: 'not_required',
+    reconciliation_confidence: null,
+    reconciliation_reasons: null,
     created_at: '2026-08-20T10:00:00',
     updated_at: '2026-08-20T10:00:00',
     ...overrides,

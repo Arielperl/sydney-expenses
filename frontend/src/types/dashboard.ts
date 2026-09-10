@@ -11,4 +11,8 @@ export interface DashboardStats {
   percentage_change: number | null
   totals_by_category: CategoryTotal[]
   recent_expenses: Expense[]
+  missing_documents_count: number
+  missing_documents_total: number | string
+  matches_awaiting_confirmation_count: number
+  document_attachment_rate: number | null
 }

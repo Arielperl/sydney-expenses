@@ -12,12 +12,26 @@ export interface ExtractedReceiptData {
   warnings: string[]
 }
 
+export interface MatchCandidate {
+  expense_id: string
+  business_name: string
+  amount: number | string
+  currency: string
+  expense_date: string
+  score: number
+  reasons: string[]
+}
+
 export interface ReceiptUploadResponse {
   upload_id: string
   receipt_image_url: string
   extraction_succeeded: boolean
   extracted_data: ExtractedReceiptData | null
   error_message: string | null
+  auto_matched: boolean
+  matched_expense_id: string | null
+  match_reasons: string[]
+  suggested_match: MatchCandidate | null
 }
 
 export interface ReceiptConfirmInput {
