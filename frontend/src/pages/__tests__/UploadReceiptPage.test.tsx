@@ -464,4 +464,88 @@ describe('UploadReceiptPage', () => {
     expect(screen.queryByText('some_unrecognized_free_text_warning_from_the_model')).not.toBeInTheDocument()
     expect(screen.getByText('לא ניתן היה לזהות חלק מהפרטים בביטחון מספיק.')).toBeInTheDocument()
   })
+
+  it('shows an auto-matched confirmation instead of the confirm form when a high-confidence match was found', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          ...successfulExtraction,
+          auto_matched: true,
+          matched_expense_id: 'expense-1',
+          match_reasons: ['same_amount', 'date_same_day'],
+        }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('הקבלה צורפה אוטומטית לעסקה קיימת')
+    expect(screen.queryByText('סקירה ואישור')).not.toBeInTheDocument()
+  })
+
+  it('lets the user approve a suggested match instead of filling the confirm form', async () => {
+    const user = userEvent.setup()
+    let approveCalled = false
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          ...successfulExtraction,
+          suggested_match: {
+            expense_id: 'expense-2',
+            business_name: 'Paz Gas Station',
+            amount: '60.13',
+            currency: 'ILS',
+            expense_date: '2026-08-22',
+            score: 0.7,
+            reasons: ['same_amount'],
+          },
+        }),
+      ),
+      http.post('http://localhost:8000/api/reconciliation/matches/expense-2/approve', () => {
+        approveCalled = true
+        return HttpResponse.json({ expense: { ...successfulExtraction.extracted_data, document_status: 'attached' } })
+      }),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('מצאנו עסקה שעשויה להתאים לקבלה הזו')
+    await user.click(screen.getByRole('button', { name: 'אישור ההתאמה' }))
+
+    await waitFor(() => expect(approveCalled).toBe(true))
+  })
+
+  it('falls back to the confirm form after rejecting a suggested match', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.post(UPLOAD_URL, () =>
+        HttpResponse.json({
+          ...successfulExtraction,
+          suggested_match: {
+            expense_id: 'expense-3',
+            business_name: 'Paz Gas Station',
+            amount: '60.13',
+            currency: 'ILS',
+            expense_date: '2026-08-22',
+            score: 0.6,
+            reasons: ['same_amount'],
+          },
+        }),
+      ),
+      http.post('http://localhost:8000/api/reconciliation/matches/expense-3/reject', () =>
+        HttpResponse.json({ expense: { ...successfulExtraction.extracted_data, document_status: 'missing' } }),
+      ),
+    )
+
+    renderWithProviders(<UploadReceiptPage />)
+    await selectFile(user)
+
+    await screen.findByText('מצאנו עסקה שעשויה להתאים לקבלה הזו')
+    await user.click(screen.getByRole('button', { name: 'דחיית ההתאמה' }))
+
+    await screen.findByText('סקירה ואישור')
+  })
 })

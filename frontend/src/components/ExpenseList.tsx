@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { Expense } from '../types/expense'
 import { CategoryBadge } from './CategoryBadge'
+import { DocumentStatusBadge } from './DocumentStatusBadge'
 import { formatCurrency, formatDate } from '../lib/format'
 
 export function ExpenseList({
@@ -29,6 +30,9 @@ export function ExpenseList({
               {t('expenses.columnCategory')}
             </th>
             <th scope="col" className="px-4 py-3 text-left font-medium text-stone-500 dark:text-stone-400">
+              {t('expenses.columnStatus')}
+            </th>
+            <th scope="col" className="px-4 py-3 text-left font-medium text-stone-500 dark:text-stone-400">
               {t('expenses.columnDate')}
             </th>
             <th scope="col" className="px-4 py-3 text-right font-medium text-stone-500 dark:text-stone-400">
@@ -50,6 +54,14 @@ export function ExpenseList({
               </td>
               <td className="px-4 py-3">
                 <CategoryBadge category={expense.category} />
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex flex-col items-start gap-1">
+                  <DocumentStatusBadge status={expense.document_status} />
+                  <span className="text-xs text-stone-400 dark:text-stone-500">
+                    {t(`expenseSource.${expense.source}`)}
+                  </span>
+                </div>
               </td>
               <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{formatDate(expense.expense_date, i18n.language)}</td>
               <td className="px-4 py-3 text-right font-medium tabular-nums text-stone-900 dark:text-stone-100">

@@ -8,11 +8,13 @@ import { ExtractionModeBadge } from '../components/ExtractionModeBadge'
 import { ReceiptDropzone } from '../components/ReceiptDropzone'
 import { LoadingState } from '../components/StatusStates'
 import { uploadReceipt, confirmReceipt } from '../services/receiptService'
+import { approveMatch, rejectMatch } from '../services/reconciliationService'
 import { getSystemCapabilities } from '../services/systemService'
 import { toApiError } from '../services/apiClient'
 import type { ExpenseFormInput, ExpenseFormValues } from '../schemas/expense'
 import type { ExtractedReceiptData, ReceiptUploadResponse } from '../types/receipt'
 import { groupWarnings, type WarningGroup } from '../lib/warnings'
+import { formatCurrency, formatDate } from '../lib/format'
 
 // Below this quality-score threshold, so little was extracted that showing
 // the ordinary "review and confirm" heading (with a near-0% badge) next to
@@ -53,13 +55,15 @@ function confirmErrorKey(status: number | undefined): string | null {
 }
 
 export function UploadReceiptPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [uploadResult, setUploadResult] = useState<ReceiptUploadResponse | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [matchRejected, setMatchRejected] = useState(false)
+  const [matchApproved, setMatchApproved] = useState(false)
 
   useEffect(() => {
     if (!file) {
@@ -86,10 +90,35 @@ export function UploadReceiptPage() {
     },
   })
 
+  const approveMutation = useMutation({
+    mutationFn: (expenseId: string) =>
+      approveMatch(expenseId, {
+        vat_amount: uploadResult?.extracted_data?.vat ? Number(uploadResult.extracted_data.vat) : null,
+        receipt_number: uploadResult?.extracted_data?.receipt_number ?? null,
+        category: uploadResult?.extracted_data?.category ?? null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-inbox'] })
+      setMatchApproved(true)
+    },
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (expenseId: string) => rejectMatch(expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-inbox'] })
+      setMatchRejected(true)
+    },
+  })
+
   function handleFileSelected(selectedFile: File) {
     if (uploadMutation.isPending) return
     setFile(selectedFile)
     setUploadResult(null)
+    setMatchRejected(false)
+    setMatchApproved(false)
     uploadMutation.mutate(selectedFile)
   }
 
@@ -183,7 +212,87 @@ export function UploadReceiptPage() {
         </div>
       )}
 
-      {uploadResult && (
+      {uploadResult?.auto_matched && (
+        <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
+          <p className="font-semibold">{t('uploadReceipt.autoMatchedTitle')}</p>
+          <p className="mt-1">{t('uploadReceipt.autoMatchedBody')}</p>
+          {uploadResult.match_reasons.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {uploadResult.match_reasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="rounded-full bg-success-500/10 px-2 py-0.5 text-xs text-success-700 dark:text-success-400"
+                >
+                  {t(`reconciliation.reasons.${reason}`, reason)}
+                </span>
+              ))}
+            </div>
+          )}
+          <Link to="/expenses" className="mt-2 inline-block font-medium underline">
+            {t('dashboard.viewAll')}
+          </Link>
+        </div>
+      )}
+
+      {uploadResult?.suggested_match && !matchRejected && !matchApproved && (
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <p className="font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.suggestedMatchTitle')}</p>
+          <div className="mt-2 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-stone-900 dark:text-stone-100">
+                {uploadResult.suggested_match.business_name}
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {formatDate(uploadResult.suggested_match.expense_date, i18n.language)}
+              </p>
+            </div>
+            <p className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
+              {formatCurrency(uploadResult.suggested_match.amount, uploadResult.suggested_match.currency, i18n.language)}
+            </p>
+          </div>
+          {uploadResult.suggested_match.reasons.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {uploadResult.suggested_match.reasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600 dark:bg-stone-800 dark:text-stone-400"
+                >
+                  {t(`reconciliation.reasons.${reason}`, reason)}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => rejectMutation.mutate(uploadResult.suggested_match!.expense_id)}
+              disabled={rejectMutation.isPending || approveMutation.isPending}
+              className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+            >
+              {rejectMutation.isPending ? t('reconciliation.rejecting') : t('reconciliation.reject')}
+            </button>
+            <button
+              type="button"
+              onClick={() => approveMutation.mutate(uploadResult.suggested_match!.expense_id)}
+              disabled={rejectMutation.isPending || approveMutation.isPending}
+              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {approveMutation.isPending ? t('reconciliation.approving') : t('reconciliation.approve')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {matchApproved && (
+        <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
+          <p className="font-semibold">{t('uploadReceipt.autoMatchedTitle')}</p>
+          <Link to="/expenses" className="mt-2 inline-block font-medium underline">
+            {t('dashboard.viewAll')}
+          </Link>
+        </div>
+      )}
+
+      {uploadResult && !uploadResult.auto_matched && !matchApproved && (!uploadResult.suggested_match || matchRejected) && (
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.reviewAndConfirm')}</h2>
