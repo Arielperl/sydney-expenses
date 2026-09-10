@@ -8,7 +8,7 @@ Sydney (סידני — ניהול עסקאות) is a local-first, AI-ready recei
 
 ## Status
 
-**Hardened MVP with two pluggable real-AI extraction providers and provider-independent receipt image storage.** The complete flow — manual expense entry, receipt upload, extraction (mock, local, or OpenAI), confirmation, image storage (local disk or private Supabase Storage), and dashboard reporting — runs end-to-end, in Hebrew (default) or English, with decimal-safe money handling and a real image-validated upload pipeline.
+**Hardened MVP with two pluggable real-AI extraction providers, provider-independent receipt image storage, and automated expense ingestion with transaction-to-receipt reconciliation.** Beyond manual entry and receipt upload, expenses can now arrive automatically — via a signed demo webhook or a CSV bank-statement import — and are automatically matched against uploaded receipts by an explainable, deterministic scoring algorithm (no AI model makes the matching decision). The complete flow runs end-to-end, in Hebrew (default) or English, with decimal-safe money handling and a real image-validated upload pipeline. See "Automated ingestion & reconciliation" below for what's real, what's a demo, and what still needs a real banking/PSP provider.
 
 ## Tech stack
 
@@ -33,16 +33,19 @@ sydney/  (repository: sydney-expenses)
 │       └── test/          Vitest setup, MSW mock server, test utilities
 ├── backend/            FastAPI application
 │   ├── app/
-│   │   ├── api/routes/   REST endpoints
-│   │   ├── models/       SQLAlchemy ORM models (Expense, ReceiptUpload)
+│   │   ├── api/routes/   REST endpoints (expenses, receipts, dashboard, assistant, reconciliation, webhooks, imports)
+│   │   ├── models/       SQLAlchemy ORM models (Expense, ReceiptUpload, ImportBatch)
 │   │   ├── schemas/       Pydantic request/response models (Decimal money)
 │   │   ├── services/extraction/  ReceiptExtractor interface, mock + local (Ollama/Tesseract) + OpenAI providers, plus preprocessing/OCR-selection/receipt_parser/merge for local mode
 │   │   ├── services/storage/     ReceiptStorage interface, local-disk + Supabase Storage providers
+│   │   ├── services/reconciliation/  Deterministic transaction-to-receipt matching + the approve/reject/inbox workflow
+│   │   ├── services/ingestion/       Webhook signature verification + provider parsing, CSV parsing/import
 │   │   ├── services/      Business logic (uploads, dashboard, receipt lifecycle)
 │   │   ├── repositories/  Database access layer
 │   │   └── database.py
 │   ├── alembic/          Database migrations (the sole source of schema truth)
-│   ├── scripts/          cleanup_uploads.py — expires stale pending uploads
+│   ├── scripts/          cleanup_uploads.py — expires stale pending uploads; demo_webhook_request.py — sends one signed demo transaction
+│   ├── samples/          expenses-sample.csv — fictional CSV import sample
 │   ├── evaluation/        Manual accuracy-evaluation CLI (see its own README)
 │   ├── tests/            pytest suite
 │   └── uploads/          Locally stored receipt images when STORAGE_PROVIDER=local (gitignored)
@@ -60,6 +63,55 @@ sydney/  (repository: sydney-expenses)
 6. The expense appears immediately in the expense list and dashboard.
 
 The extraction logic sits behind a `ReceiptExtractor` interface ([base.py](backend/app/services/extraction/base.py)), so a real Vision AI provider can be swapped in later without touching any route or form code.
+
+## Automated ingestion & reconciliation
+
+The goal of this feature is to flip the model above around: instead of a human always initiating an expense, a transaction can arrive automatically from a financial source and the user's job narrows to handling exceptions. `Expense` stays the single central record — an ingested transaction becomes an `Expense` row directly (`document_status='missing'`) rather than living in a separate staging table, so every existing list/dashboard/assistant query keeps working unchanged.
+
+**What's real today:**
+- **CSV import** ([`app/services/ingestion/csv_import.py`](backend/app/services/ingestion/csv_import.py)) — upload a bank/credit-card statement CSV, preview the parsed rows and any validation errors, then confirm to create expenses. One documented format: `date,description,merchant,amount,currency` with a header row. A sample file with fictional data is at [`backend/samples/expenses-sample.csv`](backend/samples/expenses-sample.csv).
+- **Webhook ingestion** ([`app/api/routes/webhooks.py`](backend/app/api/routes/webhooks.py)) — `POST /api/webhooks/transactions` is a real, working, HMAC-signed endpoint. It's genuinely secure (signature + timestamp + body-size checks, idempotent by `(provider, external_transaction_id)` at the database level) — what's *not* real is the sender: only a `demo-bank` payload shape is registered in `WEBHOOK_PROVIDERS`, fed by a local script, not an actual bank or payment processor.
+- **Reconciliation matching** ([`app/services/reconciliation/matching.py`](backend/app/services/reconciliation/matching.py)) — a deterministic, explainable scoring function (amount/currency, date proximity, merchant-name similarity, receipt-number match), never an AI model, decides auto-match / suggested / needs-review / no-match. Runs automatically after every receipt upload against transactions still missing a document.
+- **Reconciliation Inbox** (`/reconciliation` in the app) and **Imports & Connections** (`/imports`) — real, working pages, not mockups.
+
+**What's a demo, explicitly:** the webhook provider (`demo-bank`) is a stand-in for what a real bank/PSP integration would send — there is no live bank connection, no OAuth, and no real financial institution involved anywhere in this feature. The Imports & Connections page says so explicitly in the UI, not just here.
+
+**Explicit non-goals for this phase** (extension points exist, nothing here claims they already work): real bank OAuth or a live banking connection, user authentication, organizations/roles, real email ingestion.
+
+### Try it end-to-end (fictional demo scenario)
+
+1. Start the backend with a webhook secret set (see below), and send one demo transaction for **ILS 184.90**:
+   ```bash
+   cd backend && source .venv/bin/activate
+   export WEBHOOK_SIGNING_SECRET=demo-secret-change-me
+   python -m scripts.demo_webhook_request
+   ```
+2. Open the app → **Reconciliation Inbox** (`/reconciliation`). The ILS 184.90 transaction appears under "Transactions missing documents" — it arrived automatically, no manual entry.
+3. Upload a receipt for the same amount/merchant/date via **Upload receipt** (`/upload-receipt`) — any receipt whose extracted total is close to 184.90 works; the mock extractor's deterministic output for a given image can be discovered by re-uploading the same file.
+4. The upload response explains the reconciliation score and reasons (e.g. "same amount", "date within 3 days"). Depending on confidence: a high-confidence match attaches automatically (shown right there on the upload page, with a link to the expense); a medium-confidence match becomes a **suggested match** you approve or reject inline; a low-confidence result falls back to the ordinary manual confirm form, unchanged from before this feature existed.
+5. Back in the Reconciliation Inbox and on the Dashboard, the transaction has moved out of "missing documents" and the document-attachment-rate stat has updated.
+
+### Webhook signing (for real, not a simplification)
+
+`POST /api/webhooks/transactions` requires `X-Signature` (hex HMAC-SHA256) and `X-Timestamp` headers. The signature is computed over `"{timestamp}.{raw request body}"` using a secret from `WEBHOOK_SIGNING_SECRET` — verification uses `hmac.compare_digest`, a stale timestamp (`WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS`, default 300s) is rejected, and the body is size-capped (`WEBHOOK_MAX_BODY_BYTES`, default 64KB) before it's even parsed. The payload, signature, and secret are never written to a log line. Delivering the same `external_transaction_id` twice never creates a second expense — idempotency is enforced by a database `UNIQUE(source_provider, external_id)` constraint, not just an application-level check, so it's safe under concurrent delivery too.
+
+```bash
+curl -X POST http://localhost:8000/api/webhooks/transactions \
+  -H "Content-Type: application/json" \
+  -H "X-Signature: <computed HMAC>" \
+  -H "X-Timestamp: <unix seconds>" \
+  -d '{"event_id":"evt-1","provider":"demo-bank","external_transaction_id":"txn-1","occurred_at":"2026-09-10T09:00:00+00:00","merchant_name":"Demo Café","amount":"184.90","currency":"ILS"}'
+```
+Computing the signature by hand is fiddly — use [`backend/scripts/demo_webhook_request.py`](backend/scripts/demo_webhook_request.py), which builds and signs this exact request for you.
+
+### CSV import format
+
+Header row required, exactly these five columns:
+```
+date,description,merchant,amount,currency
+2026-09-01,Weekly groceries,Demo Fictional Supermarket,184.90,ILS
+```
+`date` is `YYYY-MM-DD`; `amount` must be a positive number; `currency` a 3-letter code. UTF-8 and UTF-8-with-BOM are both accepted transparently. Re-importing the same file is safe — a stable id is derived from the file's hash plus row number, so repeat rows are skipped as duplicates (reported in the confirmation summary) rather than re-created; this is separate from — and does not assume — "same merchant/amount/date" being a duplicate, which is not always true for legitimate transactions.
 
 ## Internationalization
 
@@ -317,7 +369,9 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - **Dashboard** — monthly total, comparison to last month, category breakdown chart, recent expenses, empty states.
 - **Expenses** — search, filter by category/date, edit, delete.
 - **Add expense** — manual entry with validation.
-- **Upload receipt** — drop an image, review the extracted fields (mock, local, or OpenAI, shown by the mode badge), confirm and save. The receipt image is stored locally or in Supabase Storage depending on `STORAGE_PROVIDER`, transparently to this flow.
+- **Upload receipt** — drop an image, review the extracted fields (mock, local, or OpenAI, shown by the mode badge), confirm and save. The receipt image is stored locally or in Supabase Storage depending on `STORAGE_PROVIDER`, transparently to this flow. If a matching transaction is already waiting, the upload auto-attaches or offers a suggested match instead of a blank confirm form — see "Automated ingestion & reconciliation" above.
+- **Reconciliation Inbox** — transactions missing documents, suggested matches to approve/reject, receipts without a matching transaction, cases needing review, and recently completed matches.
+- **Imports & Connections** — CSV bank-statement import (preview → confirm), and the webhook demo connection status/instructions.
 - **Language switcher** (top right) — toggle between עברית and English at any time.
 - **View receipt** (Expenses list) — appears only for expenses that have a receipt image; opens it in a modal via a freshly generated URL. Gracefully falls back to a text message if the image fails to load (e.g. an expired signed URL).
 
@@ -370,6 +424,7 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 
 ## What's next
 
+- **Replace the demo webhook provider with a real bank/PSP integration.** The `WEBHOOK_PROVIDERS` registry ([`app/services/ingestion/webhook_provider.py`](backend/app/services/ingestion/webhook_provider.py)) is the intended extension point — a real provider means writing one more payload-parsing function and registering it there; the signature verification, idempotency, and Expense-creation logic never change. This also implies real OAuth/credential management, which does not exist yet.
 - Run a real, field-labeled accuracy evaluation of both the local and OpenAI providers against a representative set of real (not synthetic) photographed receipts, and record actual numbers here — including a same-receipt-set comparison between the two.
 - Add authentication if the app moves beyond single-user local use — this also applies to Supabase Storage: the bucket is accessed only via the service key from the backend, so there is currently no per-user access control on receipt images, matching the app's existing single-user model.
 - Code-split the frontend bundle (currently a single ~270 KB gzipped chunk, flagged by the Vite build but not a functional issue at this scale).
@@ -385,6 +440,7 @@ uvicorn app.main:app --reload --port 8000   # run server
 alembic revision --autogenerate -m "..."    # create a new migration
 alembic upgrade head                        # apply migrations
 python -m scripts.cleanup_uploads           # expire stale pending uploads
+python -m scripts.demo_webhook_request      # send one signed demo transaction (needs WEBHOOK_SIGNING_SECRET)
 python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --provider local --max-files 5   # evaluate accuracy (local)
 python -m evaluation.evaluate_receipts --manifest evaluation/manifest.json --dry-run   # evaluate extraction accuracy (free)
 
