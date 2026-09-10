@@ -1,15 +1,21 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
+from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.schemas.receipt import ExtractedReceiptData
+from app.services.reconciliation.exceptions import ExpenseNotEligibleError, ReceiptNotAvailableError
 from app.services.reconciliation.matching import MatchDecision
 from app.services.reconciliation.workflow import (
     apply_match_result,
     approve_suggested_match,
+    attach_to_expense,
     build_inbox,
     reject_suggested_match,
+    targeted_match,
 )
 
 
@@ -83,10 +89,10 @@ class TestApplyMatchResult:
     def test_auto_match_fills_vat_and_receipt_number_gaps(self, db_session):
         _missing_expense(db_session, vat_amount=None, receipt_number=None)
         upload = _pending_upload(db_session)
+        extracted = _extracted(vat=Decimal("26.85"), receipt_number="R-100")
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
 
-        outcome = apply_match_result(
-            db_session, upload, _extracted(vat=Decimal("26.85"), receipt_number="R-100")
-        )
+        outcome = apply_match_result(db_session, upload, extracted)
 
         assert outcome.expense.vat_amount == Decimal("26.85")
         assert outcome.expense.receipt_number == "R-100"
@@ -127,9 +133,11 @@ class TestApproveRejectSuggestedMatch:
     def test_approve_attaches_receipt_and_clears_suggestion(self, db_session):
         expense = _missing_expense(db_session, business_name="Super Shuk")
         upload = _pending_upload(db_session)
-        apply_match_result(db_session, upload, _extracted(date=date(2026, 9, 3)))
+        extracted = _extracted(date=date(2026, 9, 3), receipt_number="R-200")
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+        apply_match_result(db_session, upload, extracted)
 
-        approved = approve_suggested_match(db_session, expense.id, receipt_number="R-200")
+        approved = approve_suggested_match(db_session, expense.id)
 
         assert approved.document_status == DocumentStatus.ATTACHED
         assert approved.receipt_image_path == "receipt-key.jpg"
@@ -142,7 +150,9 @@ class TestApproveRejectSuggestedMatch:
     def test_approve_is_idempotent_on_repeat_call(self, db_session):
         expense = _missing_expense(db_session, business_name="Super Shuk")
         upload = _pending_upload(db_session)
-        apply_match_result(db_session, upload, _extracted(date=date(2026, 9, 3)))
+        extracted = _extracted(date=date(2026, 9, 3))
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+        apply_match_result(db_session, upload, extracted)
 
         first = approve_suggested_match(db_session, expense.id)
         second = approve_suggested_match(db_session, expense.id)
@@ -153,6 +163,21 @@ class TestApproveRejectSuggestedMatch:
 
     def test_approve_missing_expense_returns_none(self, db_session):
         assert approve_suggested_match(db_session, "does-not-exist") is None
+
+    def test_approve_fails_cleanly_if_linked_upload_was_discarded(self, db_session):
+        expense = _missing_expense(db_session, business_name="Super Shuk")
+        upload = _pending_upload(db_session)
+        extracted = _extracted(date=date(2026, 9, 3))
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+        apply_match_result(db_session, upload, extracted)
+        upload.status = ReceiptUploadStatus.DISCARDED
+        db_session.commit()
+
+        with pytest.raises(ReceiptNotAvailableError):
+            approve_suggested_match(db_session, expense.id)
+
+        db_session.refresh(expense)
+        assert expense.document_status == DocumentStatus.SUGGESTED
 
     def test_reject_returns_expense_to_missing(self, db_session):
         expense = _missing_expense(db_session, business_name="Super Shuk")
@@ -207,3 +232,71 @@ class TestBuildInbox:
         assert missing.id in {e.id for e in inbox.missing_documents}
         assert suggested_source.id in {e.id for e in inbox.suggested_matches}
         assert orphan_receipt.id in {e.id for e in inbox.documents_without_transactions}
+
+
+class TestAttachToExpense:
+    def test_attaches_pending_upload_to_missing_expense(self, db_session):
+        expense = _missing_expense(db_session)
+        upload = _pending_upload(db_session)
+        extracted = _extracted(vat=Decimal("26.85"), receipt_number="R-300")
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+
+        attached = attach_to_expense(db_session, upload.id, expense.id)
+
+        assert attached.document_status == DocumentStatus.ATTACHED
+        assert attached.receipt_image_path == "receipt-key.jpg"
+        assert attached.vat_amount == Decimal("26.85")
+        assert attached.receipt_number == "R-300"
+
+        db_session.refresh(upload)
+        assert upload.status == ReceiptUploadStatus.CONFIRMED
+        assert upload.expense_id == expense.id
+
+    def test_only_one_of_two_concurrent_attach_attempts_succeeds(self, db_session):
+        """Simulates two requests racing to attach different receipts to the
+        same expense: both attempt the conditional claim, only the first's
+        UPDATE affects a row, and the loser gets a clean ExpenseNotEligibleError
+        instead of silently overwriting the winner's attachment."""
+        expense = _missing_expense(db_session)
+        first_upload = _pending_upload(db_session, stored_filename="first.jpg")
+        second_upload = _pending_upload(db_session, stored_filename="second.jpg")
+
+        first_result = attach_to_expense(db_session, first_upload.id, expense.id)
+        assert first_result.document_status == DocumentStatus.ATTACHED
+
+        with pytest.raises(ExpenseNotEligibleError):
+            attach_to_expense(db_session, second_upload.id, expense.id)
+
+        db_session.refresh(expense)
+        db_session.refresh(first_upload)
+        db_session.refresh(second_upload)
+        assert expense.receipt_image_path == "first.jpg"
+        assert first_upload.status == ReceiptUploadStatus.CONFIRMED
+        assert second_upload.status == ReceiptUploadStatus.PENDING
+
+
+class TestTargetedMatch:
+    def test_no_conflict_attaches_immediately(self, db_session):
+        expense = _missing_expense(db_session)
+        upload = _pending_upload(db_session)
+        extracted = _extracted()
+
+        result = targeted_match(db_session, upload, expense, extracted)
+
+        assert result.attached is True
+        assert result.expense is not None
+        assert result.expense.document_status == DocumentStatus.ATTACHED
+
+    def test_conflict_does_not_attach(self, db_session):
+        expense = _missing_expense(db_session, amount=Decimal("184.90"), expense_date=date(2026, 9, 1))
+        upload = _pending_upload(db_session)
+        extracted = _extracted(total=Decimal("684.90"), date=date(2026, 9, 1))
+
+        result = targeted_match(db_session, upload, expense, extracted)
+
+        assert result.attached is False
+        assert result.expense is expense
+        assert expense.document_status == DocumentStatus.MISSING
+
+        db_session.refresh(upload)
+        assert upload.status == ReceiptUploadStatus.PENDING

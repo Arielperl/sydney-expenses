@@ -1,12 +1,13 @@
 import logging
 import time
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_receipt_extractor, get_receipt_storage, get_upload_service, resolve_receipt_image_url
 from app.core.config import get_settings
 from app.database import get_db
+from app.models.expense import DocumentStatus, Expense
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.schemas.expense import ExpenseRead, expense_to_read
 from app.schemas.receipt import ExtractedReceiptData, MatchCandidateRead, ReceiptConfirmRequest, ReceiptUploadResponse
@@ -17,8 +18,9 @@ from app.services.receipt_lifecycle_service import (
     ReceiptUploadNotFoundError,
     confirm_receipt_upload,
 )
+from app.services.reconciliation.exceptions import ExpenseNotEligibleError, ReceiptNotAvailableError
 from app.services.reconciliation.matching import MatchDecision
-from app.services.reconciliation.workflow import apply_match_result
+from app.services.reconciliation.workflow import apply_match_result, targeted_match
 from app.services.storage.base import ReceiptStorage
 from app.services.storage.exceptions import StorageError
 from app.services.upload_service import FileTooLargeError, UnsupportedFileTypeError, UploadService
@@ -40,11 +42,20 @@ def _missing_required_fields(extracted: ExtractedReceiptData) -> list[str]:
 @router.post("/upload", response_model=ReceiptUploadResponse)
 async def upload_receipt(
     file: UploadFile,
+    expense_id: str | None = Form(default=None),
     db: Session = Depends(get_db),
     upload_service: UploadService = Depends(get_upload_service),
     storage: ReceiptStorage = Depends(get_receipt_storage),
     extractor: ReceiptExtractor = Depends(get_receipt_extractor),
 ) -> ReceiptUploadResponse:
+    target_expense: Expense | None = None
+    if expense_id is not None:
+        target_expense = db.get(Expense, expense_id)
+        if target_expense is None:
+            raise HTTPException(status_code=404, detail="Expense not found")
+        if target_expense.document_status != DocumentStatus.MISSING:
+            raise HTTPException(status_code=409, detail="This expense already has a document, or none is expected")
+
     try:
         temp_path, verified_format = await upload_service.stage(file)
     except (UnsupportedFileTypeError, FileTooLargeError) as exc:
@@ -101,6 +112,40 @@ async def upload_receipt(
         )
 
         upload_repository.save_extraction(pending_upload, extracted)
+
+        if target_expense is not None:
+            try:
+                result = targeted_match(db, pending_upload, target_expense, extracted)
+            except ExpenseNotEligibleError as exc:
+                raise HTTPException(
+                    status_code=409, detail="This expense was matched to another document in the meantime"
+                ) from exc
+            except ReceiptNotAvailableError as exc:
+                raise HTTPException(status_code=409, detail="This upload is no longer available") from exc
+            if result.attached and result.expense is not None:
+                return ReceiptUploadResponse(
+                    upload_id=pending_upload.id,
+                    receipt_image_url=image_url,
+                    extraction_succeeded=True,
+                    extracted_data=extracted,
+                    attached_to_expense_id=result.expense.id,
+                    match_reasons=result.reasons,
+                )
+            return ReceiptUploadResponse(
+                upload_id=pending_upload.id,
+                receipt_image_url=image_url,
+                extraction_succeeded=True,
+                extracted_data=extracted,
+                conflict=MatchCandidateRead(
+                    expense_id=target_expense.id,
+                    business_name=target_expense.business_name,
+                    amount=target_expense.amount,
+                    currency=target_expense.currency,
+                    expense_date=target_expense.expense_date,
+                    score=0.0,
+                    reasons=result.reasons,
+                ),
+            )
 
         match_outcome = apply_match_result(db, pending_upload, extracted)
         logger.info(

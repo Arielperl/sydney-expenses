@@ -1,8 +1,5 @@
-from decimal import Decimal
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field
-
-from app.models.expense import ExpenseCategory
 from app.schemas.expense import ExpenseRead
 
 
@@ -14,14 +11,13 @@ class ReconciliationInboxResponse(BaseModel):
     recently_completed: list[ExpenseRead]
 
 
-class ApproveMatchRequest(BaseModel):
-    """Optional document-derived fields the frontend already has from the
-    original upload's extraction result — used only to fill gaps the
-    transaction itself doesn't have. Never re-sends amount/currency/date."""
+class AttachRequest(BaseModel):
+    """Executes an attach the user already decided on — confirming past a
+    shown conflict, or a manually chosen transaction. The backend
+    re-validates both sides regardless of what an earlier response said."""
 
-    vat_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
-    receipt_number: str | None = Field(default=None, max_length=100)
-    category: ExpenseCategory | None = None
+    upload_id: str
+    expense_id: str
 
 
 class MatchDecisionResponse(BaseModel):

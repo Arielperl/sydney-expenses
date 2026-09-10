@@ -8,7 +8,6 @@ treated as a safe no-op / fallback, never an error.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import Decimal
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -16,7 +15,13 @@ from sqlalchemy.orm import Session
 from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource, ExtractionStatus
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 from app.schemas.receipt import ExtractedReceiptData
-from app.services.reconciliation.matching import MatchDecision, decide, find_candidates
+from app.services.reconciliation.exceptions import (
+    ExpenseNotEligibleError,
+    ExpenseNotFoundError,
+    ReceiptNotAvailableError,
+    ReceiptNotFoundError,
+)
+from app.services.reconciliation.matching import MatchDecision, decide, find_candidates, score_candidate
 
 DEFAULT_INBOX_SECTION_LIMIT = 20
 RECENTLY_COMPLETED_LIMIT = 10
@@ -38,25 +43,24 @@ class ReconciliationInbox:
     recently_completed: list[Expense]
 
 
-def _fill_document_gaps(
-    expense: Expense,
-    *,
-    vat_amount: Decimal | None,
-    receipt_number: str | None,
-    category: ExpenseCategory | None,
-    extraction_confidence: float | None,
-) -> None:
-    """Fills document-derived fields only where the expense doesn't already
-    have a value — never overwrites amount/currency/occurred_at/expense_date,
-    which always come from the financial source, not the receipt."""
-    if expense.vat_amount is None and vat_amount is not None:
-        expense.vat_amount = vat_amount
-    if not expense.receipt_number and receipt_number:
-        expense.receipt_number = receipt_number
-    if expense.category == ExpenseCategory.OTHER and category is not None and category != ExpenseCategory.OTHER:
-        expense.category = category
-    if extraction_confidence is not None:
-        expense.extraction_confidence = extraction_confidence
+def _fill_document_gaps_from_upload(expense: Expense, upload: ReceiptUpload) -> None:
+    """Fills document-derived fields from the upload's persisted extraction
+    snapshot — never the request body — only where the expense doesn't
+    already have a value. Never overwrites amount/currency/occurred_at/
+    expense_date, which always come from the financial source, not the
+    receipt."""
+    if expense.vat_amount is None and upload.extracted_vat is not None:
+        expense.vat_amount = upload.extracted_vat
+    if not expense.receipt_number and upload.extracted_receipt_number:
+        expense.receipt_number = upload.extracted_receipt_number
+    if (
+        expense.category == ExpenseCategory.OTHER
+        and upload.extracted_category is not None
+        and upload.extracted_category != ExpenseCategory.OTHER
+    ):
+        expense.category = upload.extracted_category
+    if upload.extraction_confidence is not None:
+        expense.extraction_confidence = upload.extraction_confidence
     expense.extraction_status = ExtractionStatus.CONFIRMED
 
 
@@ -94,13 +98,7 @@ def apply_match_result(db: Session, upload: ReceiptUpload, extracted: ExtractedR
     if decision == MatchDecision.AUTO_MATCH:
         expense.receipt_image_path = upload.stored_filename
         expense.storage_provider = upload.storage_provider
-        _fill_document_gaps(
-            expense,
-            vat_amount=extracted.vat,
-            receipt_number=extracted.receipt_number,
-            category=extracted.category,
-            extraction_confidence=extracted.confidence,
-        )
+        _fill_document_gaps_from_upload(expense, upload)
         db.execute(
             update(ReceiptUpload)
             .where(ReceiptUpload.id == upload.id, ReceiptUpload.status == ReceiptUploadStatus.PENDING)
@@ -112,17 +110,81 @@ def apply_match_result(db: Session, upload: ReceiptUpload, extracted: ExtractedR
     return MatchOutcome(decision=decision, expense=expense, reasons=best.reasons)
 
 
-def approve_suggested_match(
-    db: Session,
-    expense_id: str,
-    *,
-    vat_amount: Decimal | None = None,
-    receipt_number: str | None = None,
-    category: ExpenseCategory | None = None,
-) -> Expense | None:
-    """Approves a suggested/needs-review match. Idempotent: calling this
-    again after it already succeeded just returns the current (already
-    attached) state rather than erroring."""
+@dataclass
+class TargetedMatchResult:
+    attached: bool
+    expense: Expense | None = None
+    reasons: list[str] = field(default_factory=list)
+
+
+def attach_to_expense(db: Session, upload_id: str, expense_id: str) -> Expense:
+    """Unconditionally attaches a pending upload to a missing-document
+    expense — used both to confirm past a shown conflict and for manual
+    match selection. The backend re-validates both sides itself; it never
+    trusts an id only because the client supplied it. Concurrency-safe via
+    the same conditional-UPDATE pattern as every other transition here."""
+    upload = db.get(ReceiptUpload, upload_id)
+    if upload is None:
+        raise ReceiptNotFoundError()
+    if upload.status != ReceiptUploadStatus.PENDING:
+        raise ReceiptNotAvailableError()
+
+    expense = db.get(Expense, expense_id)
+    if expense is None:
+        raise ExpenseNotFoundError()
+
+    claim = db.execute(
+        update(Expense)
+        .where(Expense.id == expense_id, Expense.document_status == DocumentStatus.MISSING)
+        .values(document_status=DocumentStatus.ATTACHED, suggested_receipt_upload_id=None)
+    )
+    if claim.rowcount == 0:
+        raise ExpenseNotEligibleError()
+
+    receipt_claim = db.execute(
+        update(ReceiptUpload)
+        .where(ReceiptUpload.id == upload_id, ReceiptUpload.status == ReceiptUploadStatus.PENDING)
+        .values(status=ReceiptUploadStatus.CONFIRMED, confirmed_at=datetime.utcnow(), expense_id=expense_id)
+    )
+    if receipt_claim.rowcount == 0:
+        # Someone else claimed this exact receipt in the moment between our
+        # read and our write — undo the expense-side claim we just made so
+        # it doesn't get stranded in a half-attached state.
+        db.rollback()
+        raise ReceiptNotAvailableError()
+
+    db.refresh(expense)
+    expense.receipt_image_path = upload.stored_filename
+    expense.storage_provider = upload.storage_provider
+    _fill_document_gaps_from_upload(expense, upload)
+    db.commit()
+    db.refresh(expense)
+    return expense
+
+
+def targeted_match(
+    db: Session, upload: ReceiptUpload, expense: Expense, extracted: ExtractedReceiptData
+) -> TargetedMatchResult:
+    """Compares one freshly-extracted receipt with exactly one expense the
+    user already chose (via ?expenseId=). No conflict -> attaches
+    immediately. A conflict -> attaches nothing and reports why, requiring
+    an explicit confirm (attach_to_expense) from the user."""
+    match = score_candidate(expense, extracted)
+    if match.has_conflict:
+        return TargetedMatchResult(attached=False, expense=expense, reasons=match.reasons)
+
+    attached_expense = attach_to_expense(db, upload.id, expense.id)
+    return TargetedMatchResult(attached=True, expense=attached_expense, reasons=match.reasons)
+
+
+def approve_suggested_match(db: Session, expense_id: str) -> Expense | None:
+    """Approves a suggested/needs-review match using the receipt's
+    *persisted* extraction snapshot — the client only identifies which
+    match to approve, it is never the source of truth for VAT/receipt
+    number/category. Idempotent: calling this again after it already
+    succeeded just returns the current (already attached) state. Raises
+    ReceiptNotAvailableError (never silently attaches nothing) if the
+    linked upload was discarded/expired out from under the suggestion."""
     claim = db.execute(
         update(Expense)
         .where(
@@ -138,23 +200,26 @@ def approve_suggested_match(
         db.commit()
         return expense
 
-    if expense.suggested_receipt_upload_id:
-        upload = db.get(ReceiptUpload, expense.suggested_receipt_upload_id)
-        if upload is not None:
-            expense.receipt_image_path = upload.stored_filename
-            expense.storage_provider = upload.storage_provider
-            db.execute(
-                update(ReceiptUpload)
-                .where(ReceiptUpload.id == upload.id, ReceiptUpload.status == ReceiptUploadStatus.PENDING)
-                .values(status=ReceiptUploadStatus.CONFIRMED, confirmed_at=datetime.utcnow(), expense_id=expense.id)
-            )
-    _fill_document_gaps(
-        expense,
-        vat_amount=vat_amount,
-        receipt_number=receipt_number,
-        category=category,
-        extraction_confidence=None,
+    upload = (
+        db.get(ReceiptUpload, expense.suggested_receipt_upload_id) if expense.suggested_receipt_upload_id else None
     )
+    if upload is None or upload.status != ReceiptUploadStatus.PENDING:
+        db.rollback()
+        raise ReceiptNotAvailableError()
+
+    receipt_claim = db.execute(
+        update(ReceiptUpload)
+        .where(ReceiptUpload.id == upload.id, ReceiptUpload.status == ReceiptUploadStatus.PENDING)
+        .values(status=ReceiptUploadStatus.CONFIRMED, confirmed_at=datetime.utcnow(), expense_id=expense.id)
+    )
+    if receipt_claim.rowcount == 0:
+        db.rollback()
+        raise ReceiptNotAvailableError()
+
+    db.refresh(expense)
+    expense.receipt_image_path = upload.stored_filename
+    expense.storage_provider = upload.storage_provider
+    _fill_document_gaps_from_upload(expense, upload)
     expense.suggested_receipt_upload_id = None
     db.commit()
     db.refresh(expense)

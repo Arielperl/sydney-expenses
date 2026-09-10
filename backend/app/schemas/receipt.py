@@ -59,6 +59,9 @@ class ReceiptUploadResponse(BaseModel):
     matched_expense_id: str | None = None
     match_reasons: list[str] = Field(default_factory=list)
     suggested_match: MatchCandidateRead | None = None
+    # Set only when the upload was scoped to a specific expense (?expenseId=).
+    attached_to_expense_id: str | None = None
+    conflict: MatchCandidateRead | None = None
 
 
 class ReceiptConfirmRequest(BaseModel):
