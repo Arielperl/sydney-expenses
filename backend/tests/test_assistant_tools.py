@@ -112,6 +112,34 @@ def test_get_processing_fees(db_session):
     assert result == {"processing_fees": "4.50"}
 
 
+def test_gross_vat_and_fees_include_partially_refunded_sales(db_session):
+    """A partially-refunded sale is still "successful" (same definition
+    get_total_revenue already uses) — it must count here too, so the
+    assistant and the dashboard can never disagree for the same period. A
+    fully refunded sale still doesn't count: its revenue was fully
+    reversed."""
+    _add_sale(
+        db_session,
+        gross_amount=Decimal("100.00"),
+        vat_amount=Decimal("15.00"),
+        processing_fee=Decimal("3.00"),
+        status=SaleStatus.PARTIALLY_REFUNDED,
+        refunded_amount=Decimal("40.00"),
+    )
+    _add_sale(
+        db_session,
+        gross_amount=Decimal("50.00"),
+        vat_amount=Decimal("7.50"),
+        processing_fee=Decimal("1.50"),
+        status=SaleStatus.REFUNDED,
+        refunded_amount=Decimal("50.00"),
+    )
+
+    assert get_gross_revenue(db_session) == {"gross_revenue": "100.00", "count": 1}
+    assert get_vat_collected(db_session) == {"vat_collected": "15.00"}
+    assert get_processing_fees(db_session) == {"processing_fees": "3.00"}
+
+
 # --- get_top_services ---------------------------------------------------
 
 

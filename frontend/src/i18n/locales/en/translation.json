@@ -56,6 +56,7 @@
     "revenueThisMonth": "Revenue this month",
     "revenueLastMonth": "Revenue last month",
     "vsLastMonth": "vs last month",
+    "noComparisonBaseline": "No comparison baseline (last month had no revenue)",
     "successfulSales": "Successful sales",
     "averageTransactionValue": "Average transaction value",
     "grossRevenue": "Gross revenue",

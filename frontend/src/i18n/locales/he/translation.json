@@ -56,6 +56,7 @@
     "revenueThisMonth": "הכנסות החודש",
     "revenueLastMonth": "הכנסות חודש שעבר",
     "vsLastMonth": "לעומת החודש שעבר",
+    "noComparisonBaseline": "אין בסיס להשוואה (בחודש שעבר לא הייתה הכנסה)",
     "successfulSales": "מכירות מוצלחות",
     "averageTransactionValue": "שווי עסקה ממוצע",
     "grossRevenue": "הכנסה ברוטו",

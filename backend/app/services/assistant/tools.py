@@ -12,6 +12,16 @@ refund) — never a raw sum of `gross_amount`, which would silently include
 VAT, processing fees, and refunded money as if they were the business's own
 revenue.
 
+A "successful" sale, here and everywhere else in this file, means status
+`succeeded` OR `partially_refunded` — the exact same definition
+`app/services/dashboard_service.py` uses, and for the same reason: a partial
+refund doesn't retroactively make the sale not have happened. Every one of
+gross revenue / VAT collected / processing fees / sale count below shares
+this one definition, so the dashboard and the assistant can never disagree
+for the same period. See `dashboard_service.py`'s module docstring for the
+full metric definitions (net vs. gross vs. profit, refund-by-original-date,
+single-currency assumption).
+
 TOOL_DEFINITIONS is the JSON-schema list handed to the model; TOOL_FUNCTIONS
 maps each tool name to its implementation — the single source of truth the
 orchestrator's tool-calling loop dispatches through, so a tool can never be
@@ -80,37 +90,38 @@ def get_total_revenue(db: Session, start_date: str | None = None, end_date: str 
 
 def get_gross_revenue(db: Session, start_date: str | None = None, end_date: str | None = None) -> dict:
     """Gross revenue: the total amount customers paid before VAT and
-    processing fees are subtracted. Only counts fully succeeded (never
-    refunded) sales."""
+    processing fees are subtracted. Counts succeeded and partially-refunded
+    sales (the same "successful" set as `get_total_revenue`) — a fully
+    refunded sale is excluded, its revenue was fully reversed."""
     try:
-        sales = _filtered_sales(db, start_date, end_date, only_succeeded=False)
+        sales = _filtered_sales(db, start_date, end_date)
     except ValueError as exc:
         return {"error": str(exc)}
-    succeeded = [s for s in sales if s.status == SaleStatus.SUCCEEDED]
-    total = sum((s.gross_amount for s in succeeded), Decimal("0"))
-    return {"gross_revenue": _round_money(total), "count": len(succeeded)}
+    total = sum((s.gross_amount for s in sales), Decimal("0"))
+    return {"gross_revenue": _round_money(total), "count": len(sales)}
 
 
 def get_vat_collected(db: Session, start_date: str | None = None, end_date: str | None = None) -> dict:
     """VAT collected from customers on behalf of the tax authority — this is
-    not the business's own revenue."""
+    not the business's own revenue. Counts succeeded and partially-refunded
+    sales, same as `get_gross_revenue`."""
     try:
-        sales = _filtered_sales(db, start_date, end_date, only_succeeded=False)
+        sales = _filtered_sales(db, start_date, end_date)
     except ValueError as exc:
         return {"error": str(exc)}
-    succeeded = [s for s in sales if s.status == SaleStatus.SUCCEEDED]
-    total = sum((s.vat_amount or Decimal("0") for s in succeeded), Decimal("0"))
+    total = sum((s.vat_amount or Decimal("0") for s in sales), Decimal("0"))
     return {"vat_collected": _round_money(total)}
 
 
 def get_processing_fees(db: Session, start_date: str | None = None, end_date: str | None = None) -> dict:
-    """Total payment-processing fees deducted by the payment provider."""
+    """Total payment-processing fees deducted by the payment provider.
+    Counts succeeded and partially-refunded sales, same as
+    `get_gross_revenue`."""
     try:
-        sales = _filtered_sales(db, start_date, end_date, only_succeeded=False)
+        sales = _filtered_sales(db, start_date, end_date)
     except ValueError as exc:
         return {"error": str(exc)}
-    succeeded = [s for s in sales if s.status == SaleStatus.SUCCEEDED]
-    total = sum((s.processing_fee or Decimal("0") for s in succeeded), Decimal("0"))
+    total = sum((s.processing_fee or Decimal("0") for s in sales), Decimal("0"))
     return {"processing_fees": _round_money(total)}
 
 

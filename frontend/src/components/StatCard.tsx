@@ -14,6 +14,11 @@ export function StatCard({
   changePercent?: number | null
 }) {
   const { t, i18n } = useTranslation()
+  // `changePercent === null` (as opposed to `undefined`) is a deliberate signal from
+  // the backend: this card tracks change, but the previous period had zero revenue, so
+  // no percentage can be computed honestly — show that explicitly rather than hiding it
+  // or fabricating a number.
+  const hasNoBaseline = changePercent === null
   const hasChange = changePercent !== undefined && changePercent !== null
   const isIncrease = hasChange && changePercent! > 0
   const isDecrease = hasChange && changePercent! < 0
@@ -37,6 +42,11 @@ export function StatCard({
         >
           {isIncrease ? '▲' : isDecrease ? '▼' : '–'} {Math.abs(changePercent!).toFixed(1)}%{' '}
           {t('dashboard.vsLastMonth')}
+        </p>
+      )}
+      {hasNoBaseline && (
+        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+          {t('dashboard.noComparisonBaseline')}
         </p>
       )}
     </div>

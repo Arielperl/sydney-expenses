@@ -73,11 +73,15 @@ def test_dashboard_percentage_change_calculation(db_session):
 
 
 def test_dashboard_percentage_change_when_previous_month_had_no_revenue(db_session):
+    """A zero previous-month baseline can't produce an honest percentage
+    (any nonzero current value would be a mathematically undefined
+    "increase") — this must report no comparison at all, never a fabricated
+    100%."""
     _add_sale(db_session, gross_amount=Decimal("100.00"), net_amount=Decimal("100.00"), occurred_at=datetime(2026, 3, 10, 9))
 
     stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
 
-    assert stats.percentage_change == 100.0
+    assert stats.percentage_change is None
 
 
 def test_dashboard_top_services(db_session):
@@ -196,6 +200,33 @@ def test_partial_refund_contributes_remaining_net_to_revenue(db_session):
     stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
 
     assert stats.net_revenue_this_month == Decimal("60.00")
+
+
+def test_partially_refunded_sale_counts_toward_gross_vat_fees_and_count(db_session):
+    """A partially-refunded sale is still a successful sale — it must show up
+    in gross_revenue/vat_collected/processing_fees/successful_sales_count,
+    the same "successful" set net_revenue_this_month already uses. Before
+    the fix, these cards used a SUCCEEDED-only scope while net revenue used
+    SUCCEEDED-or-PARTIALLY_REFUNDED, so a partially-refunded sale could make
+    net revenue nonzero while gross/count stayed at zero."""
+    sale = _add_sale(
+        db_session,
+        gross_amount=Decimal("100.00"),
+        vat_amount=Decimal("15.00"),
+        processing_fee=Decimal("3.00"),
+        net_amount=Decimal("82.00"),
+    )
+    sale.status = SaleStatus.PARTIALLY_REFUNDED
+    sale.refunded_amount = Decimal("40.00")
+    db_session.commit()
+
+    stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
+
+    assert stats.gross_revenue == Decimal("100.00")
+    assert stats.vat_collected == Decimal("15.00")
+    assert stats.processing_fees == Decimal("3.00")
+    assert stats.successful_sales_count == 1
+    assert stats.net_revenue_this_month == Decimal("42.00")
 
 
 def test_pending_and_failed_sales_never_count_as_revenue(db_session):
