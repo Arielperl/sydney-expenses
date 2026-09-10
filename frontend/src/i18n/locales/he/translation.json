@@ -4,6 +4,8 @@
     "expenses": "הוצאות",
     "addExpense": "הוספת הוצאה",
     "uploadReceipt": "העלאת קבלה",
+    "reconciliation": "תיבת התאמות",
+    "imports": "ייבוא וחיבורים",
     "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי",
     "openMenu": "פתיחת תפריט"
@@ -198,5 +200,87 @@
   "errors": {
     "generic": "משהו השתבש. נסו שוב.",
     "validationFailed": "בדקו את השדות המסומנים ונסו שוב."
+  },
+  "documentStatus": {
+    "missing": "חסר מסמך",
+    "suggested": "התאמה מוצעת",
+    "attached": "מסמך מצורף",
+    "needs_review": "דורש בדיקה",
+    "not_required": "לא נדרש"
+  },
+  "expenseSource": {
+    "manual": "ידני",
+    "receipt_upload": "קבלה",
+    "csv": "ייבוא CSV",
+    "webhook": "חיבור בנקאי"
+  },
+  "reconciliation": {
+    "title": "תיבת התאמות",
+    "subtitle": "עסקאות ומסמכים שדורשים את תשומת לבכם",
+    "sections": {
+      "missingDocuments": "עסקאות ללא מסמך",
+      "suggestedMatches": "התאמות מוצעות",
+      "documentsWithoutTransactions": "קבלות ללא עסקה תואמת",
+      "needsReview": "דורש בדיקה",
+      "recentlyCompleted": "הושלמו לאחרונה"
+    },
+    "emptyMissingDocuments": "אין עסקאות שחסר להן מסמך",
+    "emptySuggestedMatches": "אין התאמות שממתינות לאישור",
+    "emptyDocumentsWithoutTransactions": "כל הקבלות משויכות לעסקה",
+    "emptyNeedsReview": "אין מקרים שדורשים בדיקה",
+    "emptyRecentlyCompleted": "עדיין לא הושלמו התאמות",
+    "approve": "אישור ההתאמה",
+    "reject": "דחיית ההתאמה",
+    "approving": "מאשר...",
+    "rejecting": "דוחה...",
+    "matchScore": "{{score}}% התאמה",
+    "whyMatch": "למה ההתאמה הזו הוצעה:",
+    "reasons": {
+      "same_amount": "סכום זהה",
+      "amount_close": "סכום קרוב",
+      "amount_mismatch": "סכום לא תואם",
+      "same_currency": "מטבע זהה",
+      "currency_mismatch": "מטבע לא תואם",
+      "date_same_day": "אותו תאריך",
+      "date_within_3_days": "הפרש של עד 3 ימים",
+      "date_far": "הפרש תאריכים גדול",
+      "merchant_similar": "שם עסק דומה",
+      "merchant_different": "שם עסק שונה",
+      "receipt_number_match": "מספר קבלה תואם"
+    }
+  },
+  "imports": {
+    "title": "ייבוא וחיבורים",
+    "subtitle": "ייבוא דוח בנק כקובץ CSV, וחיבור וובהוק להדגמה.",
+    "csv": {
+      "heading": "ייבוא קובץ CSV",
+      "chooseFile": "בחירת קובץ CSV",
+      "uploading": "מעלה...",
+      "previewHeading": "תצוגה מקדימה",
+      "validRows": "{{count}} שורות תקינות",
+      "errorRows": "{{count}} שורות עם שגיאה",
+      "repeatFileWarning": "קובץ זה כבר יובא בעבר — זה בסדר, עסקאות זהות לא ייווצרו פעמיים.",
+      "confirmImport": "אישור הייבוא",
+      "confirming": "מייבא...",
+      "startOver": "התחלה מחדש",
+      "summaryTitle": "הייבוא הושלם",
+      "summaryCreated": "{{count}} עסקאות חדשות נוצרו",
+      "summaryDuplicate": "{{count}} עסקאות דולגו ככפולות",
+      "columnRow": "שורה",
+      "columnDate": "תאריך",
+      "columnDescription": "תיאור",
+      "columnMerchant": "עסק",
+      "columnAmount": "סכום",
+      "columnCurrency": "מטבע",
+      "columnError": "שגיאה",
+      "formatNote": "הפורמט הנתמך (עם שורת כותרת): date,description,merchant,amount,currency"
+    },
+    "webhook": {
+      "heading": "חיבור וובהוק (הדגמה)",
+      "statusLabel": "סטטוס",
+      "statusValue": "ממשק ספק והדגמה מקומית בלבד",
+      "description": "זהו לא חיבור בנקאי חי — זו הדגמה שמראה איך תיראה קליטת עסקה אוטומטית מספק אמיתי בעתיד.",
+      "instructions": "כדי לשלוח אירוע חתום לדוגמה באופן מקומי, הריצו:"
+    }
   }
 }

@@ -4,6 +4,8 @@
     "expenses": "Expenses",
     "addExpense": "Add expense",
     "uploadReceipt": "Upload receipt",
+    "reconciliation": "Reconciliation Inbox",
+    "imports": "Imports & Connections",
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu"
@@ -198,5 +200,87 @@
   "errors": {
     "generic": "Something went wrong. Please try again.",
     "validationFailed": "Please check the highlighted fields and try again."
+  },
+  "documentStatus": {
+    "missing": "Missing document",
+    "suggested": "Suggested match",
+    "attached": "Document attached",
+    "needs_review": "Needs review",
+    "not_required": "Not required"
+  },
+  "expenseSource": {
+    "manual": "Manual",
+    "receipt_upload": "Receipt",
+    "csv": "CSV import",
+    "webhook": "Bank connection"
+  },
+  "reconciliation": {
+    "title": "Reconciliation Inbox",
+    "subtitle": "Transactions and documents that need your attention",
+    "sections": {
+      "missingDocuments": "Transactions missing documents",
+      "suggestedMatches": "Suggested matches",
+      "documentsWithoutTransactions": "Documents without transactions",
+      "needsReview": "Needs review",
+      "recentlyCompleted": "Recently completed"
+    },
+    "emptyMissingDocuments": "No transactions are missing a document",
+    "emptySuggestedMatches": "No matches are waiting for approval",
+    "emptyDocumentsWithoutTransactions": "Every receipt is linked to a transaction",
+    "emptyNeedsReview": "Nothing needs review",
+    "emptyRecentlyCompleted": "No matches completed yet",
+    "approve": "Approve match",
+    "reject": "Reject match",
+    "approving": "Approving…",
+    "rejecting": "Rejecting…",
+    "matchScore": "{{score}}% match",
+    "whyMatch": "Why this match was suggested:",
+    "reasons": {
+      "same_amount": "Same amount",
+      "amount_close": "Close amount",
+      "amount_mismatch": "Amount doesn't match",
+      "same_currency": "Same currency",
+      "currency_mismatch": "Currency doesn't match",
+      "date_same_day": "Same date",
+      "date_within_3_days": "Within 3 days",
+      "date_far": "Dates far apart",
+      "merchant_similar": "Similar merchant name",
+      "merchant_different": "Different merchant name",
+      "receipt_number_match": "Receipt number matches"
+    }
+  },
+  "imports": {
+    "title": "Imports & Connections",
+    "subtitle": "Import a bank statement as CSV, and a demo webhook connection.",
+    "csv": {
+      "heading": "Import a CSV file",
+      "chooseFile": "Choose a CSV file",
+      "uploading": "Uploading…",
+      "previewHeading": "Preview",
+      "validRows": "{{count}} valid rows",
+      "errorRows": "{{count}} rows with errors",
+      "repeatFileWarning": "This file was already imported before — that's fine, identical transactions won't be created twice.",
+      "confirmImport": "Confirm import",
+      "confirming": "Importing…",
+      "startOver": "Start over",
+      "summaryTitle": "Import complete",
+      "summaryCreated": "{{count}} new transactions created",
+      "summaryDuplicate": "{{count}} transactions skipped as duplicates",
+      "columnRow": "Row",
+      "columnDate": "Date",
+      "columnDescription": "Description",
+      "columnMerchant": "Merchant",
+      "columnAmount": "Amount",
+      "columnCurrency": "Currency",
+      "columnError": "Error",
+      "formatNote": "Supported format (with a header row): date,description,merchant,amount,currency"
+    },
+    "webhook": {
+      "heading": "Webhook connection (demo)",
+      "statusLabel": "Status",
+      "statusValue": "Provider interface and local demo only",
+      "description": "This is not a live bank connection — it's a demo showing how automatic transaction ingestion from a real provider would work.",
+      "instructions": "To send one signed demo event locally, run:"
+    }
   }
 }

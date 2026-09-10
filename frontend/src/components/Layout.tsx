@@ -1,4 +1,4 @@
-import { Bot, LayoutDashboard, Menu, PlusCircle, Receipt, Upload, X } from 'lucide-react'
+import { Bot, Inbox, LayoutDashboard, Menu, PlugZap, PlusCircle, Receipt, Upload, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { to: '/expenses', key: 'expenses', end: false, icon: Receipt },
   { to: '/add-expense', key: 'addExpense', end: false, icon: PlusCircle },
   { to: '/upload-receipt', key: 'uploadReceipt', end: false, icon: Upload },
+  { to: '/reconciliation', key: 'reconciliation', end: false, icon: Inbox },
+  { to: '/imports', key: 'imports', end: false, icon: PlugZap },
   { to: '/assistant', key: 'assistant', end: false, icon: Bot },
 ] as const
 
