@@ -1,11 +1,13 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, JSON, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.expense import AMOUNT_PRECISION, AMOUNT_SCALE, ExpenseCategory
 
 
 class ReceiptUploadStatus(str, enum.Enum):
@@ -13,6 +15,7 @@ class ReceiptUploadStatus(str, enum.Enum):
     CONFIRMED = "confirmed"
     FAILED = "failed"
     EXPIRED = "expired"
+    DISCARDED = "discarded"
 
 
 class ReceiptUpload(Base):
@@ -35,3 +38,20 @@ class ReceiptUpload(Base):
     expense_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True
     )
+
+    # --- Persisted extraction snapshot ---
+    # Bounded, structured fields only — never raw OCR text, image bytes, or a
+    # full provider response. Populated once, right after extraction
+    # succeeds, so approving a suggestion later never depends on the browser
+    # resending financial fields it shouldn't own.
+    extracted_business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    extracted_receipt_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    extracted_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    extracted_total: Mapped[Decimal | None] = mapped_column(Numeric(AMOUNT_PRECISION, AMOUNT_SCALE), nullable=True)
+    extracted_vat: Mapped[Decimal | None] = mapped_column(Numeric(AMOUNT_PRECISION, AMOUNT_SCALE), nullable=True)
+    extracted_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    extracted_category: Mapped[ExpenseCategory | None] = mapped_column(
+        Enum(ExpenseCategory, native_enum=False), nullable=True
+    )
+    extraction_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    extraction_warnings: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
