@@ -1,4 +1,5 @@
 import io
+from decimal import Decimal
 
 from app.models.sale import Sale
 from app.services.ingestion.csv_import import parse_csv
@@ -168,3 +169,23 @@ class TestCsvImportRoutes:
         sales = db_session.query(Sale).filter(Sale.source_provider == "csv").all()
         assert all(sale.document_status.value == "issued" for sale in sales)
         assert all(sale.document_number and sale.document_number.startswith("DEMO-") for sale in sales)
+
+    def test_csv_imported_sales_get_standard_vat_computed(self, client, db_session):
+        """The documented CSV format has no VAT column (v1) — each row's
+        amount is treated as an ordinary standard-VAT-inclusive sale under
+        the Israeli demo tax configuration, same as a manual entry with no
+        treatment chosen."""
+        preview = client.post(
+            "/api/imports/csv/preview",
+            files={"file": ("statement.csv", io.BytesIO(VALID_CSV.encode("utf-8")), "text/csv")},
+        ).json()
+        client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+        )
+
+        sale = db_session.query(Sale).filter(Sale.source_provider == "csv", Sale.gross_amount == Decimal("184.90")).one()
+        assert sale.tax_treatment.value == "standard"
+        assert sale.vat_amount == Decimal("28.21")
+        assert sale.vat_rate == Decimal("0.18")
+        assert sale.net_amount == Decimal("156.69")

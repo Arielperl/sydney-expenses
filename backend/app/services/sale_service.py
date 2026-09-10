@@ -12,7 +12,7 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
+from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus, TaxTreatment
 from app.services.documents import DocumentProvider, get_document_provider
 
 logger = logging.getLogger(__name__)
@@ -104,6 +104,8 @@ class PaymentEvent:
     currency: str
     payment_method: str | None
     status: SaleStatus
+    tax_treatment: TaxTreatment
+    vat_rate: Decimal | None
     description: str | None = None
 
 
@@ -140,6 +142,8 @@ def ingest_payment_event(db: Session, event: PaymentEvent) -> tuple[Sale, bool]:
         service_name=event.service_name,
         gross_amount=event.gross_amount,
         vat_amount=event.vat_amount,
+        tax_treatment=event.tax_treatment,
+        vat_rate=event.vat_rate,
         processing_fee=event.processing_fee,
         net_amount=net_amount,
         currency=event.currency,

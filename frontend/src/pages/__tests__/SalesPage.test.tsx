@@ -178,4 +178,108 @@ describe('SalesPage', () => {
     expect(within(select).getByRole('option', { name: 'Cash' })).toBeInTheDocument()
     expect(within(select).getByRole('option', { name: 'Other' })).toBeInTheDocument()
   })
+
+  it('opens the edit dialog with the sale\'s own currency and tax treatment pre-selected', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ currency: 'USD', tax_treatment: 'exempt' })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    expect((within(dialog).getByLabelText(/מטבע/) as HTMLSelectElement).value).toBe('USD')
+    expect((within(dialog).getByLabelText(/סוג עסקה/) as HTMLSelectElement).value).toBe('exempt')
+  })
+
+  it('changing currency to USD sends currency: "USD" in the update request, never changing the VAT rate concept', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ currency: 'ILS' })
+    let capturedBody: Record<string, unknown> | null = null
+
+    server.use(
+      http.get(SALES_URL, () => HttpResponse.json([sale])),
+      http.put(`${SALES_URL}/:id`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ ...sale, ...capturedBody })
+      }),
+    )
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    await user.selectOptions(within(dialog).getByLabelText(/מטבע/), 'USD')
+    await user.click(within(dialog).getByRole('button', { name: 'שמירת שינויים' }))
+
+    await waitFor(() => expect(capturedBody).toMatchObject({ currency: 'USD', tax_treatment: 'standard' }))
+  })
+
+  it('changing tax treatment to exempt sends tax_treatment: "exempt" in the update request', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ tax_treatment: 'standard' })
+    let capturedBody: Record<string, unknown> | null = null
+
+    server.use(
+      http.get(SALES_URL, () => HttpResponse.json([sale])),
+      http.put(`${SALES_URL}/:id`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ ...sale, ...capturedBody })
+      }),
+    )
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    await user.selectOptions(within(dialog).getByLabelText(/סוג עסקה/), 'exempt')
+    await user.click(within(dialog).getByRole('button', { name: 'שמירת שינויים' }))
+
+    await waitFor(() => expect(capturedBody).toMatchObject({ tax_treatment: 'exempt' }))
+  })
+
+  it('renders Hebrew and English currency option labels correctly', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale()
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    const { unmount } = renderWithProviders(<SalesPage />)
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+    let dialog = screen.getByRole('dialog')
+    let select = within(dialog).getByLabelText(/מטבע/)
+    expect(within(select).getByRole('option', { name: 'שקל חדש (ILS)' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'דולר אמריקאי (USD)' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'אירו (EUR)' })).toBeInTheDocument()
+    unmount()
+
+    await i18n.changeLanguage('en')
+    renderWithProviders(<SalesPage />)
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Edit Dana Cohen/ }))
+    dialog = screen.getByRole('dialog')
+    select = within(dialog).getByLabelText(/Currency/)
+    expect(within(select).getByRole('option', { name: 'ILS — New Israeli Shekel' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'USD — US Dollar' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'EUR — Euro' })).toBeInTheDocument()
+  })
+
+  it('shows a "needs review" hint on the tax-treatment field for a legacy sale with no recorded treatment', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ tax_treatment: null, tax_treatment_needs_review: true })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    expect(screen.getByText('סוג העסקה של מכירה זו מעולם לא נקבע — נא לאשר אותו.')).toBeInTheDocument()
+  })
 })

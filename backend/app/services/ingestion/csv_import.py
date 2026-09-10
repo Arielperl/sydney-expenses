@@ -15,9 +15,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.import_batch import ImportBatch, ImportStatus
-from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
+from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus, TaxTreatment
 from app.schemas.validators import validate_date_reasonable, validate_currency_code, validate_required_text
 from app.services.sale_service import attempt_document_generation
+from app.services.tax.vat import calculate_vat, vat_rate_snapshot
 
 REQUIRED_COLUMNS = ["date", "customer", "service", "amount", "currency"]
 
@@ -121,11 +122,21 @@ def create_import_batch_and_sales(
     created_count = 0
     duplicate_count = 0
     for row in rows:
+        # This documented CSV format has no VAT/tax-treatment column of its
+        # own (v1, see the module docstring) — every imported row is a
+        # single all-inclusive `amount`, so it's treated as an ordinary
+        # standard-VAT sale under the business's own Israeli tax
+        # configuration, the same as a manually entered one with no
+        # treatment chosen.
+        vat_amount = calculate_vat(row.amount, TaxTreatment.STANDARD)
         sale = Sale(
             customer_name=row.customer,
             service_name=row.service,
             gross_amount=row.amount,
-            net_amount=row.amount,
+            vat_amount=vat_amount,
+            tax_treatment=TaxTreatment.STANDARD,
+            vat_rate=vat_rate_snapshot(TaxTreatment.STANDARD),
+            net_amount=row.amount - vat_amount,
             currency=row.currency,
             source=SaleSource.CSV,
             source_provider="csv",

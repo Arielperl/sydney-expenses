@@ -11,8 +11,9 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Callable
 
-from app.models.sale import SaleStatus
+from app.models.sale import SaleStatus, TaxTreatment
 from app.services.sale_service import PaymentEvent, compute_net_amount
+from app.services.tax.vat import calculate_vat, vat_amount_is_consistent, vat_rate_snapshot
 
 
 class WebhookPayloadError(ValueError):
@@ -26,6 +27,8 @@ _STATUS_MAP = {
     "refunded": SaleStatus.REFUNDED,
     "partially_refunded": SaleStatus.PARTIALLY_REFUNDED,
 }
+
+_TAX_TREATMENT_MAP = {treatment.value: treatment for treatment in TaxTreatment}
 
 
 def _require_str(payload: dict, field: str) -> str:
@@ -87,7 +90,33 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
         raise WebhookPayloadError(f"'occurred_at' is not a valid ISO-8601 timestamp: {exc}") from exc
 
     gross_amount = _require_decimal(payload, "gross_amount")
-    vat_amount = _optional_decimal(payload, "vat_amount")
+
+    tax_treatment_raw = payload.get("tax_treatment", TaxTreatment.STANDARD.value)
+    if not isinstance(tax_treatment_raw, str) or tax_treatment_raw not in _TAX_TREATMENT_MAP:
+        raise WebhookPayloadError(f"'tax_treatment' must be one of: {', '.join(_TAX_TREATMENT_MAP)}")
+    tax_treatment = _TAX_TREATMENT_MAP[tax_treatment_raw]
+
+    # This demo webhook always taxes under the business's own Israeli VAT
+    # configuration (see app.domain.demo_business) — currency never
+    # determines the tax rate, so a USD/EUR event is computed exactly like
+    # an ILS one. If the provider didn't send a VAT amount at all, the
+    # backend calculates it; if it did, that figure must agree with what our
+    # own tax configuration computes (within rounding tolerance) — a
+    # provider silently claiming a different VAT amount than the selected
+    # tax treatment implies is inconsistent financial data, rejected rather
+    # than accepted as-is.
+    reported_vat_amount = _optional_decimal(payload, "vat_amount")
+    if reported_vat_amount is None:
+        vat_amount = calculate_vat(gross_amount, tax_treatment)
+    else:
+        if not vat_amount_is_consistent(gross_amount, tax_treatment, reported_vat_amount):
+            expected = calculate_vat(gross_amount, tax_treatment)
+            raise WebhookPayloadError(
+                f"'vat_amount' {reported_vat_amount} is inconsistent with tax_treatment "
+                f"{tax_treatment.value!r} for gross_amount {gross_amount} (expected {expected})"
+            )
+        vat_amount = reported_vat_amount
+
     processing_fee = _optional_decimal(payload, "processing_fee")
     net_amount = _optional_decimal(payload, "net_amount")
     if net_amount is None:
@@ -113,6 +142,8 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
         currency=currency.upper(),
         payment_method=_optional_str(payload, "payment_method"),
         status=status,
+        tax_treatment=tax_treatment,
+        vat_rate=vat_rate_snapshot(tax_treatment),
         description=_optional_str(payload, "description"),
     )
 

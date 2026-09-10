@@ -13,7 +13,7 @@ import { deleteSale, listSales, updateSale } from '../services/saleService'
 import { toApiError } from '../services/apiClient'
 import type { SaleFormInput, SaleFormValues } from '../schemas/sale'
 import type { Sale, SaleStatus } from '../types/sale'
-import { PAYMENT_METHODS, SALE_STATUSES } from '../types/sale'
+import { PAYMENT_METHODS, SALE_STATUSES, TRANSACTION_CURRENCIES } from '../types/sale'
 
 // A sale's stored payment_method isn't guaranteed to be one of the values the
 // <select> offers — webhook ingestion accepts a payment provider's own method
@@ -28,15 +28,27 @@ function normalizePaymentMethod(value: string | null): (typeof PAYMENT_METHODS)[
     : 'other'
 }
 
+// A sale's stored currency isn't guaranteed to be one of the three the
+// <select> offers — CSV/webhook ingestion isn't restricted to this closed
+// set (see backend app/schemas/validators.py). Same normalization pattern
+// as payment_method above: an unrecognized legacy/ingested value falls back
+// to the business's own default (ILS) in the edit form only, never mutating
+// the stored sale.
+function normalizeCurrency(value: string): (typeof TRANSACTION_CURRENCIES)[number] {
+  return (TRANSACTION_CURRENCIES as readonly string[]).includes(value)
+    ? (value as (typeof TRANSACTION_CURRENCIES)[number])
+    : 'ILS'
+}
+
 function saleToFormValues(sale: Sale): SaleFormInput {
   return {
     customer_name: sale.customer_name,
     customer_contact: sale.customer_contact ?? '',
     service_name: sale.service_name,
     gross_amount: sale.gross_amount,
-    vat_amount: sale.vat_amount ?? '',
+    tax_treatment: sale.tax_treatment ?? 'standard',
     processing_fee: sale.processing_fee ?? '',
-    currency: sale.currency,
+    currency: normalizeCurrency(sale.currency),
     sale_date: sale.occurred_at.slice(0, 10),
     payment_method: normalizePaymentMethod(sale.payment_method),
     description: sale.description ?? '',
@@ -69,7 +81,7 @@ export function SalesPage() {
         customer_contact: values.customer_contact || null,
         service_name: values.service_name,
         gross_amount: Number(values.gross_amount),
-        vat_amount: values.vat_amount === '' ? null : Number(values.vat_amount),
+        tax_treatment: values.tax_treatment,
         processing_fee: values.processing_fee === '' ? null : Number(values.processing_fee),
         currency: values.currency,
         occurred_at: values.sale_date,
@@ -190,6 +202,7 @@ export function SalesPage() {
             submitLabel={t('sales.saveChanges')}
             isSubmitting={updateMutation.isPending}
             submitError={updateMutation.isError ? toApiError(updateMutation.error).message : null}
+            taxTreatmentNeedsReview={editingSale.tax_treatment_needs_review}
             onSubmit={(values) => updateMutation.mutate(values)}
           />
         </Modal>

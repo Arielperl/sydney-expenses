@@ -1,16 +1,17 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
+from app.domain.demo_business import DEMO_DEFAULT_TRANSACTION_CURRENCY
+from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus, TaxTreatment
 from app.schemas.validators import (
-    validate_currency_code,
     validate_finite_decimal,
     validate_payment_method,
     validate_required_text,
+    validate_tax_treatment,
+    validate_transaction_currency,
     validate_transaction_datetime_reasonable,
-    validate_vat_not_exceeding_amount,
 )
 
 
@@ -20,9 +21,14 @@ class SaleBase(BaseModel):
     service_name: str = Field(min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
     gross_amount: Decimal = Field(ge=0, decimal_places=2)
-    vat_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    # `vat_amount` is deliberately NOT a field here: it is always backend-
+    # computed from gross_amount + tax_treatment (see app/services/tax/vat.py
+    # and app/api/routes/sales.py) — never client-supplied, so it can never
+    # conflict with the selected tax treatment. SaleRead below exposes the
+    # computed result.
+    tax_treatment: TaxTreatment = Field(default=TaxTreatment.STANDARD)
     processing_fee: Decimal | None = Field(default=None, ge=0, decimal_places=2)
-    currency: str = Field(default="ILS", min_length=3, max_length=3)
+    currency: str = Field(default=DEMO_DEFAULT_TRANSACTION_CURRENCY, min_length=3, max_length=3)
     payment_method: str | None = Field(default=None, max_length=50)
     occurred_at: datetime
 
@@ -34,9 +40,15 @@ class SaleBase(BaseModel):
     @field_validator("currency")
     @classmethod
     def _validate_currency(cls, value: str) -> str:
-        return validate_currency_code(value)
+        return validate_transaction_currency(value)
 
-    @field_validator("gross_amount", "vat_amount", "processing_fee")
+    @field_validator("tax_treatment")
+    @classmethod
+    def _validate_tax_treatment(cls, value: TaxTreatment) -> TaxTreatment:
+        validate_tax_treatment(value.value if isinstance(value, TaxTreatment) else value)
+        return value
+
+    @field_validator("gross_amount", "processing_fee")
     @classmethod
     def _validate_finite(cls, value: Decimal | None) -> Decimal | None:
         return validate_finite_decimal(value)
@@ -51,16 +63,12 @@ class SaleBase(BaseModel):
     def _validate_occurred_at(cls, value: datetime) -> datetime:
         return validate_transaction_datetime_reasonable(value)  # type: ignore[return-value]
 
-    @model_validator(mode="after")
-    def _validate_vat_within_amount(self) -> "SaleBase":
-        validate_vat_not_exceeding_amount(self.gross_amount, self.vat_amount)
-        return self
-
 
 class SaleCreate(SaleBase):
     """Manual sale entry — the fallback path when no payment provider sent
     a webhook. Always recorded as a completed (`succeeded`) sale; `net_amount`
-    is never accepted from the client, only computed server-side."""
+    and `vat_amount` are never accepted from the client, only computed
+    server-side."""
 
     pass
 
@@ -71,7 +79,7 @@ class SaleUpdate(BaseModel):
     service_name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
     gross_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
-    vat_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    tax_treatment: TaxTreatment | None = Field(default=None)
     processing_fee: Decimal | None = Field(default=None, ge=0, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     payment_method: str | None = Field(default=None, max_length=50)
@@ -85,9 +93,17 @@ class SaleUpdate(BaseModel):
     @field_validator("currency")
     @classmethod
     def _validate_currency(cls, value: str | None) -> str | None:
-        return None if value is None else validate_currency_code(value)
+        return None if value is None else validate_transaction_currency(value)
 
-    @field_validator("gross_amount", "vat_amount", "processing_fee")
+    @field_validator("tax_treatment")
+    @classmethod
+    def _validate_tax_treatment(cls, value: TaxTreatment | None) -> TaxTreatment | None:
+        if value is None:
+            return None
+        validate_tax_treatment(value.value if isinstance(value, TaxTreatment) else value)
+        return value
+
+    @field_validator("gross_amount", "processing_fee")
     @classmethod
     def _validate_finite(cls, value: Decimal | None) -> Decimal | None:
         return validate_finite_decimal(value)
@@ -118,6 +134,13 @@ class SaleRead(BaseModel):
     description: str | None = None
     gross_amount: Decimal
     vat_amount: Decimal | None = None
+    # Nullable because a legacy sale migrated before this field existed may
+    # have an ambiguous history the migration couldn't safely resolve — see
+    # `tax_treatment_needs_review` and the migration's docstring. Every sale
+    # created going forward always has a concrete value.
+    tax_treatment: TaxTreatment | None = None
+    tax_treatment_needs_review: bool = False
+    vat_rate: Decimal | None = None
     processing_fee: Decimal | None = None
     net_amount: Decimal
     refunded_amount: Decimal | None = None

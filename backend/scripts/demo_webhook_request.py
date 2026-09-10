@@ -41,11 +41,16 @@ DEMO_EVENT = {
     "customer_email": "demo.customer@example.com",
     "service_name": "Consulting session",
     "gross_amount": "184.90",
-    "vat_amount": "27.72",
+    # Israeli standard VAT-inclusive formula (see app/services/tax/vat.py):
+    # 184.90 * 18/118 = 28.21 (rounded); net = 184.90 - 28.21 - 5.55. The
+    # server independently validates this against tax_treatment and rejects
+    # the request if it doesn't match — these must stay consistent.
+    "vat_amount": "28.21",
     "processing_fee": "5.55",
-    "net_amount": "151.63",
+    "net_amount": "151.14",
     "currency": "ILS",
     "payment_method": "card",
+    "tax_treatment": "standard",
     "status": "succeeded",
     "description": "Demo customer payment for local testing — not a real transaction.",
 }

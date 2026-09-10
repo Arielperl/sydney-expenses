@@ -21,7 +21,7 @@ export function AddSalePage() {
         customer_contact: values.customer_contact || null,
         service_name: values.service_name,
         gross_amount: Number(values.gross_amount),
-        vat_amount: values.vat_amount === '' ? null : Number(values.vat_amount),
+        tax_treatment: values.tax_treatment,
         processing_fee: values.processing_fee === '' ? null : Number(values.processing_fee),
         currency: values.currency,
         occurred_at: values.sale_date,

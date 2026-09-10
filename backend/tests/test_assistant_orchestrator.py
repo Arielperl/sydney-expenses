@@ -130,7 +130,9 @@ def test_runs_a_tool_and_uses_its_result(db_session):
     # The tool result fed back to the model must reflect the real DB query.
     tool_message = client.chat.completions.last_messages[-1]
     assert tool_message["role"] == "tool"
-    assert json.loads(tool_message["content"]) == {"net_revenue": "100.00", "count": 1}
+    assert json.loads(tool_message["content"]) == {
+        "net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "100.00", "count": 1}]
+    }
 
 
 def test_unknown_tool_name_returns_error_result_not_crash(db_session):

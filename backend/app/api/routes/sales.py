@@ -8,6 +8,7 @@ from app.models.sale import Sale, SaleSource, SaleStatus
 from app.repositories.sale_repository import SaleRepository
 from app.schemas.sale import RefundRequest, SaleCreate, SaleRead, SaleUpdate, sale_to_read
 from app.services.sale_service import RefundExceedsNetAmountError, compute_net_amount, finalize_new_sale, record_refund
+from app.services.tax.vat import calculate_vat, vat_rate_snapshot
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -42,9 +43,15 @@ def create_sale(
     payload: SaleCreate,
     db: Session = Depends(get_db),
 ) -> SaleRead:
-    net_amount = compute_net_amount(payload.gross_amount, payload.vat_amount, payload.processing_fee)
+    # The backend is authoritative for vat_amount: it is always computed
+    # here from gross_amount + tax_treatment, never accepted from the
+    # client (see SaleCreate — there is no vat_amount input field at all).
+    vat_amount = calculate_vat(payload.gross_amount, payload.tax_treatment)
+    net_amount = compute_net_amount(payload.gross_amount, vat_amount, payload.processing_fee)
     sale = Sale(
         **payload.model_dump(),
+        vat_amount=vat_amount,
+        vat_rate=vat_rate_snapshot(payload.tax_treatment),
         net_amount=net_amount,
         source=SaleSource.MANUAL,
         status=SaleStatus.SUCCEEDED,
@@ -64,11 +71,31 @@ def update_sale(
     if sale is None:
         raise HTTPException(status_code=404, detail="Sale not found")
     updates = payload.model_dump(exclude_unset=True)
-    if any(field in updates for field in ("gross_amount", "vat_amount", "processing_fee")):
+    # vat_amount is recalculated (never accepted from the client — see
+    # SaleUpdate) whenever the amount or the tax treatment changes, so it
+    # can never drift out of sync with either.
+    if any(field in updates for field in ("gross_amount", "tax_treatment", "processing_fee")):
         gross = updates.get("gross_amount", sale.gross_amount)
-        vat = updates.get("vat_amount", sale.vat_amount)
+        tax_treatment = updates.get("tax_treatment", sale.tax_treatment)
+        if tax_treatment is None:
+            # A legacy sale whose tax treatment a data migration couldn't
+            # safely infer (see the migration's docstring) — recomputing
+            # VAT under an assumed treatment would be exactly the kind of
+            # invented value that migration deliberately avoided.
+            raise HTTPException(
+                status_code=422,
+                detail="This sale's tax treatment needs review — set tax_treatment explicitly before changing its amount.",
+            )
         fee = updates.get("processing_fee", sale.processing_fee)
+        vat = calculate_vat(gross, tax_treatment)
+        updates["vat_amount"] = vat
+        updates["vat_rate"] = vat_rate_snapshot(tax_treatment)
         updates["net_amount"] = compute_net_amount(gross, vat, fee)
+        # A sale this update resolves the tax treatment for (or whose
+        # amount changes while a treatment is already known) is no longer
+        # ambiguous — clear any "needs review" flag a legacy-data migration
+        # may have set.
+        updates["tax_treatment_needs_review"] = False
     updated = repository.update(sale, updates)
     return sale_to_read(updated)
 

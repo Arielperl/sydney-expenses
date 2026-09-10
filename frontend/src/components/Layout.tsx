@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
 
+import logoUrl from '../assets/sidney-logo-vector.svg'
+import { DemoBusinessBadge } from './DemoBusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 
@@ -46,11 +48,11 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 function BrandMark() {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center gap-2 px-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-        S
+    <div className="flex min-w-0 items-center gap-2 px-2">
+      <img src={logoUrl} alt={t('common.logoAlt')} className="h-8 w-8 shrink-0 object-contain" />
+      <span className="truncate text-base font-semibold text-stone-900 dark:text-stone-100">
+        {t('common.appShortName')}
       </span>
-      <span className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('common.appShortName')}</span>
     </div>
   )
 }
@@ -72,6 +74,9 @@ export function Layout() {
     <div className="min-h-full lg:flex">
       <aside className="hidden w-60 flex-col border-e border-stone-200 bg-white px-4 py-6 lg:flex dark:border-stone-800 dark:bg-stone-900">
         <BrandMark />
+        <div className="mt-3 px-2">
+          <DemoBusinessBadge />
+        </div>
         <div className="mt-8 flex flex-1 flex-col">
           <NavLinks />
         </div>
@@ -112,6 +117,9 @@ export function Layout() {
                 >
                   <X className="h-5 w-5" aria-hidden="true" />
                 </button>
+              </div>
+              <div className="mb-4">
+                <DemoBusinessBadge />
               </div>
               <NavLinks onNavigate={() => setIsDrawerOpen(false)} />
               <div className="flex items-center gap-2">

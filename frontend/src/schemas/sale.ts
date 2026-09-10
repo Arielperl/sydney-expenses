@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { todayIsoDate } from '../lib/format'
-import { PAYMENT_METHODS } from '../types/sale'
+import { PAYMENT_METHODS, TAX_TREATMENTS, TRANSACTION_CURRENCIES } from '../types/sale'
 
 const MIN_DATE = '2000-01-01'
 
@@ -30,17 +30,17 @@ export const saleFormSchema = z
       (value) => (value === '' ? undefined : value),
       z.coerce.number({ message: 'validation.amountInvalid' }).min(0, 'validation.amountNegative'),
     ),
-    vat_amount: z.union([
-      z.coerce.number({ message: 'validation.vatInvalid' }).min(0, 'validation.vatNegative'),
-      z.literal(''),
-      z.undefined(),
-    ]),
+    // vat_amount is NOT a form field: it is always backend-computed from
+    // gross_amount + tax_treatment (see app/services/tax/vat.py on the
+    // backend) and never submitted by the client — SaleForm shows it as a
+    // read-only, live-recalculated preview only.
+    tax_treatment: z.enum(TAX_TREATMENTS).default('standard'),
     processing_fee: z.union([
       z.coerce.number({ message: 'validation.feeInvalid' }).min(0, 'validation.feeNegative'),
       z.literal(''),
       z.undefined(),
     ]),
-    currency: z.string().trim().length(3, 'validation.currencyLength').default('ILS'),
+    currency: z.enum(TRANSACTION_CURRENCIES, { message: 'validation.currencyInvalid' }).default('ILS'),
     sale_date: z
       .string()
       .min(1, 'validation.dateRequired')
@@ -48,15 +48,6 @@ export const saleFormSchema = z
       .refine(isNotInFuture, 'validation.dateFuture'),
     payment_method: z.enum(PAYMENT_METHODS).optional().or(z.literal('')),
     description: z.string().trim().max(2000, 'validation.descriptionTooLong').optional().or(z.literal('')),
-  })
-  .superRefine((values, ctx) => {
-    if (values.vat_amount !== '' && values.vat_amount !== undefined && values.vat_amount > values.gross_amount) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['vat_amount'],
-        message: 'validation.vatExceedsAmount',
-      })
-    }
   })
 
 export type SaleFormValues = z.infer<typeof saleFormSchema>

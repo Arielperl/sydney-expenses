@@ -10,6 +10,7 @@ import { ServiceBadge } from '../components/ServiceBadge'
 import { getDashboardStats } from '../services/dashboardService'
 import { formatCurrency, formatDate } from '../lib/format'
 import { toApiError } from '../services/apiClient'
+import type { RevenueTrendPoint, TopService } from '../types/dashboard'
 
 function CountStat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -20,6 +21,10 @@ function CountStat({ label, value }: { label: string; value: string | number }) 
       </p>
     </div>
   )
+}
+
+function currenciesOf<T extends { currency: string }>(rows: T[]): string[] {
+  return Array.from(new Set(rows.map((row) => row.currency))).sort()
 }
 
 export function DashboardPage() {
@@ -38,7 +43,8 @@ export function DashboardPage() {
   if (!data) return null
 
   const hasAnySales = data.recent_sales.length > 0 || data.top_services.length > 0
-  const currency = data.recent_sales[0]?.currency ?? 'ILS'
+  const topServicesByCurrency = currenciesOf<TopService>(data.top_services)
+  const revenueTrendByCurrency = currenciesOf<RevenueTrendPoint>(data.revenue_trend)
 
   return (
     <div className="space-y-8">
@@ -73,26 +79,21 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatCard
               label={t('dashboard.revenueThisMonth')}
-              amount={data.net_revenue_this_month}
-              currency={currency}
-              changePercent={data.percentage_change}
+              amounts={data.net_revenue_this_month}
+              changePercentByCurrency={data.percentage_change}
             />
-            <StatCard label={t('dashboard.revenueLastMonth')} amount={data.net_revenue_previous_month} currency={currency} />
+            <StatCard label={t('dashboard.revenueLastMonth')} amounts={data.net_revenue_previous_month} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <CountStat label={t('dashboard.successfulSales')} value={data.successful_sales_count} />
-            <StatCard
-              label={t('dashboard.averageTransactionValue')}
-              amount={data.average_transaction_value ?? 0}
-              currency={currency}
-            />
-            <StatCard label={t('dashboard.grossRevenue')} amount={data.gross_revenue} currency={currency} />
+            <StatCard label={t('dashboard.averageTransactionValue')} amounts={data.average_transaction_value} />
+            <StatCard label={t('dashboard.grossRevenue')} amounts={data.gross_revenue} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <StatCard label={t('dashboard.vatCollected')} amount={data.vat_collected} currency={currency} />
-            <StatCard label={t('dashboard.processingFees')} amount={data.processing_fees} currency={currency} />
+            <StatCard label={t('dashboard.vatCollected')} amounts={data.vat_collected} />
+            <StatCard label={t('dashboard.processingFees')} amounts={data.processing_fees} />
           </div>
 
           <div>
@@ -110,8 +111,7 @@ export function DashboardPage() {
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <StatCard
                 label={t('dashboard.pendingDocuments', { count: data.pending_documents_count })}
-                amount={data.pending_documents_total}
-                currency={currency}
+                amounts={data.pending_documents_total}
               />
               <CountStat label={t('dashboard.documentFailures')} value={data.document_failures_count} />
               <CountStat label={t('dashboard.failedPayments')} value={data.failed_payments_count} />
@@ -120,8 +120,7 @@ export function DashboardPage() {
               <div className="mt-4">
                 <StatCard
                   label={t('dashboard.refunds', { count: data.refunds_count })}
-                  amount={data.refunds_total}
-                  currency={currency}
+                  amounts={data.refunds_total}
                 />
               </div>
             )}
@@ -131,16 +130,41 @@ export function DashboardPage() {
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.topServices')}</h2>
               <p className="text-sm text-stone-500 dark:text-stone-400">{t('dashboard.currentMonth')}</p>
-              <div className="mt-4">
-                <TopServicesChart data={data.top_services} currency={currency} />
+              <div className="mt-4 space-y-6">
+                {topServicesByCurrency.map((currency) => (
+                  <div key={currency}>
+                    {topServicesByCurrency.length > 1 && (
+                      <p className="mb-2 text-xs font-semibold tracking-wide text-stone-400 uppercase dark:text-stone-500">
+                        {currency}
+                      </p>
+                    )}
+                    <TopServicesChart
+                      data={data.top_services.filter((row) => row.currency === currency)}
+                      currency={currency}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.revenueTrend')}</h2>
-            <div className="mt-4">
-              <RevenueTrendChart data={data.revenue_trend} currency={currency} />
+            <div className="mt-4 space-y-6">
+              {revenueTrendByCurrency.length === 0 && <RevenueTrendChart data={[]} currency="ILS" />}
+              {revenueTrendByCurrency.map((currency) => (
+                <div key={currency}>
+                  {revenueTrendByCurrency.length > 1 && (
+                    <p className="mb-2 text-xs font-semibold tracking-wide text-stone-400 uppercase dark:text-stone-500">
+                      {currency}
+                    </p>
+                  )}
+                  <RevenueTrendChart
+                    data={data.revenue_trend.filter((row) => row.currency === currency)}
+                    currency={currency}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 

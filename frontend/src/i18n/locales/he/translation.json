@@ -34,8 +34,10 @@
     "system": "לפי המערכת"
   },
   "common": {
-    "appShortName": "סידני",
+    "appShortName": "מנהל הכנסות",
     "appFullName": "סידני — ניהול עסקאות",
+    "logoAlt": "הלוגו של מנהל הכנסות",
+    "demoBusinessBadge": "עסק הדגמה ישראלי",
     "loading": "טוען...",
     "somethingWentWrong": "משהו השתבש",
     "tryAgain": "נסו שוב",
@@ -101,7 +103,10 @@
     "viewDocumentAction": "צפייה במסמך של {{name}}",
     "viewDocumentTitle": "מסמך של {{name}}",
     "documentImageAlt": "תמונת מסמך של {{name}}",
-    "documentImageUnavailable": "לא ניתן היה לטעון את תמונת המסמך. ייתכן שפג תוקפה או שהוסרה."
+    "documentImageUnavailable": "לא ניתן היה לטעון את תמונת המסמך. ייתכן שפג תוקפה או שהוסרה.",
+    "vatInline": "מע\"מ {{amount}}",
+    "taxTreatmentNeedsReview": "סוג העסקה (מע\"מ) דורש בדיקה",
+    "foreignCurrencyIsraeliTax": "עדיין ממוסה לפי כללי מע\"מ ישראלי"
   },
   "addSale": {
     "title": "הוספת מכירה",
@@ -173,6 +178,9 @@
     "serviceNamePlaceholder": "לדוגמה: שיחת ייעוץ",
     "grossAmount": "סכום שחויב",
     "vatAmount": "סכום מע\"מ",
+    "vatAmountPreviewHint": "מחושב אוטומטית — לקריאה בלבד",
+    "taxTreatment": "סוג עסקה (מע\"מ)",
+    "taxTreatmentNeedsReviewHint": "סוג העסקה של מכירה זו מעולם לא נקבע — נא לאשר אותו.",
     "processingFee": "עמלת סליקה",
     "currency": "מטבע",
     "saleDate": "תאריך המכירה",
@@ -186,6 +194,16 @@
     "cash": "מזומן",
     "other": "אחר"
   },
+  "currency": {
+    "ILS": "שקל חדש (ILS)",
+    "USD": "דולר אמריקאי (USD)",
+    "EUR": "אירו (EUR)"
+  },
+  "taxTreatment": {
+    "standard": "מע\"מ רגיל — 18%",
+    "zero_rate": "מע\"מ בשיעור אפס",
+    "exempt": "עסקה פטורה ממע\"מ"
+  },
   "validation": {
     "customerNameRequired": "שם הלקוח הוא שדה חובה",
     "customerNameTooLong": "שם הלקוח ארוך מדי",
@@ -194,12 +212,9 @@
     "serviceNameTooLong": "שם השירות ארוך מדי",
     "amountInvalid": "הסכום חייב להיות מספר",
     "amountNegative": "הסכום לא יכול להיות שלילי",
-    "vatInvalid": "סכום המע\"מ חייב להיות מספר",
-    "vatNegative": "סכום המע\"מ לא יכול להיות שלילי",
-    "vatExceedsAmount": "סכום המע\"מ לא יכול להיות גבוה מהסכום הכולל",
     "feeInvalid": "עמלת הסליקה חייבת להיות מספר",
     "feeNegative": "עמלת הסליקה לא יכולה להיות שלילית",
-    "currencyLength": "יש להזין קוד מטבע בן 3 אותיות",
+    "currencyInvalid": "יש לבחור מטבע תקין",
     "dateRequired": "יש להזין תאריך",
     "dateTooOld": "התאריך רחוק מדי בעבר",
     "dateFuture": "התאריך לא יכול להיות בעתיד",

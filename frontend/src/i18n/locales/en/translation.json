@@ -34,8 +34,10 @@
     "system": "System"
   },
   "common": {
-    "appShortName": "Sydney",
+    "appShortName": "Revenue Manager",
     "appFullName": "Sydney Transaction Management",
+    "logoAlt": "Revenue Manager logo",
+    "demoBusinessBadge": "Israeli demo business",
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong",
     "tryAgain": "Try again",
@@ -101,7 +103,10 @@
     "viewDocumentAction": "View document for {{name}}",
     "viewDocumentTitle": "Document for {{name}}",
     "documentImageAlt": "Document image for {{name}}",
-    "documentImageUnavailable": "This document image could not be loaded. It may have expired or been removed."
+    "documentImageUnavailable": "This document image could not be loaded. It may have expired or been removed.",
+    "vatInline": "VAT {{amount}}",
+    "taxTreatmentNeedsReview": "Tax treatment needs review",
+    "foreignCurrencyIsraeliTax": "Still taxed under Israeli VAT rules"
   },
   "addSale": {
     "title": "Add sale",
@@ -173,6 +178,9 @@
     "serviceNamePlaceholder": "e.g. Consulting session",
     "grossAmount": "Amount charged",
     "vatAmount": "VAT amount",
+    "vatAmountPreviewHint": "Calculated automatically — read-only",
+    "taxTreatment": "Tax treatment",
+    "taxTreatmentNeedsReviewHint": "This sale's tax treatment was never recorded — please confirm it.",
     "processingFee": "Processing fee",
     "currency": "Currency",
     "saleDate": "Sale date",
@@ -186,6 +194,16 @@
     "cash": "Cash",
     "other": "Other"
   },
+  "currency": {
+    "ILS": "ILS — New Israeli Shekel",
+    "USD": "USD — US Dollar",
+    "EUR": "EUR — Euro"
+  },
+  "taxTreatment": {
+    "standard": "Standard VAT — 18%",
+    "zero_rate": "Zero-rate VAT",
+    "exempt": "VAT-exempt sale"
+  },
   "validation": {
     "customerNameRequired": "Customer name is required",
     "customerNameTooLong": "Customer name is too long",
@@ -194,12 +212,9 @@
     "serviceNameTooLong": "Service name is too long",
     "amountInvalid": "Amount must be a number",
     "amountNegative": "Amount cannot be negative",
-    "vatInvalid": "VAT amount must be a number",
-    "vatNegative": "VAT cannot be negative",
-    "vatExceedsAmount": "VAT cannot be greater than the amount",
     "feeInvalid": "Processing fee must be a number",
     "feeNegative": "Processing fee cannot be negative",
-    "currencyLength": "Use a 3-letter currency code",
+    "currencyInvalid": "Select a valid currency",
     "dateRequired": "Date is required",
     "dateTooOld": "Date is too far in the past",
     "dateFuture": "Date cannot be in the future",

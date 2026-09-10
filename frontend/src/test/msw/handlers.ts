@@ -5,23 +5,23 @@ import type { Sale } from '../../types/sale'
 const API_BASE = 'http://localhost:8000/api'
 
 export const emptyDashboardStats = {
-  net_revenue_this_month: '0.00',
-  net_revenue_previous_month: '0.00',
-  percentage_change: null,
+  net_revenue_this_month: [],
+  net_revenue_previous_month: [],
+  percentage_change: {},
   successful_sales_count: 0,
-  average_transaction_value: null,
-  gross_revenue: '0.00',
-  vat_collected: '0.00',
-  processing_fees: '0.00',
+  average_transaction_value: [],
+  gross_revenue: [],
+  vat_collected: [],
+  processing_fees: [],
   recent_sales: [],
   top_services: [],
   revenue_trend: [],
   pending_documents_count: 0,
-  pending_documents_total: '0.00',
+  pending_documents_total: [],
   document_failures_count: 0,
   failed_payments_count: 0,
   refunds_count: 0,
-  refunds_total: '0.00',
+  refunds_total: [],
 }
 
 export function makeSale(overrides: Partial<Sale> = {}): Sale {
@@ -38,6 +38,9 @@ export function makeSale(overrides: Partial<Sale> = {}): Sale {
     description: null,
     gross_amount: '184.90',
     vat_amount: '26.65',
+    tax_treatment: 'standard',
+    tax_treatment_needs_review: false,
+    vat_rate: '0.1800',
     processing_fee: '5.00',
     net_amount: '153.25',
     refunded_amount: null,

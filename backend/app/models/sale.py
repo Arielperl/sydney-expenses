@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -36,6 +36,33 @@ class PaymentMethod(str, enum.Enum):
     CARD = "card"
     CASH = "cash"
     OTHER = "other"
+
+
+class SaleCurrency(str, enum.Enum):
+    """The closed set of transaction currencies selectable through the sale
+    create/update API — see app.domain.demo_business for why this is
+    separate from tax jurisdiction. `Sale.currency` itself stays a plain
+    3-letter string column, not an enum, because webhook and CSV ingestion
+    may legitimately carry a currency this demo's manual-entry UI doesn't
+    offer yet (same reasoning as `PaymentMethod` above)."""
+
+    ILS = "ILS"
+    USD = "USD"
+    EUR = "EUR"
+
+
+class TaxTreatment(str, enum.Enum):
+    """How Israeli VAT applies to a sale — independent of `currency` (see
+    app.domain.demo_business: an Israeli business charging in USD is still
+    taxed under Israeli VAT rules). `standard` is ordinary 18% VAT-inclusive
+    pricing; `zero_rate` is a sale VAT applies to at a 0% rate (e.g. certain
+    exports); `exempt` is a sale VAT law doesn't apply to at all. zero_rate
+    and exempt both produce a VAT amount of 0 — the field exists so the
+    *reason* stays on the record, not just the number."""
+
+    STANDARD = "standard"
+    ZERO_RATE = "zero_rate"
+    EXEMPT = "exempt"
 
 
 class DocumentStatus(str, enum.Enum):
@@ -81,6 +108,24 @@ class Sale(Base):
     refunded_amount: Mapped[Decimal | None] = mapped_column(Numeric(AMOUNT_PRECISION, AMOUNT_SCALE), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="ILS")
     payment_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # `tax_treatment` is nullable for one reason only: a legacy sale migrated
+    # from before this field existed whose old vat_amount is ambiguous (see
+    # the migration) is left NULL with `tax_treatment_needs_review=True`,
+    # rather than the migration inventing a value it can't actually know.
+    # Every sale created after this field's introduction always gets a
+    # concrete value — enforced at the API boundary (see app/schemas/sale.py),
+    # never left NULL by choice.
+    tax_treatment: Mapped[str | None] = mapped_column(
+        Enum(TaxTreatment, native_enum=False), nullable=True
+    )
+    tax_treatment_needs_review: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # A snapshot of the VAT rate actually used to compute this sale's
+    # vat_amount at the time it was calculated — see
+    # app/services/tax/vat.py:vat_rate_snapshot. A future change to the
+    # business's configured standard rate must never change what a past sale
+    # is understood to have charged.
+    vat_rate: Mapped[Decimal | None] = mapped_column(Numeric(6, 4), nullable=True)
 
     document_status: Mapped[DocumentStatus] = mapped_column(
         Enum(DocumentStatus, native_enum=False), nullable=False, default=DocumentStatus.PENDING

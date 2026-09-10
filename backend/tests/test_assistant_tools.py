@@ -39,14 +39,14 @@ def _add_sale(db_session, **overrides):
 
 def test_get_total_revenue_empty_db(db_session):
     result = get_total_revenue(db_session)
-    assert result == {"net_revenue": "0.00", "count": 0}
+    assert result == {"net_revenue_by_currency": []}
 
 
 def test_get_total_revenue_sums_net_by_default(db_session):
     _add_sale(db_session, net_amount=Decimal("100.00"))
     _add_sale(db_session, net_amount=Decimal("50.50"))
     result = get_total_revenue(db_session)
-    assert result == {"net_revenue": "150.50", "count": 2}
+    assert result == {"net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "150.50", "count": 2}]}
 
 
 def test_get_total_revenue_excludes_pending_and_failed(db_session):
@@ -54,7 +54,7 @@ def test_get_total_revenue_excludes_pending_and_failed(db_session):
     _add_sale(db_session, net_amount=Decimal("50.00"), status=SaleStatus.PENDING)
     _add_sale(db_session, net_amount=Decimal("40.00"), status=SaleStatus.FAILED)
     result = get_total_revenue(db_session)
-    assert result == {"net_revenue": "100.00", "count": 1}
+    assert result == {"net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "100.00", "count": 1}]}
 
 
 def test_get_total_revenue_excludes_fully_refunded_and_reduces_partial(db_session):
@@ -66,14 +66,14 @@ def test_get_total_revenue_excludes_fully_refunded_and_reduces_partial(db_sessio
         refunded_amount=Decimal("40.00"),
     )
     result = get_total_revenue(db_session)
-    assert result == {"net_revenue": "60.00", "count": 1}
+    assert result == {"net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "60.00", "count": 1}]}
 
 
 def test_get_total_revenue_filters_by_date_range(db_session):
     _add_sale(db_session, net_amount=Decimal("100.00"), occurred_at=datetime(2026, 3, 10, 9))
     _add_sale(db_session, net_amount=Decimal("50.00"), occurred_at=datetime(2026, 4, 1, 9))
     result = get_total_revenue(db_session, start_date="2026-03-01", end_date="2026-03-31")
-    assert result == {"net_revenue": "100.00", "count": 1}
+    assert result == {"net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "100.00", "count": 1}]}
 
 
 def test_get_total_revenue_invalid_date_returns_error_not_raise(db_session):
@@ -86,7 +86,19 @@ def test_get_total_revenue_end_date_includes_sales_later_that_same_day(db_sessio
     an end_date filter must include the whole day, not just up to midnight."""
     _add_sale(db_session, net_amount=Decimal("100.00"), occurred_at=datetime(2026, 3, 10, 21, 30))
     result = get_total_revenue(db_session, start_date="2026-03-01", end_date="2026-03-10")
-    assert result == {"net_revenue": "100.00", "count": 1}
+    assert result == {"net_revenue_by_currency": [{"currency": "ILS", "net_revenue": "100.00", "count": 1}]}
+
+
+def test_get_total_revenue_never_combines_different_currencies(db_session):
+    _add_sale(db_session, net_amount=Decimal("100.00"), currency="ILS")
+    _add_sale(db_session, net_amount=Decimal("30.00"), currency="USD")
+    result = get_total_revenue(db_session)
+    assert result == {
+        "net_revenue_by_currency": [
+            {"currency": "ILS", "net_revenue": "100.00", "count": 1},
+            {"currency": "USD", "net_revenue": "30.00", "count": 1},
+        ]
+    }
 
 
 # --- get_gross_revenue / get_vat_collected / get_processing_fees --------
@@ -95,21 +107,21 @@ def test_get_total_revenue_end_date_includes_sales_later_that_same_day(db_sessio
 def test_get_gross_revenue_excludes_vat_and_fees(db_session):
     _add_sale(db_session, gross_amount=Decimal("100.00"), vat_amount=Decimal("15.00"), processing_fee=Decimal("3.00"))
     result = get_gross_revenue(db_session)
-    assert result == {"gross_revenue": "100.00", "count": 1}
+    assert result == {"gross_revenue_by_currency": [{"currency": "ILS", "gross_revenue": "100.00", "count": 1}]}
 
 
 def test_get_vat_collected(db_session):
     _add_sale(db_session, vat_amount=Decimal("15.00"))
     _add_sale(db_session, vat_amount=Decimal("7.50"))
     result = get_vat_collected(db_session)
-    assert result == {"vat_collected": "22.50"}
+    assert result == {"vat_collected_by_currency": [{"currency": "ILS", "vat_collected": "22.50", "count": 2}]}
 
 
 def test_get_processing_fees(db_session):
     _add_sale(db_session, processing_fee=Decimal("3.00"))
     _add_sale(db_session, processing_fee=Decimal("1.50"))
     result = get_processing_fees(db_session)
-    assert result == {"processing_fees": "4.50"}
+    assert result == {"processing_fees_by_currency": [{"currency": "ILS", "processing_fees": "4.50", "count": 2}]}
 
 
 def test_gross_vat_and_fees_include_partially_refunded_sales(db_session):
@@ -135,9 +147,21 @@ def test_gross_vat_and_fees_include_partially_refunded_sales(db_session):
         refunded_amount=Decimal("50.00"),
     )
 
-    assert get_gross_revenue(db_session) == {"gross_revenue": "100.00", "count": 1}
-    assert get_vat_collected(db_session) == {"vat_collected": "15.00"}
-    assert get_processing_fees(db_session) == {"processing_fees": "3.00"}
+    assert get_gross_revenue(db_session) == {"gross_revenue_by_currency": [{"currency": "ILS", "gross_revenue": "100.00", "count": 1}]}
+    assert get_vat_collected(db_session) == {"vat_collected_by_currency": [{"currency": "ILS", "vat_collected": "15.00", "count": 1}]}
+    assert get_processing_fees(db_session) == {"processing_fees_by_currency": [{"currency": "ILS", "processing_fees": "3.00", "count": 1}]}
+
+
+def test_get_gross_revenue_never_combines_different_currencies(db_session):
+    _add_sale(db_session, gross_amount=Decimal("100.00"), currency="ILS")
+    _add_sale(db_session, gross_amount=Decimal("40.00"), currency="EUR")
+    result = get_gross_revenue(db_session)
+    assert result == {
+        "gross_revenue_by_currency": [
+            {"currency": "EUR", "gross_revenue": "40.00", "count": 1},
+            {"currency": "ILS", "gross_revenue": "100.00", "count": 1},
+        ]
+    }
 
 
 # --- get_top_services ---------------------------------------------------
@@ -148,7 +172,16 @@ def test_get_top_services_sorted_and_limited(db_session):
     _add_sale(db_session, service_name="B", net_amount=Decimal("100.00"))
     _add_sale(db_session, service_name="B", net_amount=Decimal("50.00"))
     result = get_top_services(db_session, limit=1)
-    assert result == {"services": [{"service_name": "B", "total": "150.00", "count": 2}]}
+    assert result == {"services": [{"service_name": "B", "currency": "ILS", "total": "150.00", "count": 2}]}
+
+
+def test_get_top_services_kept_separate_per_currency(db_session):
+    _add_sale(db_session, service_name="Consulting", currency="ILS", net_amount=Decimal("100.00"))
+    _add_sale(db_session, service_name="Consulting", currency="USD", net_amount=Decimal("30.00"))
+    result = get_top_services(db_session, limit=5)
+    rows = {(r["service_name"], r["currency"]): r["total"] for r in result["services"]}
+    assert rows[("Consulting", "ILS")] == "100.00"
+    assert rows[("Consulting", "USD")] == "30.00"
 
 
 # --- get_revenue_trend -----------------------------------------------------
@@ -160,14 +193,24 @@ def test_get_revenue_trend_groups_by_month(db_session):
     _add_sale(db_session, net_amount=Decimal("40.00"), occurred_at=datetime(2026, 4, 1, 9))
     result = get_revenue_trend(db_session, period="month")
     assert result["trend"] == [
-        {"period_start": "2026-03-01", "total": "120.00", "count": 2},
-        {"period_start": "2026-04-01", "total": "40.00", "count": 1},
+        {"period_start": "2026-03-01", "currency": "ILS", "total": "120.00", "count": 2},
+        {"period_start": "2026-04-01", "currency": "ILS", "total": "40.00", "count": 1},
     ]
 
 
 def test_get_revenue_trend_invalid_period_returns_error(db_session):
     result = get_revenue_trend(db_session, period="year")
     assert "error" in result
+
+
+def test_get_revenue_trend_separates_currencies_within_same_period(db_session):
+    _add_sale(db_session, net_amount=Decimal("100.00"), currency="ILS", occurred_at=datetime(2026, 3, 5, 9))
+    _add_sale(db_session, net_amount=Decimal("30.00"), currency="USD", occurred_at=datetime(2026, 3, 20, 9))
+    result = get_revenue_trend(db_session, period="month")
+    assert result["trend"] == [
+        {"period_start": "2026-03-01", "currency": "ILS", "total": "100.00", "count": 1},
+        {"period_start": "2026-03-01", "currency": "USD", "total": "30.00", "count": 1},
+    ]
 
 
 # --- get_recent_customers ------------------------------------------------
@@ -178,6 +221,13 @@ def test_get_recent_customers_orders_newest_first(db_session):
     _add_sale(db_session, customer_name="New", occurred_at=datetime(2026, 3, 1, 9))
     result = get_recent_customers(db_session, limit=10)
     assert [c["customer_name"] for c in result["customers"]] == ["New", "Old"]
+
+
+def test_get_recent_customers_includes_currency_per_row(db_session):
+    _add_sale(db_session, customer_name="Dana", currency="USD", gross_amount=Decimal("30.00"))
+    result = get_recent_customers(db_session, limit=10)
+    assert result["customers"][0]["currency"] == "USD"
+    assert result["customers"][0]["amount"] == "30.00"
 
 
 # --- count_sales_in_period -------------------------------------------------
@@ -207,11 +257,14 @@ def test_get_pending_documents_summary_counts_pending_and_failed(db_session):
     result = get_pending_documents_summary(db_session)
 
     assert result["count"] == 2
+    assert result["total_by_currency"] == [{"currency": "ILS", "total": "200.00", "count": 2}]
+    assert all("currency" in row for row in result["sales"])
 
 
 def test_get_pending_documents_summary_empty(db_session):
     result = get_pending_documents_summary(db_session)
     assert result["count"] == 0
+    assert result["total_by_currency"] == []
 
 
 # --- get_refunds_summary ---------------------------------------------------
@@ -224,4 +277,15 @@ def test_get_refunds_summary(db_session):
 
     result = get_refunds_summary(db_session)
 
-    assert result == {"count": 2, "total_refunded": "140.00"}
+    assert result == {"count": 2, "refunds_by_currency": [{"currency": "ILS", "total_refunded": "140.00", "count": 2}]}
+
+
+def test_get_refunds_summary_separates_currencies(db_session):
+    _add_sale(db_session, status=SaleStatus.REFUNDED, refunded_amount=Decimal("100.00"), currency="ILS")
+    _add_sale(db_session, status=SaleStatus.REFUNDED, refunded_amount=Decimal("20.00"), currency="USD")
+
+    result = get_refunds_summary(db_session)
+
+    assert result["count"] == 2
+    by_currency = {row["currency"]: row["total_refunded"] for row in result["refunds_by_currency"]}
+    assert by_currency == {"ILS": "100.00", "USD": "20.00"}

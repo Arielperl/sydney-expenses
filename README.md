@@ -72,6 +72,18 @@ The target flow is: **a customer pays → a sale is created automatically → th
 
 Adding a sale manually, via **Add sale manually**, still works — it's the fallback path for when no payment provider is connected, not the primary workflow.
 
+## Israeli VAT and currency (demo business)
+
+This app currently models exactly **one fixed fictional Israeli business** — no auth, no registration, no multi-business support in this phase. Every value that describes that business (country `IL`, tax jurisdiction `IL`, reporting currency `ILS`, timezone `Asia/Jerusalem`, standard VAT rate `18%`, default transaction currency `ILS`) lives in one place, [`app/domain/demo_business.py`](backend/app/domain/demo_business.py) — never scattered as separate literals across the codebase. A small "Israeli demo business" badge in the app header makes this honestly visible rather than implied.
+
+**Currency is not tax jurisdiction.** A sale can be charged in `ILS`, `USD`, or `EUR` (the closed set in the Sale form's currency select) while always being taxed under this business's Israeli VAT rules — switching a sale's currency never changes which tax rules apply, and this app implements no US sales-tax or EU-VAT logic of its own.
+
+**VAT calculation.** Every sale has a `tax_treatment`: `standard` (ordinary 18% VAT, the default), `zero_rate` (VAT at 0%), or `exempt` (no VAT applies at all). `gross_amount` is always VAT-*inclusive* — what the customer actually paid — so for a `standard` sale, `vat_amount = gross_amount × 18 / 118`, never `gross_amount × 0.18` (that would incorrectly add VAT on top of an amount that already includes it). Example: gross `118.00` → VAT `18.00` → revenue before VAT `100.00`. `zero_rate` and `exempt` always compute `vat_amount = 0`. The calculation is backend-authoritative — see [`app/services/tax/vat.py`](backend/app/services/tax/vat.py) — the frontend form only ever *previews* it; `vat_amount` is not a field a client can set directly through the sale create/update API. Every sale also snapshots the VAT rate actually used onto `Sale.vat_rate`, so a future change to the business's standard rate can never rewrite a historical sale's VAT.
+
+**Webhook and CSV ingestion.** The demo payment webhook accepts an optional `tax_treatment` (defaulting to `standard`) and computes `vat_amount` on the backend when the payload omits it; if the payload *does* send a `vat_amount`, it's validated against what the business's own tax configuration would compute for that treatment (within a one-cent rounding tolerance) and the request is rejected with `422` if it doesn't match — a provider silently claiming inconsistent financial data is never accepted as-is. CSV-imported sales (no VAT column in the documented v1 format) are treated as ordinary `standard`-VAT sales, the same default a manually entered sale gets.
+
+**Multi-currency reporting.** The dashboard and the AI Assistant group every monetary total *by currency* and never add different currencies together — a dataset with only ILS sales shows ordinary single-figure cards; a dataset spanning ILS/USD/EUR shows a separate, clearly labeled figure per currency instead. There is no live exchange-rate conversion in this phase and none is invented; the reporting currency stays configured as ILS (see `app/domain/demo_business.py`) as the extension point for a future conversion feature.
+
 ## Automatic sale ingestion
 
 The goal of this feature is that a human should not need to type in every sale by hand: a payment provider or POS system sends a webhook the moment a customer pays, and the app's job narrows to handling the exceptions (a document that failed to generate, a refund, incomplete details) rather than data entry.
@@ -118,7 +130,7 @@ curl -X POST http://localhost:8000/api/webhooks/payments \
   -H "Content-Type: application/json" \
   -H "X-Signature: <computed HMAC>" \
   -H "X-Timestamp: <unix seconds>" \
-  -d '{"event_id":"evt-1","provider":"demo-pay","external_transaction_id":"txn-1","occurred_at":"2026-09-10T09:00:00+00:00","customer_name":"Demo Customer","customer_email":"demo@example.com","service_name":"Consulting session","gross_amount":"184.90","vat_amount":"27.72","processing_fee":"5.55","net_amount":"151.63","currency":"ILS","payment_method":"card","status":"succeeded"}'
+  -d '{"event_id":"evt-1","provider":"demo-pay","external_transaction_id":"txn-1","occurred_at":"2026-09-10T09:00:00+00:00","customer_name":"Demo Customer","customer_email":"demo@example.com","service_name":"Consulting session","gross_amount":"184.90","vat_amount":"28.21","processing_fee":"5.55","net_amount":"151.14","currency":"ILS","payment_method":"card","tax_treatment":"standard","status":"succeeded"}'
 ```
 Computing the signature by hand is fiddly — use [`backend/scripts/demo_webhook_request.py`](backend/scripts/demo_webhook_request.py), which builds and signs this exact request for you.
 

@@ -8,7 +8,7 @@ function validInput(overrides: Record<string, unknown> = {}) {
     customer_contact: 'dana@example.com',
     service_name: 'Consulting session',
     gross_amount: 100,
-    vat_amount: 15,
+    tax_treatment: 'standard',
     processing_fee: 3,
     currency: 'ILS',
     sale_date: '2026-01-01',
@@ -44,18 +44,32 @@ describe('saleFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('allows an empty vat_amount and processing_fee', () => {
-    const result = saleFormSchema.safeParse(validInput({ vat_amount: '', processing_fee: '' }))
+  it('allows an empty processing_fee', () => {
+    const result = saleFormSchema.safeParse(validInput({ processing_fee: '' }))
     expect(result.success).toBe(true)
   })
 
-  it('rejects vat_amount greater than gross_amount', () => {
-    const result = saleFormSchema.safeParse(validInput({ gross_amount: 10, vat_amount: 20 }))
+  it('defaults tax_treatment to standard when omitted', () => {
+    const { tax_treatment: _omit, ...rest } = validInput()
+    const result = saleFormSchema.safeParse(rest)
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.tax_treatment).toBe('standard')
+  })
+
+  it('rejects an invalid tax_treatment value', () => {
+    const result = saleFormSchema.safeParse(validInput({ tax_treatment: 'luxury_tax' }))
     expect(result.success).toBe(false)
   })
 
-  it('rejects a currency code that is not 3 letters', () => {
-    const result = saleFormSchema.safeParse(validInput({ currency: 'usd$' }))
+  it('accepts each supported currency', () => {
+    for (const currency of ['ILS', 'USD', 'EUR']) {
+      const result = saleFormSchema.safeParse(validInput({ currency }))
+      expect(result.success).toBe(true)
+    }
+  })
+
+  it('rejects a currency outside the supported set', () => {
+    const result = saleFormSchema.safeParse(validInput({ currency: 'GBP' }))
     expect(result.success).toBe(false)
   })
 

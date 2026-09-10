@@ -101,6 +101,59 @@ describe('SaleList', () => {
     expect(screen.getByText('ספק תשלומים')).toBeInTheDocument()
   })
 
+  it('shows the VAT amount and tax treatment under the sale amount', () => {
+    render(
+      <SaleList
+        sales={[makeSale({ vat_amount: '18.00', tax_treatment: 'standard' })]}
+        onEdit={noop}
+        onDelete={noop}
+        onViewDocument={noop}
+      />,
+    )
+
+    expect(screen.getByText(/18\.00/)).toBeInTheDocument()
+    expect(screen.getByText('מע"מ רגיל — 18%')).toBeInTheDocument()
+  })
+
+  it('shows a "needs review" note instead of a fabricated VAT for a legacy sale with no tax treatment', () => {
+    render(
+      <SaleList
+        sales={[makeSale({ tax_treatment: null, tax_treatment_needs_review: true })]}
+        onEdit={noop}
+        onDelete={noop}
+        onViewDocument={noop}
+      />,
+    )
+
+    expect(screen.getByText('סוג העסקה (מע"מ) דורש בדיקה')).toBeInTheDocument()
+  })
+
+  it('notes that a foreign-currency sale still uses the Israeli demo tax profile', () => {
+    render(
+      <SaleList
+        sales={[makeSale({ currency: 'USD', tax_treatment: 'standard' })]}
+        onEdit={noop}
+        onDelete={noop}
+        onViewDocument={noop}
+      />,
+    )
+
+    expect(screen.getByText('עדיין ממוסה לפי כללי מע"מ ישראלי')).toBeInTheDocument()
+  })
+
+  it('does not show the Israeli-tax note for an ILS sale', () => {
+    render(
+      <SaleList
+        sales={[makeSale({ currency: 'ILS' })]}
+        onEdit={noop}
+        onDelete={noop}
+        onViewDocument={noop}
+      />,
+    )
+
+    expect(screen.queryByText('עדיין ממוסה לפי כללי מע"מ ישראלי')).not.toBeInTheDocument()
+  })
+
   it('keeps the same logical alignment classes after switching to English/LTR', async () => {
     await i18n.changeLanguage('en')
     expect(document.documentElement.dir).toBe('ltr')

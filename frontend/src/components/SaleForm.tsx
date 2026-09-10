@@ -1,20 +1,21 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
 import { FormField, inputClasses } from './FormField'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from '../schemas/sale'
-import { todayIsoDate } from '../lib/format'
-import { PAYMENT_METHODS } from '../types/sale'
+import { formatCurrency, todayIsoDate } from '../lib/format'
+import { previewVat } from '../lib/vat'
+import { PAYMENT_METHODS, TAX_TREATMENTS, TRANSACTION_CURRENCIES } from '../types/sale'
 
 const DEFAULT_VALUES: SaleFormInput = {
   customer_name: '',
   customer_contact: '',
   service_name: '',
   gross_amount: 0,
-  vat_amount: '',
+  tax_treatment: 'standard',
   processing_fee: '',
   currency: 'ILS',
   sale_date: todayIsoDate(),
@@ -33,6 +34,7 @@ export function SaleForm({
   isSubmitting = false,
   submitError,
   extraContent,
+  taxTreatmentNeedsReview = false,
 }: {
   defaultValues?: Partial<SaleFormInput>
   onSubmit: (values: SaleFormValues) => void | Promise<void>
@@ -40,16 +42,29 @@ export function SaleForm({
   isSubmitting?: boolean
   submitError?: string | null
   extraContent?: ReactNode
+  /** True when this edit targets a legacy sale whose tax treatment a data
+   * migration couldn't safely infer (see the backend migration) — the form
+   * still defaults its tax-treatment select to something concrete (never
+   * leaves it blank), but shows a note that this is the first time it's
+   * being set rather than pretending it was always "standard". */
+  taxTreatmentNeedsReview?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<SaleFormInput, unknown, SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
     defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
   })
+
+  const grossAmount = useWatch({ control, name: 'gross_amount' })
+  const taxTreatment = useWatch({ control, name: 'tax_treatment' })
+  const currency = useWatch({ control, name: 'currency' })
+  const numericGross = grossAmount === '' || grossAmount === undefined ? 0 : Number(grossAmount)
+  const vatPreview = previewVat(numericGross, (taxTreatment || 'standard') as SaleFormInput['tax_treatment'] & string)
 
   function guardedSubmit(values: SaleFormValues) {
     if (isSubmitting) return
@@ -118,18 +133,29 @@ export function SaleForm({
         </FormField>
 
         <FormField
-          label={t('form.vatAmount')}
-          htmlFor="vat_amount"
-          error={translateError(t, errors.vat_amount?.message as string | undefined)}
+          label={t('form.taxTreatment')}
+          htmlFor="tax_treatment"
+          required
+          hint={taxTreatmentNeedsReview ? t('form.taxTreatmentNeedsReviewHint') : undefined}
+          error={translateError(t, errors.tax_treatment?.message)}
         >
-          <input
-            id="vat_amount"
-            type="number"
-            step="0.01"
-            min="0"
-            className={inputClasses}
-            {...register('vat_amount')}
-          />
+          <select id="tax_treatment" className={inputClasses} {...register('tax_treatment')}>
+            {TAX_TREATMENTS.map((treatment) => (
+              <option key={treatment} value={treatment}>
+                {t(`taxTreatment.${treatment}`)}
+              </option>
+            ))}
+          </select>
+        </FormField>
+
+        <FormField label={t('form.vatAmount')} htmlFor="vat_amount_preview">
+          <p
+            id="vat_amount_preview"
+            className="flex h-10 items-center rounded-md border border-dashed border-stone-300 bg-stone-50 px-3 text-sm text-stone-600 dark:border-stone-700 dark:bg-stone-800/50 dark:text-stone-400"
+          >
+            {formatCurrency(vatPreview, currency || 'ILS', i18n.language)}
+            <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">{t('form.vatAmountPreviewHint')}</span>
+          </p>
         </FormField>
 
         <FormField
@@ -153,7 +179,13 @@ export function SaleForm({
           required
           error={translateError(t, errors.currency?.message)}
         >
-          <input id="currency" className={inputClasses} maxLength={3} {...register('currency')} />
+          <select id="currency" className={inputClasses} {...register('currency')}>
+            {TRANSACTION_CURRENCIES.map((code) => (
+              <option key={code} value={code}>
+                {t(`currency.${code}`)}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         <FormField

@@ -79,6 +79,26 @@ export function SaleList({
               </td>
               <td className="px-4 py-3 text-end align-top font-medium tabular-nums text-stone-900 dark:text-stone-100">
                 {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
+                <p className="mt-0.5 text-xs font-normal text-stone-400 dark:text-stone-500">
+                  {sale.tax_treatment ? (
+                    <>
+                      <span>
+                        {t('sales.vatInline', {
+                          amount: formatCurrency(sale.vat_amount ?? 0, sale.currency, i18n.language),
+                        })}
+                      </span>
+                      {' · '}
+                      <span>{t(`taxTreatment.${sale.tax_treatment}`)}</span>
+                    </>
+                  ) : (
+                    <span>{t('sales.taxTreatmentNeedsReview')}</span>
+                  )}
+                </p>
+                {sale.currency !== 'ILS' && (
+                  <p className="mt-0.5 text-xs font-normal text-stone-400 dark:text-stone-500">
+                    {t('sales.foreignCurrencyIsraeliTax')}
+                  </p>
+                )}
               </td>
               <td className="px-4 py-3 text-end align-top">
                 <div className="flex flex-wrap justify-end gap-2">
