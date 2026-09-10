@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExtractionStatus
 from app.services.dashboard_service import build_dashboard_stats
 
 
@@ -28,6 +28,10 @@ def test_dashboard_empty_state(db_session):
     assert stats.percentage_change is None
     assert stats.totals_by_category == []
     assert stats.recent_expenses == []
+    assert stats.missing_documents_count == 0
+    assert stats.missing_documents_total == Decimal("0.00")
+    assert stats.matches_awaiting_confirmation_count == 0
+    assert stats.document_attachment_rate is None
 
 
 def test_dashboard_current_and_previous_month_totals(db_session):
@@ -108,6 +112,39 @@ def test_dashboard_stats_api(client):
     body = response.json()
     assert Decimal(body["current_month_total"]) == Decimal("42.00")
     assert len(body["recent_expenses"]) == 1
+
+
+def test_missing_documents_count_and_total(db_session):
+    _add_expense(db_session, amount=Decimal("100.00"), document_status=DocumentStatus.MISSING)
+    _add_expense(db_session, amount=Decimal("50.00"), document_status=DocumentStatus.MISSING)
+    _add_expense(db_session, amount=Decimal("30.00"), document_status=DocumentStatus.ATTACHED)
+
+    stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
+
+    assert stats.missing_documents_count == 2
+    assert stats.missing_documents_total == Decimal("150.00")
+
+
+def test_matches_awaiting_confirmation_count(db_session):
+    _add_expense(db_session, document_status=DocumentStatus.SUGGESTED)
+    _add_expense(db_session, document_status=DocumentStatus.NEEDS_REVIEW)
+    _add_expense(db_session, document_status=DocumentStatus.MISSING)
+
+    stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
+
+    assert stats.matches_awaiting_confirmation_count == 2
+
+
+def test_document_attachment_rate(db_session):
+    _add_expense(db_session, document_status=DocumentStatus.ATTACHED)
+    _add_expense(db_session, document_status=DocumentStatus.ATTACHED)
+    _add_expense(db_session, document_status=DocumentStatus.MISSING)
+    _add_expense(db_session, document_status=DocumentStatus.NOT_REQUIRED)  # excluded from denominator
+
+    stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
+
+    # 2 attached out of 3 relevant (2 attached + 1 missing) = 66.7%
+    assert stats.document_attachment_rate == 66.7
 
 
 def test_dashboard_stats_api_decimal_precision(client):

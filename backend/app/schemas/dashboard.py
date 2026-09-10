@@ -16,3 +16,7 @@ class DashboardStats(BaseModel):
     percentage_change: float | None
     totals_by_category: list[CategoryTotal]
     recent_expenses: list[ExpenseRead]
+    missing_documents_count: int
+    missing_documents_total: Decimal
+    matches_awaiting_confirmation_count: int
+    document_attachment_rate: float | None
