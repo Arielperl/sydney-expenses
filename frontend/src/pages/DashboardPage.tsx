@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { StatCard } from '../components/StatCard'
-import { CategoryChart } from '../components/CategoryChart'
+import { TopServicesChart } from '../components/TopServicesChart'
+import { RevenueTrendChart } from '../components/RevenueTrendChart'
 import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
-import { CategoryBadge } from '../components/CategoryBadge'
+import { ServiceBadge } from '../components/ServiceBadge'
 import { getDashboardStats } from '../services/dashboardService'
 import { formatCurrency, formatDate } from '../lib/format'
 import { toApiError } from '../services/apiClient'
@@ -36,8 +37,8 @@ export function DashboardPage() {
 
   if (!data) return null
 
-  const hasAnyExpenses = data.recent_expenses.length > 0 || data.totals_by_category.length > 0
-  const currency = data.recent_expenses[0]?.currency ?? 'ILS'
+  const hasAnySales = data.recent_sales.length > 0 || data.top_services.length > 0
+  const currency = data.recent_sales[0]?.currency ?? 'ILS'
 
   return (
     <div className="space-y-8">
@@ -46,23 +47,23 @@ export function DashboardPage() {
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('dashboard.subtitle')}</p>
       </div>
 
-      {!hasAnyExpenses ? (
+      {!hasAnySales ? (
         <EmptyState
           title={t('dashboard.emptyTitle')}
           description={t('dashboard.emptyDescription')}
           action={
             <div className="flex justify-center gap-3">
               <Link
-                to="/add-expense"
+                to="/add-sale"
                 className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
               >
-                {t('nav.addExpense')}
+                {t('sales.addSaleManually')}
               </Link>
               <Link
-                to="/upload-receipt"
+                to="/imports"
                 className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
               >
-                {t('nav.uploadReceipt')}
+                {t('nav.imports')}
               </Link>
             </div>
           }
@@ -71,21 +72,36 @@ export function DashboardPage() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatCard
-              label={t('dashboard.thisMonth')}
-              amount={data.current_month_total}
+              label={t('dashboard.revenueThisMonth')}
+              amount={data.net_revenue_this_month}
               currency={currency}
               changePercent={data.percentage_change}
             />
-            <StatCard label={t('dashboard.lastMonth')} amount={data.previous_month_total} currency={currency} />
+            <StatCard label={t('dashboard.revenueLastMonth')} amount={data.net_revenue_previous_month} currency={currency} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <CountStat label={t('dashboard.successfulSales')} value={data.successful_sales_count} />
+            <StatCard
+              label={t('dashboard.averageTransactionValue')}
+              amount={data.average_transaction_value ?? 0}
+              currency={currency}
+            />
+            <StatCard label={t('dashboard.grossRevenue')} amount={data.gross_revenue} currency={currency} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <StatCard label={t('dashboard.vatCollected')} amount={data.vat_collected} currency={currency} />
+            <StatCard label={t('dashboard.processingFees')} amount={data.processing_fees} currency={currency} />
           </div>
 
           <div>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
-                {t('dashboard.reconciliationOverview')}
+                {t('dashboard.exceptionsOverview')}
               </h2>
               <Link
-                to="/reconciliation"
+                to="/exceptions"
                 className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
               >
                 {t('dashboard.viewAll')}
@@ -93,51 +109,61 @@ export function DashboardPage() {
             </div>
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <StatCard
-                label={t('dashboard.missingDocuments', { count: data.missing_documents_count })}
-                amount={data.missing_documents_total}
+                label={t('dashboard.pendingDocuments', { count: data.pending_documents_count })}
+                amount={data.pending_documents_total}
                 currency={currency}
               />
-              <CountStat
-                label={t('dashboard.matchesAwaitingConfirmation')}
-                value={data.matches_awaiting_confirmation_count}
-              />
-              <CountStat
-                label={t('dashboard.documentAttachmentRate')}
-                value={data.document_attachment_rate != null ? `${data.document_attachment_rate}%` : '—'}
-              />
+              <CountStat label={t('dashboard.documentFailures')} value={data.document_failures_count} />
+              <CountStat label={t('dashboard.failedPayments')} value={data.failed_payments_count} />
             </div>
+            {data.refunds_count > 0 && (
+              <div className="mt-4">
+                <StatCard
+                  label={t('dashboard.refunds', { count: data.refunds_count })}
+                  amount={data.refunds_total}
+                  currency={currency}
+                />
+              </div>
+            )}
           </div>
 
-          {data.totals_by_category.length > 0 && (
+          {data.top_services.length > 0 && (
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.spendingByCategory')}</h2>
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.topServices')}</h2>
               <p className="text-sm text-stone-500 dark:text-stone-400">{t('dashboard.currentMonth')}</p>
               <div className="mt-4">
-                <CategoryChart data={data.totals_by_category} currency={currency} />
+                <TopServicesChart data={data.top_services} currency={currency} />
               </div>
             </div>
           )}
 
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.revenueTrend')}</h2>
+            <div className="mt-4">
+              <RevenueTrendChart data={data.revenue_trend} currency={currency} />
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
             <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-stone-800">
-              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.recentExpenses')}</h2>
-              <Link to="/expenses" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.recentSales')}</h2>
+              <Link to="/sales" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
                 {t('dashboard.viewAll')}
               </Link>
             </div>
             <ul className="divide-y divide-stone-100 dark:divide-stone-800">
-              {data.recent_expenses.map((expense) => (
-                <li key={expense.id} className="flex items-center justify-between gap-4 px-5 py-3">
+              {data.recent_sales.map((sale) => (
+                <li key={sale.id} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-stone-900 dark:text-stone-100">{expense.business_name}</p>
+                    <p className="truncate font-medium text-stone-900 dark:text-stone-100">{sale.customer_name}</p>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      {formatDate(expense.expense_date, i18n.language)} · {t(`expenseSource.${expense.source}`)}
+                      {formatDate(sale.occurred_at.slice(0, 10), i18n.language)} · {t(`saleSource.${sale.source}`)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <CategoryBadge category={expense.category} />
+                    <ServiceBadge serviceName={sale.service_name} />
                     <span className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
-                      {formatCurrency(expense.amount, expense.currency, i18n.language)}
+                      {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
                     </span>
                   </div>
                 </li>

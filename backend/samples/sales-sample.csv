@@ -1,0 +1,4 @@
+date,customer,service,amount,currency
+2026-09-01,Demo Fictional Customer A,Consulting session,184.90,ILS
+2026-09-02,Demo Fictional Customer B,Web design package,450.00,ILS
+2026-09-03,Demo Fictional Customer C,Monthly subscription,99.00,ILS

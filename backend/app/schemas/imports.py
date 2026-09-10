@@ -11,9 +11,9 @@ class CsvRowError(BaseModel):
 
 class CsvPreviewRow(BaseModel):
     row_number: int
-    expense_date: date_type
-    description: str
-    merchant: str
+    sale_date: date_type
+    customer: str
+    service: str
     amount: Decimal
     currency: str
     external_id: str

@@ -84,37 +84,53 @@ def test_answers_directly_when_no_tool_call_needed(db_session):
     assert client.chat.completions.call_count == 1
 
 
-def test_runs_a_tool_and_uses_its_result(db_session):
+def test_system_prompt_tells_the_model_the_real_current_date(db_session):
+    """A regression test: the model's own training data has a cutoff far
+    earlier than the app's 'today' can be, so without this in the prompt it
+    will guess a wrong year whenever it needs to resolve 'this month' into a
+    start_date/end_date — silently computing an empty, wrong date range."""
     from datetime import date
+
+    client = _FakeOpenAIClient([_FakeMessage(content="ok")])
+    answer_question(_settings_with_openai(), db_session, "hi", [], client=client, today=date(2026, 9, 10))
+    system_message = client.chat.completions.last_messages[0]
+    assert system_message["role"] == "system"
+    assert "2026-09-10" in system_message["content"]
+
+
+def test_runs_a_tool_and_uses_its_result(db_session):
+    from datetime import datetime
     from decimal import Decimal
 
-    from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
+    from app.models.sale import DocumentStatus, Sale, SaleStatus
 
     db_session.add(
-        Expense(
-            business_name="Shufersal",
-            amount=Decimal("100.00"),
+        Sale(
+            customer_name="Demo Customer",
+            service_name="Consulting",
+            gross_amount=Decimal("100.00"),
+            net_amount=Decimal("100.00"),
             currency="ILS",
-            category=ExpenseCategory.GROCERIES,
-            expense_date=date(2026, 3, 15),
-            extraction_status=ExtractionStatus.MANUAL,
+            occurred_at=datetime(2026, 3, 15, 10, 0, 0),
+            status=SaleStatus.SUCCEEDED,
+            document_status=DocumentStatus.NOT_REQUIRED,
         )
     )
     db_session.commit()
 
     client = _FakeOpenAIClient(
         [
-            _FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_expenses", "{}")]),
+            _FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_revenue", "{}")]),
             _FakeMessage(content="You made 100.00 ILS total."),
         ]
     )
-    reply = answer_question(_settings_with_openai(), db_session, "how much total?", [], client=client)
+    reply = answer_question(_settings_with_openai(), db_session, "how much revenue?", [], client=client)
     assert reply == "You made 100.00 ILS total."
     assert client.chat.completions.call_count == 2
     # The tool result fed back to the model must reflect the real DB query.
     tool_message = client.chat.completions.last_messages[-1]
     assert tool_message["role"] == "tool"
-    assert json.loads(tool_message["content"]) == {"total": "100.00", "count": 1}
+    assert json.loads(tool_message["content"]) == {"net_revenue": "100.00", "count": 1}
 
 
 def test_unknown_tool_name_returns_error_result_not_crash(db_session):
@@ -132,7 +148,7 @@ def test_unknown_tool_name_returns_error_result_not_crash(db_session):
 
 def test_stops_after_max_tool_rounds(db_session):
     # 5 tool-call rounds (the cap) + 1 final forced text-only call.
-    behaviors = [_FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_expenses", "{}")]) for _ in range(5)]
+    behaviors = [_FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_revenue", "{}")]) for _ in range(5)]
     behaviors.append(_FakeMessage(content="Here's what I found so far."))
     client = _FakeOpenAIClient(behaviors)
     reply = answer_question(_settings_with_openai(), db_session, "keep asking", [], client=client)

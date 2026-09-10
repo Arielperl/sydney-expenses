@@ -6,6 +6,7 @@ lookup table the model's own tool definitions were generated from."""
 
 import json
 import logging
+from datetime import date
 
 from openai import (
     APIConnectionError,
@@ -26,17 +27,30 @@ from app.services.assistant.tools import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = (
-    "You are a helpful assistant for a small business owner using Sydney Transaction Management, an "
-    "expense tracking and reconciliation app. Answer questions about their expenses, merchants/vendors, "
-    "spending trends, and receipt/document matching status "
-    "using only the provided tools — never invent a number. If a tool returns no "
-    "data for the question asked, say so honestly rather than guessing. Never describe expenses as "
-    "revenue or sales, and never call a merchant a customer — this app tracks what the business spends, "
-    "not what it sells. Reply in "
-    "the same language the user asked in (Hebrew or English). Keep answers concise "
-    "and conversational, formatted for a chat bubble, not a report."
-)
+def _system_prompt(today: date) -> str:
+    # The model's own training data has a cutoff far earlier than "today" can
+    # be, so without this it will happily guess a wrong year (and silently
+    # compute an empty date range) whenever a relative phrase like "this
+    # month"/"today"/"this week" needs resolving — this must be told, never
+    # assumed.
+    return (
+        f"Today's date is {today.isoformat()}. When the user asks about 'this month', 'today', 'this week', "
+        "or any other relative period, compute the actual start_date/end_date from that real date yourself — "
+        "never guess or assume a different year.\n\n"
+        "You are a helpful assistant for a small business owner using Sydney Transaction Management, a sales "
+        "and revenue management app. Answer questions about their sales, customers, revenue, VAT, processing "
+        "fees, refunds, and customer receipt/invoice status using only the provided tools — never invent a "
+        "number. If a tool returns no data for the question asked, say so honestly rather than guessing.\n\n"
+        "Be precise about money: 'gross revenue' is what customers paid before VAT and processing fees are "
+        "subtracted; 'net revenue' (gross minus VAT minus fees minus any refund) is what the business actually "
+        "keeps; neither is the same as accounting profit. If asked something like 'how much did I profit' or "
+        "'כמה הרווחתי', answer with the net or gross revenue you actually have data for, name which one you're "
+        "giving, and say plainly that true profit would also require the business's own expenses, which this "
+        "assistant does not have data on — never call a revenue figure 'profit'. Reflect refunds accurately: a "
+        "refunded sale contributes nothing to revenue, a partially refunded one only its remaining net amount. "
+        "Reply in the same language the user asked in (Hebrew or English). Keep answers concise and "
+        "conversational, formatted for a chat bubble, not a report."
+    )
 
 _MAX_TOOL_ROUNDS = 5
 
@@ -51,13 +65,14 @@ def answer_question(
     message: str,
     history: list[dict[str, str]],
     client: OpenAI | None = None,
+    today: date | None = None,
 ) -> str:
     if not settings.openai_api_key:
         raise AssistantConfigError("OPENAI_API_KEY is not configured.")
     if client is None:
         client = OpenAI(api_key=settings.openai_api_key, max_retries=0)
 
-    messages: list[dict] = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    messages: list[dict] = [{"role": "system", "content": _system_prompt(today or date.today())}]
     messages.extend(history)
     messages.append({"role": "user", "content": message})
 

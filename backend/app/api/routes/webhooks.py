@@ -7,17 +7,17 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.database import get_db
 from app.schemas.webhooks import WebhookIngestResponse
-from app.services.ingestion.transaction_ingest import ingest_transaction_event
 from app.services.ingestion.webhook_provider import WebhookPayloadError, parse_webhook_event
 from app.services.ingestion.webhook_security import is_timestamp_fresh, verify_signature
+from app.services.sale_service import ingest_payment_event
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-@router.post("/transactions", response_model=WebhookIngestResponse)
-async def ingest_transaction(
+@router.post("/payments", response_model=WebhookIngestResponse)
+async def ingest_payment(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
@@ -63,7 +63,7 @@ async def ingest_transaction(
     except WebhookPayloadError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    expense, created = ingest_transaction_event(db, event)
+    sale, created = ingest_payment_event(db, event)
     logger.info(
         "webhook_ingested provider=%s created=%s event_id=%s",
         event.provider,
@@ -71,4 +71,4 @@ async def ingest_transaction(
         event.event_id,
     )
     response.status_code = 201 if created else 200
-    return WebhookIngestResponse(created=created, expense_id=expense.id)
+    return WebhookIngestResponse(created=created, sale_id=sale.id)

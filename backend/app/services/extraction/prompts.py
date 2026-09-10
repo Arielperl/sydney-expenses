@@ -1,8 +1,8 @@
 from decimal import Decimal
 
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 
-_CATEGORY_VALUES = ", ".join(f'"{c.value}"' for c in ExpenseCategory)
+_CATEGORY_VALUES = ", ".join(f'"{c.value}"' for c in DocumentCategory)
 
 RECEIPT_EXTRACTION_INSTRUCTIONS = (
     "You are extracting structured data from a photo of a retail receipt. The receipt "

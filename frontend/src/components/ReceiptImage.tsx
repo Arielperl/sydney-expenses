@@ -14,7 +14,7 @@ export function ReceiptImage({ url, alt }: { url: string; alt: string }) {
   if (failed) {
     return (
       <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-stone-300 bg-stone-50 text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
-        {t('expenses.receiptImageUnavailable')}
+        {t('sales.documentImageUnavailable')}
       </div>
     )
   }

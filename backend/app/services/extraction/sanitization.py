@@ -8,7 +8,7 @@ well-formed currency code — the model's raw output is never trusted as-is.
 from datetime import date as date_type
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.schemas.receipt import ExtractedReceiptData
 from app.schemas.validators import validate_currency_code
 
@@ -69,7 +69,7 @@ def compute_quality_score(
     business_name: str | None,
     total: Decimal | None,
     currency: str | None,
-    category: ExpenseCategory | None,
+    category: DocumentCategory | None,
     warnings: list[str],
 ) -> float:
     """A documented heuristic, not a calibrated probability: no provider's
@@ -95,7 +95,7 @@ def sanitize_extracted_fields(
     total_raw: float | None,
     vat_raw: float | None,
     currency_raw: str | None,
-    category: ExpenseCategory,
+    category: DocumentCategory,
     warnings: list[str],
 ) -> ExtractedReceiptData:
     warnings = list(warnings)

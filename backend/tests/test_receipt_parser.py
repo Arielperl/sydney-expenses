@@ -284,17 +284,17 @@ def test_merge_handles_no_candidates_at_all():
 
 
 def test_infers_groceries_from_market_keyword():
-    from app.models.expense import ExpenseCategory
+    from app.models.document_category import DocumentCategory
     from app.services.extraction.receipt_parser import infer_category_from_merchant_name
 
-    assert infer_category_from_merchant_name("מיני מרקט השכונה") == ExpenseCategory.GROCERIES
+    assert infer_category_from_merchant_name("מיני מרקט השכונה") == DocumentCategory.GROCERIES
 
 
 def test_infers_dining_from_cafe_keyword():
-    from app.models.expense import ExpenseCategory
+    from app.models.document_category import DocumentCategory
     from app.services.extraction.receipt_parser import infer_category_from_merchant_name
 
-    assert infer_category_from_merchant_name("Cafe Nice") == ExpenseCategory.DINING
+    assert infer_category_from_merchant_name("Cafe Nice") == DocumentCategory.DINING
 
 
 def test_no_category_inferred_when_merchant_name_unclear():

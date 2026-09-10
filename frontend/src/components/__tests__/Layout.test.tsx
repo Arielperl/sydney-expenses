@@ -28,24 +28,24 @@ describe('Layout', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
   })
 
-  it('shows a 5-item primary nav without Upload Receipt or Add Expense', () => {
+  it('shows a 5-item primary nav: dashboard, sales, exceptions, imports, assistant', () => {
     renderLayout()
     const nav = screen.getByRole('navigation', { name: 'ניווט ראשי' })
     expect(within(nav).getAllByRole('link')).toHaveLength(5)
-    expect(within(nav).queryByRole('link', { name: /העלאת קבלה/ })).not.toBeInTheDocument()
-    expect(within(nav).queryByRole('link', { name: /הוספת הוצאה/ })).not.toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: /מכירות/ })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: /מרכז חריגים/ })).toBeInTheDocument()
   })
 
   it('opens the mobile drawer and closes it on Escape', async () => {
     const user = userEvent.setup()
     renderLayout()
 
-    expect(screen.getAllByRole('link', { name: /הוצאות/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(1)
 
     await user.click(screen.getByRole('button', { name: 'פתיחת תפריט' }))
-    expect(screen.getAllByRole('link', { name: /הוצאות/ })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(2)
 
     await user.keyboard('{Escape}')
-    expect(screen.getAllByRole('link', { name: /הוצאות/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(1)
   })
 })

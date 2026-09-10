@@ -1,25 +1,27 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.expense import DocumentStatus, Expense
-from app.schemas.dashboard import CategoryTotal, DashboardStats
-from app.schemas.expense import expense_to_read
-from app.services.storage import resolve_receipt_image_url
+from app.models.sale import DocumentStatus, Sale, SaleStatus
+from app.schemas.dashboard import DashboardStats, RevenueTrendPoint, TopService
+from app.schemas.sale import sale_to_read
 
 TWO_PLACES = Decimal("0.01")
+TREND_MONTHS = 6
 
 
 def _round_money(value: Decimal) -> Decimal:
     return value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
 
 
-def _month_bounds(year: int, month: int) -> tuple[date, date]:
+def _month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     last_day = monthrange(year, month)[1]
-    return date(year, month, 1), date(year, month, last_day)
+    start = datetime(year, month, 1)
+    end = datetime(year, month, last_day, 23, 59, 59, 999999)
+    return start, end
 
 
 def _previous_month(year: int, month: int) -> tuple[int, int]:
@@ -28,13 +30,24 @@ def _previous_month(year: int, month: int) -> tuple[int, int]:
     return year, month - 1
 
 
-def _amounts_between(db: Session, start: date, end: date) -> list[Decimal]:
-    stmt = select(Expense.amount).where(Expense.expense_date >= start, Expense.expense_date <= end)
+def _shift_months_back(year: int, month: int, count: int) -> tuple[int, int]:
+    for _ in range(count):
+        year, month = _previous_month(year, month)
+    return year, month
+
+
+def _succeeded_or_partially_refunded_sales(db: Session, start: datetime, end: datetime) -> list[Sale]:
+    stmt = select(Sale).where(
+        Sale.occurred_at >= start,
+        Sale.occurred_at <= end,
+        Sale.status.in_([SaleStatus.SUCCEEDED, SaleStatus.PARTIALLY_REFUNDED]),
+    )
     return list(db.scalars(stmt).all())
 
 
-def _sum_decimal(values: list[Decimal]) -> Decimal:
-    return _round_money(sum(values, Decimal("0")))
+def _net_revenue_between(db: Session, start: datetime, end: datetime) -> Decimal:
+    sales = _succeeded_or_partially_refunded_sales(db, start, end)
+    return _round_money(sum((s.revenue_contribution() for s in sales), Decimal("0")))
 
 
 def build_dashboard_stats(db: Session, today: date | None = None) -> DashboardStats:
@@ -43,73 +56,105 @@ def build_dashboard_stats(db: Session, today: date | None = None) -> DashboardSt
     prev_year, prev_month = _previous_month(today.year, today.month)
     prev_start, prev_end = _month_bounds(prev_year, prev_month)
 
-    current_total = _sum_decimal(_amounts_between(db, current_start, current_end))
-    previous_total = _sum_decimal(_amounts_between(db, prev_start, prev_end))
+    net_revenue_this_month = _net_revenue_between(db, current_start, current_end)
+    net_revenue_previous_month = _net_revenue_between(db, prev_start, prev_end)
 
-    if previous_total > 0:
-        ratio = (current_total - previous_total) / previous_total * Decimal(100)
+    if net_revenue_previous_month > 0:
+        ratio = (net_revenue_this_month - net_revenue_previous_month) / net_revenue_previous_month * Decimal(100)
         percentage_change = float(ratio.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-    elif current_total > 0:
+    elif net_revenue_this_month > 0:
         percentage_change = 100.0
     else:
         percentage_change = None
 
-    category_rows = db.execute(
-        select(Expense.category, Expense.amount).where(
-            Expense.expense_date >= current_start, Expense.expense_date <= current_end
-        )
-    ).all()
-    totals_by_category_map: dict[str, Decimal] = {}
-    for category, amount in category_rows:
-        totals_by_category_map[category.value] = totals_by_category_map.get(category.value, Decimal("0")) + amount
-    totals_by_category = [
-        CategoryTotal(category=category, total=_round_money(total))
-        for category, total in totals_by_category_map.items()
-    ]
-    totals_by_category.sort(key=lambda item: item.total, reverse=True)
-
-    recent = db.scalars(
-        select(Expense).order_by(Expense.expense_date.desc(), Expense.created_at.desc()).limit(5)
-    ).all()
-    recent_expenses = [
-        expense_to_read(expense, resolve_receipt_image_url(expense.storage_provider, expense.receipt_image_path))
-        for expense in recent
-    ]
-
-    missing_amounts = list(
-        db.scalars(select(Expense.amount).where(Expense.document_status == DocumentStatus.MISSING)).all()
+    # Gross revenue / VAT collected / processing fees only count fully
+    # succeeded, non-refunded sales — a partial refund's remaining net is
+    # still captured in net_revenue_this_month above, but its gross/vat/fee
+    # breakdown is not proportionally re-derived (no structured refund
+    # line-item exists to do that honestly).
+    succeeded_this_month = list(
+        db.scalars(
+            select(Sale).where(
+                Sale.occurred_at >= current_start,
+                Sale.occurred_at <= current_end,
+                Sale.status == SaleStatus.SUCCEEDED,
+            )
+        ).all()
     )
-    missing_documents_count = len(missing_amounts)
-    missing_documents_total = _sum_decimal(missing_amounts)
+    gross_revenue = _round_money(sum((s.gross_amount for s in succeeded_this_month), Decimal("0")))
+    vat_collected = _round_money(sum((s.vat_amount or Decimal("0") for s in succeeded_this_month), Decimal("0")))
+    processing_fees = _round_money(sum((s.processing_fee or Decimal("0") for s in succeeded_this_month), Decimal("0")))
+    successful_sales_count = len(succeeded_this_month)
+    average_transaction_value = (
+        _round_money(gross_revenue / successful_sales_count) if successful_sales_count > 0 else None
+    )
 
-    matches_awaiting_confirmation_count = db.scalar(
-        select(func.count(Expense.id)).where(
-            Expense.document_status.in_([DocumentStatus.SUGGESTED, DocumentStatus.NEEDS_REVIEW])
+    service_totals: dict[str, Decimal] = {}
+    service_counts: dict[str, int] = {}
+    for sale in succeeded_this_month:
+        service_totals[sale.service_name] = service_totals.get(sale.service_name, Decimal("0")) + sale.gross_amount
+        service_counts[sale.service_name] = service_counts.get(sale.service_name, 0) + 1
+    top_services = [
+        TopService(service_name=name, total=_round_money(total), count=service_counts[name])
+        for name, total in service_totals.items()
+    ]
+    top_services.sort(key=lambda item: item.total, reverse=True)
+
+    revenue_trend: list[RevenueTrendPoint] = []
+    for offset in range(TREND_MONTHS - 1, -1, -1):
+        year, month = _shift_months_back(today.year, today.month, offset)
+        start, end = _month_bounds(year, month)
+        revenue_trend.append(RevenueTrendPoint(period_start=date(year, month, 1), total=_net_revenue_between(db, start, end)))
+
+    recent = db.scalars(select(Sale).order_by(Sale.occurred_at.desc(), Sale.created_at.desc()).limit(5)).all()
+    recent_sales = [sale_to_read(sale) for sale in recent]
+
+    pending_documents = list(
+        db.scalars(
+            select(Sale).where(
+                Sale.status == SaleStatus.SUCCEEDED, Sale.document_status == DocumentStatus.PENDING
+            )
+        ).all()
+    )
+    pending_documents_count = len(pending_documents)
+    pending_documents_total = _round_money(sum((s.net_amount for s in pending_documents), Decimal("0")))
+
+    document_failures_count = db.scalar(
+        select(func.count(Sale.id)).where(Sale.document_status == DocumentStatus.FAILED)
+    ) or 0
+
+    failed_payments_count = db.scalar(
+        select(func.count(Sale.id)).where(
+            Sale.status == SaleStatus.FAILED,
+            Sale.occurred_at >= current_start,
+            Sale.occurred_at <= current_end,
         )
     ) or 0
 
-    status_counts = dict(
-        db.execute(
-            select(Expense.document_status, func.count(Expense.id)).group_by(Expense.document_status)
+    refunded_sales = list(
+        db.scalars(
+            select(Sale).where(Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED]))
         ).all()
     )
-    attached = status_counts.get(DocumentStatus.ATTACHED, 0)
-    denominator = (
-        attached
-        + status_counts.get(DocumentStatus.MISSING, 0)
-        + status_counts.get(DocumentStatus.SUGGESTED, 0)
-        + status_counts.get(DocumentStatus.NEEDS_REVIEW, 0)
-    )
-    document_attachment_rate = round(attached / denominator * 100, 1) if denominator > 0 else None
+    refunds_count = len(refunded_sales)
+    refunds_total = _round_money(sum((s.refunded_amount or Decimal("0") for s in refunded_sales), Decimal("0")))
 
     return DashboardStats(
-        current_month_total=current_total,
-        previous_month_total=previous_total,
+        net_revenue_this_month=net_revenue_this_month,
+        net_revenue_previous_month=net_revenue_previous_month,
         percentage_change=percentage_change,
-        totals_by_category=totals_by_category,
-        recent_expenses=recent_expenses,
-        missing_documents_count=missing_documents_count,
-        missing_documents_total=missing_documents_total,
-        matches_awaiting_confirmation_count=matches_awaiting_confirmation_count,
-        document_attachment_rate=document_attachment_rate,
+        successful_sales_count=successful_sales_count,
+        average_transaction_value=average_transaction_value,
+        gross_revenue=gross_revenue,
+        vat_collected=vat_collected,
+        processing_fees=processing_fees,
+        recent_sales=recent_sales,
+        top_services=top_services,
+        revenue_trend=revenue_trend,
+        pending_documents_count=pending_documents_count,
+        pending_documents_total=pending_documents_total,
+        document_failures_count=document_failures_count,
+        failed_payments_count=failed_payments_count,
+        refunds_count=refunds_count,
+        refunds_total=refunds_total,
     )

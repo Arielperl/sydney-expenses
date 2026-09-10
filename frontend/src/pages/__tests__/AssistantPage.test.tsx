@@ -11,7 +11,7 @@ const CHAT_URL = 'http://localhost:8000/api/assistant/chat'
 describe('AssistantPage', () => {
   it('shows example questions in the empty state', () => {
     renderWithProviders(<AssistantPage />)
-    expect(screen.getByText('כמה הוצאתי החודש?')).toBeInTheDocument()
+    expect(screen.getByText('כמה הכנסתי החודש?')).toBeInTheDocument()
   })
 
   it('sends a message and shows the reply', async () => {
@@ -48,7 +48,7 @@ describe('AssistantPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
 
-    await user.click(screen.getByText('כמה הוצאתי החודש?'))
+    await user.click(screen.getByText('כמה הכנסתי החודש?'))
 
     await waitFor(() => {
       expect(screen.getByText('תשובה')).toBeInTheDocument()

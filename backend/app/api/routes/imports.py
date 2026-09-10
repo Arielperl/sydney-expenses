@@ -14,7 +14,7 @@ from app.schemas.imports import (
 )
 from app.services.ingestion.csv_import import (
     ParsedCsvRow,
-    create_import_batch_and_expenses,
+    create_import_batch_and_sales,
     find_batch_by_file_hash,
     parse_csv,
 )
@@ -58,16 +58,16 @@ def confirm_csv(
     rows = [
         ParsedCsvRow(
             row_number=row.row_number,
-            expense_date=row.expense_date,
-            description=row.description,
-            merchant=row.merchant,
+            sale_date=row.sale_date,
+            customer=row.customer,
+            service=row.service,
             amount=row.amount,
             currency=row.currency,
             external_id=row.external_id,
         )
         for row in payload.valid_rows
     ]
-    batch = create_import_batch_and_expenses(db, payload.file_hash, payload.filename, rows)
+    batch = create_import_batch_and_sales(db, payload.file_hash, payload.filename, rows)
     return CsvConfirmResponse(
         import_batch_id=batch.id,
         created_count=batch.created_count or 0,

@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next'
 
-import type { DocumentStatus } from '../types/expense'
+import type { DocumentStatus } from '../types/sale'
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
-  missing: 'bg-danger-500/10 text-danger-700 dark:text-danger-400',
-  suggested: 'bg-accent-500/10 text-accent-600 dark:text-accent-400',
-  needs_review: 'bg-accent-500/10 text-accent-600 dark:text-accent-400',
-  attached: 'bg-success-500/10 text-success-700 dark:text-success-400',
+  pending: 'bg-accent-500/10 text-accent-600 dark:text-accent-400',
+  issued: 'bg-success-500/10 text-success-700 dark:text-success-400',
+  failed: 'bg-danger-500/10 text-danger-700 dark:text-danger-400',
   not_required: 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
 }
 

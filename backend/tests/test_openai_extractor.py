@@ -257,16 +257,31 @@ def test_malformed_provider_output_raises_parsing_error(tmp_path):
         extractor.extract(_dummy_image(tmp_path))
 
 
-# --- Upload-route level behavior (extraction failure must not block the app) --
+# --- Document-import route level behavior (extraction failure must not block the app) --
 
 
-def test_upload_with_misconfigured_openai_provider_still_saves_the_file_and_allows_manual_entry(
-    client, monkeypatch
-):
+def _create_sale(client) -> str:
+    response = client.post(
+        "/api/sales",
+        json={
+            "customer_name": "Demo Customer",
+            "service_name": "Consulting",
+            "gross_amount": 10,
+            "currency": "ILS",
+            "occurred_at": "2026-01-01T10:00:00",
+        },
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+def test_import_with_misconfigured_openai_provider_still_attaches_the_document(client, monkeypatch):
     import io
 
     from app.api.deps import get_receipt_extractor as _get_receipt_extractor
     from tests.conftest import VALID_PNG_BYTES
+
+    sale_id = _create_sale(client)
 
     monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "openai")
     # An empty override, not delenv: delenv only removes the process env var,
@@ -279,46 +294,36 @@ def test_upload_with_misconfigured_openai_provider_still_saves_the_file_and_allo
     _get_receipt_extractor.cache_clear()
     try:
         response = client.post(
-            "/api/receipts/upload",
+            "/api/documents/import",
+            params={"sale_id": sale_id},
             files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
         )
         assert response.status_code == 200
         body = response.json()
         assert body["extraction_succeeded"] is False
-        assert body["receipt_image_url"].startswith("/uploads/")
+        assert body["document_status"] == "issued"
+        assert body["document_url"].startswith("/uploads/")
         assert "sk-" not in (body["error_message"] or "")
-
-        # Manual entry is still possible: confirm the same upload with hand-typed data.
-        confirm_response = client.post(
-            "/api/receipts/confirm",
-            json={
-                "upload_id": body["upload_id"],
-                "business_name": "Manual Entry",
-                "amount": 10,
-                "currency": "ILS",
-                "category": "other",
-                "expense_date": "2026-01-01",
-            },
-        )
-        assert confirm_response.status_code == 201
     finally:
         monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "mock")
         get_settings.cache_clear()
         _get_receipt_extractor.cache_clear()
 
 
-def test_no_expense_is_saved_during_extraction_itself(client):
+def test_no_new_sale_is_created_during_document_import(client):
     import io
 
     from tests.conftest import VALID_PNG_BYTES
 
+    sale_id = _create_sale(client)
+
     response = client.post(
-        "/api/receipts/upload",
+        "/api/documents/import",
+        params={"sale_id": sale_id},
         files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
     )
     assert response.status_code == 200
-    all_expenses = client.get("/api/expenses").json()
-    assert all_expenses == []
+    assert [s["id"] for s in client.get("/api/sales").json()] == [sale_id]
 
 
 # --- /system/capabilities ----------------------------------------------------

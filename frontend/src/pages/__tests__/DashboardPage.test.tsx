@@ -3,33 +3,41 @@ import { describe, expect, it } from 'vitest'
 
 import { DashboardPage } from '../DashboardPage'
 import { server } from '../../test/msw/server'
-import { makeExpense } from '../../test/msw/handlers'
+import { makeSale } from '../../test/msw/handlers'
 import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
 
 const STATS_URL = 'http://localhost:8000/api/dashboard/stats'
 
 describe('DashboardPage', () => {
-  it('shows the empty state when there are no expenses', async () => {
+  it('shows the empty state when there are no sales', async () => {
     renderWithProviders(<DashboardPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('עדיין אין הוצאות')).toBeInTheDocument()
+      expect(screen.getByText('עדיין אין מכירות')).toBeInTheDocument()
     })
   })
 
-  it('shows totals and recent expenses when data is present', async () => {
+  it('shows revenue totals and recent sales when data is present', async () => {
     server.use(
       http.get(STATS_URL, () =>
         HttpResponse.json({
-          current_month_total: '150.00',
-          previous_month_total: '100.00',
+          net_revenue_this_month: '150.00',
+          net_revenue_previous_month: '100.00',
           percentage_change: 50,
-          totals_by_category: [{ category: 'groceries', total: '150.00' }],
-          recent_expenses: [makeExpense({ amount: '150.00' })],
-          missing_documents_count: 2,
-          missing_documents_total: '80.00',
-          matches_awaiting_confirmation_count: 1,
-          document_attachment_rate: 66.7,
+          successful_sales_count: 3,
+          average_transaction_value: '50.00',
+          gross_revenue: '180.00',
+          vat_collected: '27.00',
+          processing_fees: '3.00',
+          recent_sales: [makeSale({ gross_amount: '150.00', customer_name: 'Dana Cohen' })],
+          top_services: [{ service_name: 'Consulting session', total: '150.00', count: 1 }],
+          revenue_trend: [{ period_start: '2026-08-01', total: '150.00' }],
+          pending_documents_count: 2,
+          pending_documents_total: '80.00',
+          document_failures_count: 1,
+          failed_payments_count: 1,
+          refunds_count: 1,
+          refunds_total: '40.00',
         }),
       ),
     )
@@ -37,11 +45,11 @@ describe('DashboardPage', () => {
     renderWithProviders(<DashboardPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Shufersal')).toBeInTheDocument()
+      expect(screen.getByText('Dana Cohen')).toBeInTheDocument()
     })
     expect(screen.getByText(/50\.0%/)).toBeInTheDocument()
-    expect(screen.getByText('2 עסקאות ללא מסמך')).toBeInTheDocument()
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByText('66.7%')).toBeInTheDocument()
+    expect(screen.getByText('2 מכירות ממתינות למסמך')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('1 זיכויים')).toBeInTheDocument()
   })
 })

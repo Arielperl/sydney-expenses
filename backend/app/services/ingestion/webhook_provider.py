@@ -1,32 +1,31 @@
 """Provider-specific webhook payload parsing.
 
-`WEBHOOK_PROVIDERS` is the extension point for a real bank/PSP integration
-later: adding a real provider means writing one more `dict -> TransactionEvent`
-function and registering it here — the signature verification, idempotency,
-and Expense-creation logic in app/api/routes/webhooks.py never change.
+`WEBHOOK_PROVIDERS` is the extension point for a real payment provider or
+POS system later: adding a real provider means writing one more
+`dict -> PaymentEvent` function and registering it here — the signature
+verification, idempotency, and Sale-creation logic in
+app/api/routes/webhooks.py never change.
 """
 
-from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Callable
+
+from app.models.sale import SaleStatus
+from app.services.sale_service import PaymentEvent, compute_net_amount
 
 
 class WebhookPayloadError(ValueError):
     """The payload is malformed or from an unrecognized provider."""
 
 
-@dataclass
-class TransactionEvent:
-    event_id: str
-    provider: str
-    external_transaction_id: str
-    occurred_at: datetime
-    merchant_name: str
-    amount: Decimal
-    currency: str
-    payment_method: str | None = None
-    description: str | None = None
+_STATUS_MAP = {
+    "succeeded": SaleStatus.SUCCEEDED,
+    "pending": SaleStatus.PENDING,
+    "failed": SaleStatus.FAILED,
+    "refunded": SaleStatus.REFUNDED,
+    "partially_refunded": SaleStatus.PARTIALLY_REFUNDED,
+}
 
 
 def _require_str(payload: dict, field: str) -> str:
@@ -36,10 +35,47 @@ def _require_str(payload: dict, field: str) -> str:
     return value
 
 
-def parse_demo_provider_event(payload: dict) -> TransactionEvent:
+def _optional_str(payload: dict, field: str) -> str | None:
+    value = payload.get(field)
+    if value is not None and not isinstance(value, str):
+        raise WebhookPayloadError(f"'{field}' must be a string when present")
+    return value
+
+
+def _require_decimal(payload: dict, field: str, *, allow_zero: bool = False) -> Decimal:
+    raw = payload.get(field)
+    if raw is None:
+        raise WebhookPayloadError(f"'{field}' is required")
+    try:
+        value = Decimal(str(raw))
+    except InvalidOperation as exc:
+        raise WebhookPayloadError(f"'{field}' is not a valid number: {exc}") from exc
+    if allow_zero:
+        if value < 0:
+            raise WebhookPayloadError(f"'{field}' must not be negative")
+    elif value <= 0:
+        raise WebhookPayloadError(f"'{field}' must be positive")
+    return value
+
+
+def _optional_decimal(payload: dict, field: str) -> Decimal | None:
+    raw = payload.get(field)
+    if raw is None:
+        return None
+    try:
+        value = Decimal(str(raw))
+    except InvalidOperation as exc:
+        raise WebhookPayloadError(f"'{field}' is not a valid number: {exc}") from exc
+    if value < 0:
+        raise WebhookPayloadError(f"'{field}' must not be negative")
+    return value
+
+
+def parse_demo_pay_event(payload: dict) -> PaymentEvent:
     event_id = _require_str(payload, "event_id")
     external_transaction_id = _require_str(payload, "external_transaction_id")
-    merchant_name = _require_str(payload, "merchant_name")
+    customer_name = _require_str(payload, "customer_name")
+    service_name = _require_str(payload, "service_name")
     currency = _require_str(payload, "currency")
 
     occurred_at_raw = payload.get("occurred_at")
@@ -50,43 +86,43 @@ def parse_demo_provider_event(payload: dict) -> TransactionEvent:
     except ValueError as exc:
         raise WebhookPayloadError(f"'occurred_at' is not a valid ISO-8601 timestamp: {exc}") from exc
 
-    amount_raw = payload.get("amount")
-    if amount_raw is None:
-        raise WebhookPayloadError("'amount' is required")
-    try:
-        amount = Decimal(str(amount_raw))
-    except InvalidOperation as exc:
-        raise WebhookPayloadError(f"'amount' is not a valid number: {exc}") from exc
-    if amount <= 0:
-        raise WebhookPayloadError("'amount' must be positive")
+    gross_amount = _require_decimal(payload, "gross_amount")
+    vat_amount = _optional_decimal(payload, "vat_amount")
+    processing_fee = _optional_decimal(payload, "processing_fee")
+    net_amount = _optional_decimal(payload, "net_amount")
+    if net_amount is None:
+        net_amount = compute_net_amount(gross_amount, vat_amount, processing_fee)
 
-    payment_method = payload.get("payment_method")
-    if payment_method is not None and not isinstance(payment_method, str):
-        raise WebhookPayloadError("'payment_method' must be a string when present")
+    status_raw = payload.get("status")
+    if not isinstance(status_raw, str) or status_raw not in _STATUS_MAP:
+        raise WebhookPayloadError(f"'status' must be one of: {', '.join(_STATUS_MAP)}")
+    status = _STATUS_MAP[status_raw]
 
-    description = payload.get("description")
-    if description is not None and not isinstance(description, str):
-        raise WebhookPayloadError("'description' must be a string when present")
-
-    return TransactionEvent(
+    return PaymentEvent(
         event_id=event_id,
-        provider="demo-bank",
+        provider="demo-pay",
         external_transaction_id=external_transaction_id,
         occurred_at=occurred_at,
-        merchant_name=merchant_name,
-        amount=amount,
+        customer_name=customer_name,
+        customer_email=_optional_str(payload, "customer_email"),
+        service_name=service_name,
+        gross_amount=gross_amount,
+        vat_amount=vat_amount,
+        processing_fee=processing_fee,
+        net_amount=net_amount,
         currency=currency.upper(),
-        payment_method=payment_method,
-        description=description,
+        payment_method=_optional_str(payload, "payment_method"),
+        status=status,
+        description=_optional_str(payload, "description"),
     )
 
 
-WEBHOOK_PROVIDERS: dict[str, Callable[[dict], TransactionEvent]] = {
-    "demo-bank": parse_demo_provider_event,
+WEBHOOK_PROVIDERS: dict[str, Callable[[dict], PaymentEvent]] = {
+    "demo-pay": parse_demo_pay_event,
 }
 
 
-def parse_webhook_event(payload: dict) -> TransactionEvent:
+def parse_webhook_event(payload: dict) -> PaymentEvent:
     provider = payload.get("provider")
     if not isinstance(provider, str) or provider not in WEBHOOK_PROVIDERS:
         known = ", ".join(sorted(WEBHOOK_PROVIDERS))

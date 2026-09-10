@@ -32,7 +32,7 @@ from datetime import date as date_type
 from decimal import Decimal
 from typing import Literal
 
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.services.extraction.ocr_selection import LINE_PROXIMITY_HEIGHT_MULTIPLE, OcrLine, OcrWord
 
 Confidence = Literal["high", "medium", "low"]
@@ -656,18 +656,18 @@ def parse_receipt_candidates(ocr_candidates: list[tuple[OcrLine, ...]]) -> Parse
 # common business-type words, never anything specific to one receipt/chain.
 # Used only as a conservative fallback (see local_extractor.py) when the
 # vision model itself was not confident enough to pick anything but "other".
-_CATEGORY_KEYWORDS: tuple[tuple[ExpenseCategory, tuple[str, ...]], ...] = (
-    (ExpenseCategory.GROCERIES, ("מרקט", "סופר", "מכולת", "קואופ", "market", "super", "grocery")),
-    (ExpenseCategory.DINING, ("מסעדה", "קפה", "פיצה", "בורגר", "מאפי", "restaurant", "cafe", "coffee", "pizza")),
-    (ExpenseCategory.TRANSPORT, ("דלק", "תחנת דלק", "מוניות", "taxi", "fuel", "gas station")),
-    (ExpenseCategory.HEALTH, ("בית מרקחת", "פארם", "מרפאה", "pharmacy", "clinic")),
-    (ExpenseCategory.SHOPPING, ("אופנה", "בגדים", "בוטיק", "fashion", "boutique", "clothing")),
-    (ExpenseCategory.ENTERTAINMENT, ("קולנוע", "תיאטרון", "cinema", "theater")),
-    (ExpenseCategory.TRAVEL, ("מלון", "hotel", "טיסות", "airlines")),
+_CATEGORY_KEYWORDS: tuple[tuple[DocumentCategory, tuple[str, ...]], ...] = (
+    (DocumentCategory.GROCERIES, ("מרקט", "סופר", "מכולת", "קואופ", "market", "super", "grocery")),
+    (DocumentCategory.DINING, ("מסעדה", "קפה", "פיצה", "בורגר", "מאפי", "restaurant", "cafe", "coffee", "pizza")),
+    (DocumentCategory.TRANSPORT, ("דלק", "תחנת דלק", "מוניות", "taxi", "fuel", "gas station")),
+    (DocumentCategory.HEALTH, ("בית מרקחת", "פארם", "מרפאה", "pharmacy", "clinic")),
+    (DocumentCategory.SHOPPING, ("אופנה", "בגדים", "בוטיק", "fashion", "boutique", "clothing")),
+    (DocumentCategory.ENTERTAINMENT, ("קולנוע", "תיאטרון", "cinema", "theater")),
+    (DocumentCategory.TRAVEL, ("מלון", "hotel", "טיסות", "airlines")),
 )
 
 
-def infer_category_from_merchant_name(business_name: str | None) -> ExpenseCategory | None:
+def infer_category_from_merchant_name(business_name: str | None) -> DocumentCategory | None:
     """A conservative, generic keyword match — never a substitute for the
     vision model's own reading, only a fallback when it had nothing better
     than "other". Returns None (never a guess) when nothing matches."""

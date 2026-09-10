@@ -29,9 +29,9 @@ export function StatCard({
           className={[
             'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
             isIncrease
-              ? 'bg-danger-500/10 text-danger-700 dark:text-danger-400'
+              ? 'bg-success-500/10 text-success-700 dark:text-success-400'
               : isDecrease
-                ? 'bg-success-500/10 text-success-700 dark:text-success-400'
+                ? 'bg-danger-500/10 text-danger-700 dark:text-danger-400'
                 : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
           ].join(' ')}
         >

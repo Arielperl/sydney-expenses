@@ -38,9 +38,9 @@ export function CsvImportWizard() {
       const result = await confirmCsvImport(preview.file_hash, preview.filename, preview.valid_rows)
       setSummary(result)
       setState('summary')
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['reconciliation-inbox'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
     } catch (err) {
       setError(toApiError(err).message)
       setState('previewed')
@@ -108,7 +108,7 @@ export function CsvImportWizard() {
                       {t('imports.csv.columnDate')}
                     </th>
                     <th scope="col" className="px-3 py-2 text-start font-medium text-stone-500 dark:text-stone-400">
-                      {t('imports.csv.columnMerchant')}
+                      {t('imports.csv.columnCustomer')}
                     </th>
                     <th scope="col" className="px-3 py-2 text-end font-medium text-stone-500 dark:text-stone-400">
                       {t('imports.csv.columnAmount')}
@@ -119,9 +119,9 @@ export function CsvImportWizard() {
                   {preview.valid_rows.map((row) => (
                     <tr key={row.row_number}>
                       <td className="px-3 py-2 text-stone-600 dark:text-stone-400">
-                        {formatDate(row.expense_date, i18n.language)}
+                        {formatDate(row.sale_date, i18n.language)}
                       </td>
-                      <td className="px-3 py-2 text-stone-900 dark:text-stone-100">{row.merchant}</td>
+                      <td className="px-3 py-2 text-stone-900 dark:text-stone-100">{row.customer}</td>
                       <td className="px-3 py-2 text-end tabular-nums text-stone-900 dark:text-stone-100">
                         {formatCurrency(row.amount, row.currency, i18n.language)}
                       </td>

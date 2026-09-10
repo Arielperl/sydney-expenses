@@ -3,67 +3,57 @@ import { http, HttpResponse } from 'msw'
 const API_BASE = 'http://localhost:8000/api'
 
 export const emptyDashboardStats = {
-  current_month_total: '0.00',
-  previous_month_total: '0.00',
+  net_revenue_this_month: '0.00',
+  net_revenue_previous_month: '0.00',
   percentage_change: null,
-  totals_by_category: [],
-  recent_expenses: [],
-  missing_documents_count: 0,
-  missing_documents_total: '0.00',
-  matches_awaiting_confirmation_count: 0,
-  document_attachment_rate: null,
+  successful_sales_count: 0,
+  average_transaction_value: null,
+  gross_revenue: '0.00',
+  vat_collected: '0.00',
+  processing_fees: '0.00',
+  recent_sales: [],
+  top_services: [],
+  revenue_trend: [],
+  pending_documents_count: 0,
+  pending_documents_total: '0.00',
+  document_failures_count: 0,
+  failed_payments_count: 0,
+  refunds_count: 0,
+  refunds_total: '0.00',
 }
 
-export function makeExpense(overrides: Record<string, unknown> = {}) {
+export function makeSale(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'expense-1',
-    business_name: 'Shufersal',
-    receipt_number: null,
-    amount: '184.90',
-    vat_amount: '26.65',
-    currency: 'ILS',
-    category: 'groceries',
-    expense_date: '2026-08-20',
-    payment_method: null,
-    notes: null,
-    receipt_image_url: null,
-    extraction_confidence: null,
-    extraction_status: 'manual',
-    source: 'manual',
+    id: 'sale-1',
     external_id: null,
     source_provider: null,
-    raw_description: null,
-    occurred_at: null,
+    source: 'manual',
+    status: 'succeeded',
+    occurred_at: '2026-08-20T10:00:00',
+    customer_name: 'Dana Cohen',
+    customer_contact: 'dana@example.com',
+    service_name: 'Consulting session',
+    description: null,
+    gross_amount: '184.90',
+    vat_amount: '26.65',
+    processing_fee: '5.00',
+    net_amount: '153.25',
+    refunded_amount: null,
+    currency: 'ILS',
+    payment_method: null,
     document_status: 'not_required',
-    reconciliation_confidence: null,
-    reconciliation_reasons: null,
+    document_number: null,
+    document_url: null,
+    raw_description: null,
     created_at: '2026-08-20T10:00:00',
     updated_at: '2026-08-20T10:00:00',
     ...overrides,
   }
 }
 
-export function makeUnassignedDocument(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'upload-1',
-    received_at: '2026-08-20T10:00:00',
-    preview_url: '/uploads/upload-1.png',
-    extracted_business_name: 'Cofix',
-    extracted_total: '42.50',
-    extracted_vat: '6.15',
-    extracted_currency: 'ILS',
-    extracted_date: '2026-08-20',
-    extracted_receipt_number: 'R-500',
-    extracted_category: 'dining',
-    extraction_confidence: 0.8,
-    extraction_warnings: [],
-    ...overrides,
-  }
-}
-
 export const handlers = [
   http.get(`${API_BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
-  http.get(`${API_BASE}/expenses`, () => HttpResponse.json([])),
+  http.get(`${API_BASE}/sales`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/dashboard/stats`, () => HttpResponse.json(emptyDashboardStats)),
   http.get(`${API_BASE}/system/capabilities`, () =>
     HttpResponse.json({

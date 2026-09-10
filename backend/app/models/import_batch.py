@@ -16,11 +16,11 @@ class ImportStatus(str, enum.Enum):
 
 class ImportBatch(Base):
     """Tracks one CSV import attempt: which file, how many rows validated vs.
-    errored, and (once confirmed) how many expenses were created vs. skipped
+    errored, and (once confirmed) how many sales were created vs. skipped
     as duplicates. `file_hash` lets the import flow recognize a re-uploaded
     file without treating same-amount/same-day rows as automatically
     duplicate — the real duplicate guard is the per-row external_id unique
-    constraint on Expense.
+    constraint on Sale.
     """
 
     __tablename__ = "import_batches"

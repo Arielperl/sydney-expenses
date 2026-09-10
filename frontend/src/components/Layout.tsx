@@ -1,4 +1,4 @@
-import { Bot, Inbox, LayoutDashboard, Menu, PlugZap, Receipt, X } from 'lucide-react'
+import { AlertTriangle, Bot, LayoutDashboard, Menu, PlugZap, ShoppingCart, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -8,8 +8,8 @@ import { ThemeSwitcher } from './ThemeSwitcher'
 
 const NAV_ITEMS = [
   { to: '/', key: 'dashboard', end: true, icon: LayoutDashboard },
-  { to: '/expenses', key: 'expenses', end: false, icon: Receipt },
-  { to: '/reconciliation', key: 'reconciliation', end: false, icon: Inbox },
+  { to: '/sales', key: 'sales', end: false, icon: ShoppingCart },
+  { to: '/exceptions', key: 'exceptions', end: false, icon: AlertTriangle },
   { to: '/imports', key: 'imports', end: false, icon: PlugZap },
   { to: '/assistant', key: 'assistant', end: false, icon: Bot },
 ] as const

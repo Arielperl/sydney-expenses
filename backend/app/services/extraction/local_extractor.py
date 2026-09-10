@@ -16,7 +16,7 @@ except ImportError:  # pragma: no cover - pytesseract is a declared dependency
     pytesseract = None  # type: ignore[assignment]
 
 from app.core.config import Settings
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.schemas.receipt import ExtractedReceiptData
 from app.services.extraction.base import ReceiptExtractor
 from app.services.extraction.document_geometry import DocumentDetection
@@ -55,7 +55,7 @@ _FACTUAL_FIELD_SPECS: dict[str, tuple[type, object]] = {
     "currency": (str, "ILS"),
 }
 
-# Plain str, not the ExpenseCategory enum, for category: a local, quantized
+# Plain str, not the DocumentCategory enum, for category: a local, quantized
 # model's JSON-schema-constrained decoding is less rigorously enforced than a
 # hosted provider's true strict structured outputs, so an out-of-enum value
 # must degrade gracefully (see _coerce_category) instead of failing the whole
@@ -63,7 +63,7 @@ _FACTUAL_FIELD_SPECS: dict[str, tuple[type, object]] = {
 # its own to skip asking the vision model about merchant name or category.
 _SEMANTIC_FIELD_SPECS: dict[str, tuple[type, object]] = {
     "business_name": (str | None, None),
-    "category": (str, ExpenseCategory.OTHER.value),
+    "category": (str, DocumentCategory.OTHER.value),
     "warnings": (list[str], []),
 }
 
@@ -269,7 +269,7 @@ class LocalReceiptExtractor(ReceiptExtractor):
         raw_total = getattr(raw, "total", None)
         raw_vat = getattr(raw, "vat", None)
         raw_currency = getattr(raw, "currency", None)
-        raw_category = getattr(raw, "category", ExpenseCategory.OTHER.value)
+        raw_category = getattr(raw, "category", DocumentCategory.OTHER.value)
         raw_warnings = list(getattr(raw, "warnings", []))
 
         extra_warnings = raw_warnings
@@ -302,7 +302,7 @@ class LocalReceiptExtractor(ReceiptExtractor):
 
         extra_warnings = drop_resolved_not_confident_warnings(extra_warnings, merged)
 
-        if category == ExpenseCategory.OTHER:
+        if category == DocumentCategory.OTHER:
             # The vision model itself had nothing better than "other" — try a
             # conservative, generic merchant-name keyword fallback before
             # giving up. Never overrides a category the model was confident
@@ -325,13 +325,13 @@ class LocalReceiptExtractor(ReceiptExtractor):
         )
 
     @staticmethod
-    def _coerce_category(raw_category: str, warnings: list[str]) -> ExpenseCategory:
+    def _coerce_category(raw_category: str, warnings: list[str]) -> DocumentCategory:
         try:
-            return ExpenseCategory(raw_category)
+            return DocumentCategory(raw_category)
         except ValueError:
             if "category_not_confident" not in warnings:
                 warnings.append("category_not_confident")
-            return ExpenseCategory.OTHER
+            return DocumentCategory.OTHER
 
     def _generate_with_retries(self, client: httpx.Client, payload: dict, response_model: type[BaseModel]) -> BaseModel:
         max_retries = self._settings.ollama_max_retries

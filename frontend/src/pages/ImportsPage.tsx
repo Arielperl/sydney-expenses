@@ -28,6 +28,7 @@ export WEBHOOK_SIGNING_SECRET=demo-secret-change-me
 python -m scripts.demo_webhook_request`}
           </code>
         </pre>
+        <p className="mt-4 text-xs text-stone-500 dark:text-stone-400">{t('imports.webhook.disclaimer')}</p>
       </div>
     </div>
   )

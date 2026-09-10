@@ -1,4 +1,4 @@
-"""Sends one signed demo transaction event to a running server.
+"""Sends one signed demo customer-payment event to a running server.
 
 This is a *local development demo only* — WEBHOOK_SIGNING_SECRET below is a
 placeholder read from the environment, never a real secret. It must match
@@ -14,7 +14,7 @@ Run against a locally running backend:
 Re-running this script sends the *same* event_id/external_transaction_id
 every time — that's deliberate, so you can see the idempotent-delivery
 behavior first-hand: the first call reports created=true, every call after
-that reports created=false with the same expense_id.
+that reports created=false with the same sale_id.
 """
 
 import json
@@ -33,15 +33,21 @@ BASE_URL = os.environ.get("DEMO_SERVER_URL", "http://localhost:8000")
 SECRET = os.environ.get("WEBHOOK_SIGNING_SECRET", "demo-secret-change-me")
 
 DEMO_EVENT = {
-    "event_id": "demo-evt-184.90-fictional",
-    "provider": "demo-bank",
-    "external_transaction_id": "demo-txn-184.90-fictional",
+    "event_id": "demo-evt-sale-184.90-fictional",
+    "provider": "demo-pay",
+    "external_transaction_id": "demo-sale-184.90-fictional",
     "occurred_at": "2026-09-10T09:00:00+00:00",
-    "merchant_name": "Demo Fictional Café",
-    "amount": "184.90",
+    "customer_name": "Demo Fictional Customer",
+    "customer_email": "demo.customer@example.com",
+    "service_name": "Consulting session",
+    "gross_amount": "184.90",
+    "vat_amount": "27.72",
+    "processing_fee": "5.55",
+    "net_amount": "151.63",
     "currency": "ILS",
     "payment_method": "card",
-    "description": "Demo transaction for local testing — not a real payment.",
+    "status": "succeeded",
+    "description": "Demo customer payment for local testing — not a real transaction.",
 }
 
 
@@ -51,7 +57,7 @@ def main() -> None:
     signature = compute_signature(SECRET, timestamp, raw_body)
 
     response = httpx.post(
-        f"{BASE_URL}/api/webhooks/transactions",
+        f"{BASE_URL}/api/webhooks/payments",
         content=raw_body,
         headers={
             "Content-Type": "application/json",

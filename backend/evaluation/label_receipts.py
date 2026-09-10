@@ -20,7 +20,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from app.core.config import get_settings
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.services.extraction.exceptions import ReceiptExtractionError
 from app.services.extraction.local_extractor import LocalReceiptExtractor
 from app.services.extraction.mock import MockReceiptExtractor
@@ -28,7 +28,7 @@ from app.services.extraction.openai_extractor import OpenAIReceiptExtractor
 
 RECEIPTS_DIR = Path(__file__).resolve().parent.parent / "evaluation_receipts"
 FIELDS = ["business_name", "receipt_number", "date", "total", "vat", "currency", "category"]
-CATEGORY_VALUES = [c.value for c in ExpenseCategory]
+CATEGORY_VALUES = [c.value for c in DocumentCategory]
 
 
 def build_extractor(provider: str, model_override: str | None):

@@ -1,12 +1,12 @@
 import io
 
-from app.models.expense import Expense
+from app.models.sale import Sale
 from app.services.ingestion.csv_import import parse_csv
 
 VALID_CSV = (
-    "date,description,merchant,amount,currency\n"
-    "2026-09-01,Weekly groceries,Demo Supermarket,184.90,ILS\n"
-    "2026-09-02,Lunch,Demo Cafe,45.50,ILS\n"
+    "date,customer,service,amount,currency\n"
+    "2026-09-01,Demo Customer A,Consulting session,184.90,ILS\n"
+    "2026-09-02,Demo Customer B,Web design,45.50,ILS\n"
 )
 
 
@@ -17,7 +17,7 @@ class TestParseCsv:
 
         assert len(rows) == 2
         assert errors == []
-        assert rows[0].merchant == "Demo Supermarket"
+        assert rows[0].customer == "Demo Customer A"
         assert str(rows[0].amount) == "184.90"
         assert rows[0].currency == "ILS"
         assert rows[0].external_id == "csv:hash123:1"
@@ -29,14 +29,14 @@ class TestParseCsv:
 
         assert len(rows) == 2
         assert errors == []
-        assert rows[0].merchant == "Demo Supermarket"
+        assert rows[0].customer == "Demo Customer A"
 
     def test_malformed_row_is_reported_as_error_others_still_valid(self):
         csv_text = (
-            "date,description,merchant,amount,currency\n"
-            "2026-09-01,Weekly groceries,Demo Supermarket,184.90,ILS\n"
-            "not-a-date,Bad row,Demo Store,10.00,ILS\n"
-            "2026-09-02,Lunch,Demo Cafe,45.50,ILS\n"
+            "date,customer,service,amount,currency\n"
+            "2026-09-01,Demo Customer A,Consulting session,184.90,ILS\n"
+            "not-a-date,Bad row,Consulting,10.00,ILS\n"
+            "2026-09-02,Demo Customer B,Web design,45.50,ILS\n"
         )
 
         rows, errors = parse_csv(csv_text.encode("utf-8"), "hash123", max_rows=100)
@@ -46,9 +46,9 @@ class TestParseCsv:
         assert errors[0].row_number == 2
 
     def test_row_count_over_limit_reported_as_error(self):
-        lines = ["date,description,merchant,amount,currency"]
+        lines = ["date,customer,service,amount,currency"]
         for i in range(5):
-            lines.append(f"2026-09-0{i + 1},Item,Store,10.00,ILS")
+            lines.append(f"2026-09-0{i + 1},Customer,Service,10.00,ILS")
         csv_text = "\n".join(lines) + "\n"
 
         rows, errors = parse_csv(csv_text.encode("utf-8"), "hash123", max_rows=2)
@@ -79,7 +79,7 @@ class TestCsvImportRoutes:
         assert body["errors"] == []
         assert body["is_repeat_file"] is False
 
-    def test_confirm_creates_expenses(self, client, db_session):
+    def test_confirm_creates_sales(self, client, db_session):
         preview = client.post(
             "/api/imports/csv/preview",
             files={"file": ("statement.csv", io.BytesIO(VALID_CSV.encode("utf-8")), "text/csv")},
@@ -95,7 +95,7 @@ class TestCsvImportRoutes:
         assert body["created_count"] == 2
         assert body["duplicate_count"] == 0
 
-        count = db_session.query(Expense).filter(Expense.source_provider == "csv").count()
+        count = db_session.query(Sale).filter(Sale.source_provider == "csv").count()
         assert count == 2
 
     def test_confirming_same_file_twice_reports_duplicates_not_new_rows(self, client, db_session):
@@ -116,7 +116,7 @@ class TestCsvImportRoutes:
         assert second.json()["created_count"] == 0
         assert second.json()["duplicate_count"] == 2
 
-        count = db_session.query(Expense).filter(Expense.source_provider == "csv").count()
+        count = db_session.query(Sale).filter(Sale.source_provider == "csv").count()
         assert count == 2
 
     def test_oversized_file_is_rejected(self, client, monkeypatch):
@@ -154,3 +154,17 @@ class TestCsvImportRoutes:
 
         assert second_preview.status_code == 200
         assert second_preview.json()["is_repeat_file"] is True
+
+    def test_csv_imported_sales_get_a_document_attempted(self, client, db_session):
+        preview = client.post(
+            "/api/imports/csv/preview",
+            files={"file": ("statement.csv", io.BytesIO(VALID_CSV.encode("utf-8")), "text/csv")},
+        ).json()
+        client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+        )
+
+        sales = db_session.query(Sale).filter(Sale.source_provider == "csv").all()
+        assert all(sale.document_status.value == "issued" for sale in sales)
+        assert all(sale.document_number and sale.document_number.startswith("DEMO-") for sale in sales)

@@ -3,18 +3,18 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.schemas.receipt import ExtractedReceiptData
 from app.services.extraction.base import ReceiptExtractor
 
-_SAMPLE_BUSINESSES: list[tuple[str, ExpenseCategory]] = [
-    ("Shufersal", ExpenseCategory.GROCERIES),
-    ("Rami Levy", ExpenseCategory.GROCERIES),
-    ("Cofix", ExpenseCategory.DINING),
-    ("Super-Pharm", ExpenseCategory.HEALTH),
-    ("Paz Gas Station", ExpenseCategory.TRANSPORT),
-    ("Ace Hardware", ExpenseCategory.SHOPPING),
-    ("Cinema City", ExpenseCategory.ENTERTAINMENT),
+_SAMPLE_BUSINESSES: list[tuple[str, DocumentCategory]] = [
+    ("Shufersal", DocumentCategory.GROCERIES),
+    ("Rami Levy", DocumentCategory.GROCERIES),
+    ("Cofix", DocumentCategory.DINING),
+    ("Super-Pharm", DocumentCategory.HEALTH),
+    ("Paz Gas Station", DocumentCategory.TRANSPORT),
+    ("Ace Hardware", DocumentCategory.SHOPPING),
+    ("Cinema City", DocumentCategory.ENTERTAINMENT),
 ]
 
 

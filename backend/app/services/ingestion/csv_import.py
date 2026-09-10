@@ -1,7 +1,8 @@
-"""CSV bank/credit-card statement import.
+"""CSV sales-export import.
 
 One documented format only for v1 — ambiguous column-guessing is explicitly
-out of scope. Header row required: date,description,merchant,amount,currency
+out of scope. Header row required:
+date,customer,service,amount,currency
 """
 
 import csv
@@ -13,11 +14,12 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource
 from app.models.import_batch import ImportBatch, ImportStatus
-from app.schemas.validators import validate_business_name, validate_currency_code, validate_expense_date_reasonable
+from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
+from app.schemas.validators import validate_date_reasonable, validate_currency_code, validate_required_text
+from app.services.sale_service import attempt_document_generation
 
-REQUIRED_COLUMNS = ["date", "description", "merchant", "amount", "currency"]
+REQUIRED_COLUMNS = ["date", "customer", "service", "amount", "currency"]
 
 
 @dataclass
@@ -29,9 +31,9 @@ class CsvRowErrorInfo:
 @dataclass
 class ParsedCsvRow:
     row_number: int
-    expense_date: date
-    description: str
-    merchant: str
+    sale_date: date
+    service: str
+    customer: str
     amount: Decimal
     currency: str
     external_id: str
@@ -40,13 +42,13 @@ class ParsedCsvRow:
 def _parse_row(row_number: int, raw_row: dict[str, str], file_hash: str) -> ParsedCsvRow:
     date_raw = (raw_row.get("date") or "").strip()
     try:
-        expense_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
+        sale_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
     except ValueError as exc:
         raise ValueError(f"'date' must be in YYYY-MM-DD format, got '{date_raw}'") from exc
-    validate_expense_date_reasonable(expense_date)
+    validate_date_reasonable(sale_date)
 
-    merchant = validate_business_name(raw_row.get("merchant") or "")
-    description = (raw_row.get("description") or "").strip()
+    customer = validate_required_text(raw_row.get("customer") or "")
+    service = validate_required_text(raw_row.get("service") or "")
 
     amount_raw = (raw_row.get("amount") or "").strip()
     try:
@@ -60,9 +62,9 @@ def _parse_row(row_number: int, raw_row: dict[str, str], file_hash: str) -> Pars
 
     return ParsedCsvRow(
         row_number=row_number,
-        expense_date=expense_date,
-        description=description,
-        merchant=merchant,
+        sale_date=sale_date,
+        service=service,
+        customer=customer,
         amount=amount,
         currency=currency,
         external_id=f"csv:{file_hash}:{row_number}",
@@ -103,7 +105,7 @@ def find_batch_by_file_hash(db: Session, file_hash: str) -> ImportBatch | None:
     return db.query(ImportBatch).filter(ImportBatch.file_hash == file_hash).first()
 
 
-def create_import_batch_and_expenses(
+def create_import_batch_and_sales(
     db: Session, file_hash: str, filename: str | None, rows: list[ParsedCsvRow]
 ) -> ImportBatch:
     batch = ImportBatch(
@@ -119,28 +121,30 @@ def create_import_batch_and_expenses(
     created_count = 0
     duplicate_count = 0
     for row in rows:
-        expense = Expense(
-            business_name=row.merchant,
-            amount=row.amount,
+        sale = Sale(
+            customer_name=row.customer,
+            service_name=row.service,
+            gross_amount=row.amount,
+            net_amount=row.amount,
             currency=row.currency,
-            category=ExpenseCategory.OTHER,
-            expense_date=row.expense_date,
-            source=ExpenseSource.CSV,
+            source=SaleSource.CSV,
             source_provider="csv",
             external_id=row.external_id,
-            raw_description=row.description,
-            occurred_at=datetime.combine(row.expense_date, datetime.min.time()),
-            document_status=DocumentStatus.MISSING,
+            occurred_at=datetime.combine(row.sale_date, datetime.min.time()),
+            status=SaleStatus.SUCCEEDED,
+            document_status=DocumentStatus.PENDING,
             import_batch_id=batch.id,
         )
         savepoint = db.begin_nested()
         try:
-            db.add(expense)
+            db.add(sale)
             savepoint.commit()
             created_count += 1
         except IntegrityError:
             savepoint.rollback()
             duplicate_count += 1
+            continue
+        attempt_document_generation(db, sale)
 
     batch.created_count = created_count
     batch.duplicate_count = duplicate_count

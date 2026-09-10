@@ -17,7 +17,7 @@ from openai import (
 from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
-from app.models.expense import ExpenseCategory
+from app.models.document_category import DocumentCategory
 from app.schemas.receipt import ExtractedReceiptData
 from app.services.extraction.base import ReceiptExtractor
 from app.services.extraction.exceptions import (
@@ -81,7 +81,7 @@ class _RawReceiptExtraction(BaseModel):
     total: float | None
     vat: float | None
     currency: str
-    category: ExpenseCategory
+    category: DocumentCategory
     warnings: list[str]
 
 
@@ -217,7 +217,7 @@ class OpenAIReceiptExtractor(ReceiptExtractor):
         extra_warnings = drop_resolved_not_confident_warnings(extra_warnings, merged)
 
         category = raw.category
-        if category == ExpenseCategory.OTHER:
+        if category == DocumentCategory.OTHER:
             inferred_category = infer_category_from_merchant_name(merged.business_name.value)
             if inferred_category is not None:
                 category = inferred_category

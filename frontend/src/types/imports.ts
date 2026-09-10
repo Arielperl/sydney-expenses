@@ -5,9 +5,9 @@ export interface CsvRowError {
 
 export interface CsvPreviewRow {
   row_number: number
-  expense_date: string
-  description: string
-  merchant: string
+  sale_date: string
+  customer: string
+  service: string
   amount: number | string
   currency: string
   external_id: string

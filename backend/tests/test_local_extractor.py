@@ -429,14 +429,31 @@ def test_sensitive_ocr_content_is_not_logged(tmp_path, monkeypatch, caplog):
         assert "fake-bytes" not in record.getMessage()  # the raw image bytes
 
 
-# --- Upload-route level: extraction failure must not block manual entry -----
+# --- Document-import route level: extraction failure must not block the import ---
 
 
-def test_upload_with_ollama_unreachable_still_saves_the_file_and_allows_manual_entry(client, monkeypatch):
+def _create_sale(client) -> str:
+    response = client.post(
+        "/api/sales",
+        json={
+            "customer_name": "Demo Customer",
+            "service_name": "Consulting",
+            "gross_amount": 10,
+            "currency": "ILS",
+            "occurred_at": "2026-01-01T10:00:00",
+        },
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+def test_import_with_ollama_unreachable_still_attaches_the_document(client, monkeypatch):
     import io
 
     from app.api.deps import get_receipt_extractor as _get_receipt_extractor
     from tests.conftest import VALID_PNG_BYTES
+
+    sale_id = _create_sale(client)
 
     monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "local")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:1")  # nothing listens here
@@ -445,37 +462,28 @@ def test_upload_with_ollama_unreachable_still_saves_the_file_and_allows_manual_e
     _get_receipt_extractor.cache_clear()
     try:
         response = client.post(
-            "/api/receipts/upload",
+            "/api/documents/import",
+            params={"sale_id": sale_id},
             files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
         )
         assert response.status_code == 200
         body = response.json()
         assert body["extraction_succeeded"] is False
-        assert body["receipt_image_url"].startswith("/uploads/")
-
-        confirm_response = client.post(
-            "/api/receipts/confirm",
-            json={
-                "upload_id": body["upload_id"],
-                "business_name": "Manual Entry",
-                "amount": 10,
-                "currency": "ILS",
-                "category": "other",
-                "expense_date": "2026-01-01",
-            },
-        )
-        assert confirm_response.status_code == 201
+        assert body["document_status"] == "issued"
+        assert body["document_url"].startswith("/uploads/")
     finally:
         monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "mock")
         get_settings.cache_clear()
         _get_receipt_extractor.cache_clear()
 
 
-def test_no_expense_saved_during_local_extraction_itself(client, monkeypatch):
+def test_no_new_sale_created_during_local_extraction_itself(client, monkeypatch):
     import io
 
     from app.api.deps import get_receipt_extractor as _get_receipt_extractor
     from tests.conftest import VALID_PNG_BYTES
+
+    sale_id = _create_sale(client)
 
     monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "local")
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:1")
@@ -484,10 +492,11 @@ def test_no_expense_saved_during_local_extraction_itself(client, monkeypatch):
     _get_receipt_extractor.cache_clear()
     try:
         client.post(
-            "/api/receipts/upload",
+            "/api/documents/import",
+            params={"sale_id": sale_id},
             files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
         )
-        assert client.get("/api/expenses").json() == []
+        assert [s["id"] for s in client.get("/api/sales").json()] == [sale_id]
     finally:
         monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "mock")
         get_settings.cache_clear()

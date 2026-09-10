@@ -1,13 +1,13 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { Layout } from './components/Layout'
-import { AddExpensePage } from './pages/AddExpensePage'
+import { AddSalePage } from './pages/AddSalePage'
 import { AssistantPage } from './pages/AssistantPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { ExpensesPage } from './pages/ExpensesPage'
+import { ExceptionCenterPage } from './pages/ExceptionCenterPage'
+import { ImportDocumentPage } from './pages/ImportDocumentPage'
 import { ImportsPage } from './pages/ImportsPage'
-import { ReconciliationInboxPage } from './pages/ReconciliationInboxPage'
-import { UploadReceiptPage } from './pages/UploadReceiptPage'
+import { SalesPage } from './pages/SalesPage'
 
 function App() {
   return (
@@ -15,12 +15,18 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="expenses" element={<ExpensesPage />} />
-          <Route path="add-expense" element={<AddExpensePage />} />
-          <Route path="upload-receipt" element={<UploadReceiptPage />} />
-          <Route path="reconciliation" element={<ReconciliationInboxPage />} />
+          <Route path="sales" element={<SalesPage />} />
+          <Route path="add-sale" element={<AddSalePage />} />
+          <Route path="import-document" element={<ImportDocumentPage />} />
+          <Route path="exceptions" element={<ExceptionCenterPage />} />
           <Route path="imports" element={<ImportsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
+
+          {/* Old expense-oriented routes, kept as redirects to avoid broken navigation/bookmarks. */}
+          <Route path="expenses" element={<Navigate to="/sales" replace />} />
+          <Route path="add-expense" element={<Navigate to="/add-sale" replace />} />
+          <Route path="upload-receipt" element={<Navigate to="/import-document" replace />} />
+          <Route path="reconciliation" element={<Navigate to="/exceptions" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
