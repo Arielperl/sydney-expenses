@@ -14,7 +14,8 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.expense import DocumentStatus, Expense
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory
+from app.models.receipt_upload import ReceiptUpload
 from app.schemas.receipt import ExtractedReceiptData
 
 HIGH_MATCH_THRESHOLD = 0.85
@@ -114,6 +115,24 @@ def score_candidate(expense: Expense, extracted: ExtractedReceiptData) -> MatchS
         score=min(score, 1.0),
         reasons=reasons,
         has_conflict=has_conflict,
+    )
+
+
+def extracted_from_snapshot(upload: ReceiptUpload) -> ExtractedReceiptData:
+    """Reconstructs the `ExtractedReceiptData` shape from a `ReceiptUpload`'s
+    persisted extraction snapshot, so rematching and eligible-expense scoring
+    can reuse `score_candidate`/`find_candidates` without ever touching the
+    original image or a fresh extraction call."""
+    return ExtractedReceiptData(
+        business_name=upload.extracted_business_name,
+        receipt_number=upload.extracted_receipt_number,
+        date=upload.extracted_date,
+        total=upload.extracted_total,
+        vat=upload.extracted_vat,
+        currency=upload.extracted_currency or "ILS",
+        category=upload.extracted_category or ExpenseCategory.OTHER,
+        confidence=upload.extraction_confidence or 0.0,
+        warnings=upload.extraction_warnings or [],
     )
 
 

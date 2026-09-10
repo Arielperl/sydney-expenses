@@ -226,3 +226,168 @@ def test_attach_with_unavailable_upload_returns_409(client, db_session):
     response = client.post("/api/reconciliation/attach", json={"upload_id": upload.id, "expense_id": expense.id})
 
     assert response.status_code == 409
+
+
+def test_inbox_lists_real_unassigned_receipt_uploads(client, db_session):
+    upload = ReceiptUpload(
+        stored_filename="orphan.png",
+        storage_provider="local",
+        status=ReceiptUploadStatus.PENDING,
+        extracted_business_name="Cofix",
+        extracted_total=Decimal("42.50"),
+        extracted_currency="ILS",
+        extracted_date=date(2026, 9, 1),
+        extraction_confidence=0.8,
+        extraction_warnings=["vat_amount_not_confident"],
+    )
+    db_session.add(upload)
+    db_session.commit()
+
+    response = client.get("/api/reconciliation/inbox")
+
+    assert response.status_code == 200
+    docs = response.json()["documents_without_transactions"]
+    match = next(d for d in docs if d["id"] == upload.id)
+    assert match["extracted_business_name"] == "Cofix"
+    assert match["extracted_total"] == "42.50"
+    assert match["extraction_warnings"] == ["vat_amount_not_confident"]
+    assert match["preview_url"] == "/uploads/orphan.png"
+
+
+def test_unassigned_document_preview_url_uses_signed_supabase_url(client, db_session, monkeypatch):
+    import app.services.storage as storage_module
+
+    class _FakeSupabaseStorage:
+        provider = "supabase"
+
+        def get_viewable_url(self, object_key):
+            return f"https://fake-project.supabase.co/object/sign/receipts/{object_key}?token=fake"
+
+    monkeypatch.setattr(storage_module, "get_storage_for_provider", lambda provider: _FakeSupabaseStorage())
+
+    upload = ReceiptUpload(stored_filename="orphan-key.png", storage_provider="supabase", status=ReceiptUploadStatus.PENDING)
+    db_session.add(upload)
+    db_session.commit()
+
+    response = client.get("/api/reconciliation/inbox")
+
+    docs = response.json()["documents_without_transactions"]
+    match = next(d for d in docs if d["id"] == upload.id)
+    assert match["preview_url"].startswith("https://fake-project.supabase.co/object/sign/")
+    assert "orphan-key.png" not in match["preview_url"].split("token=")[0].split("/receipts/")[0]
+
+
+def test_inbox_excludes_a_pending_upload_that_has_an_active_suggestion(client, db_session):
+    extracted = _extracted_for_valid_png()
+    expense = _missing_expense(
+        db_session,
+        business_name="Totally Unrelated Store Name",
+        amount=extracted.total,
+        currency=extracted.currency,
+        expense_date=extracted.date,
+        external_id="tx-inbox-suggestion",
+    )
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+    assert upload_response.json()["suggested_match"] is not None
+    db_session.refresh(expense)
+    assert expense.document_status == DocumentStatus.SUGGESTED
+
+    response = client.get("/api/reconciliation/inbox")
+
+    doc_ids = {d["id"] for d in response.json()["documents_without_transactions"]}
+    assert upload_id not in doc_ids
+
+
+def test_rematch_document_endpoint(client, db_session):
+    extracted = _extracted_for_valid_png()
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+
+    expense = _missing_expense(
+        db_session,
+        business_name=extracted.business_name,
+        amount=extracted.total,
+        currency=extracted.currency,
+        expense_date=extracted.date,
+        external_id="tx-rematch",
+    )
+
+    response = client.post(f"/api/reconciliation/documents/{upload_id}/rematch")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["expense"]["id"] == expense.id
+
+
+def test_rematch_unknown_document_returns_404(client):
+    response = client.post("/api/reconciliation/documents/does-not-exist/rematch")
+    assert response.status_code == 404
+
+
+def test_eligible_expenses_endpoint_lists_only_missing_expenses(client, db_session):
+    extracted = _extracted_for_valid_png()
+    matching = _missing_expense(
+        db_session, business_name=extracted.business_name, external_id="tx-eligible-a"
+    )
+    _missing_expense(
+        db_session,
+        business_name=extracted.business_name,
+        external_id="tx-eligible-b",
+        document_status=DocumentStatus.ATTACHED,
+    )
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+
+    response = client.get(f"/api/reconciliation/documents/{upload_id}/eligible-expenses")
+
+    assert response.status_code == 200
+    body = response.json()
+    expense_ids = {c["expense"]["id"] for c in body}
+    assert matching.id in expense_ids
+
+
+def test_discard_document_endpoint(client, db_session):
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+
+    response = client.post(f"/api/reconciliation/documents/{upload_id}/discard")
+
+    assert response.status_code == 204
+    db_session.refresh(db_session.get(ReceiptUpload, upload_id))
+    assert db_session.get(ReceiptUpload, upload_id).status == ReceiptUploadStatus.DISCARDED
+
+    inbox_response = client.get("/api/reconciliation/inbox")
+    doc_ids = {d["id"] for d in inbox_response.json()["documents_without_transactions"]}
+    assert upload_id not in doc_ids
+
+
+def test_discard_document_endpoint_unknown_returns_404(client):
+    response = client.post("/api/reconciliation/documents/does-not-exist/discard")
+    assert response.status_code == 404
+
+
+def test_discard_document_endpoint_is_idempotent(client, db_session):
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+
+    first = client.post(f"/api/reconciliation/documents/{upload_id}/discard")
+    second = client.post(f"/api/reconciliation/documents/{upload_id}/discard")
+
+    assert first.status_code == 204
+    assert second.status_code == 204

@@ -7,14 +7,21 @@ from app.models.expense import DocumentStatus, Expense, ExpenseCategory, Expense
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.schemas.receipt import ExtractedReceiptData
-from app.services.reconciliation.exceptions import ExpenseNotEligibleError, ReceiptNotAvailableError
+from app.services.reconciliation.exceptions import (
+    ExpenseNotEligibleError,
+    ReceiptNotAvailableError,
+    ReceiptNotFoundError,
+)
 from app.services.reconciliation.matching import MatchDecision
 from app.services.reconciliation.workflow import (
     apply_match_result,
     approve_suggested_match,
     attach_to_expense,
     build_inbox,
+    discard_document,
+    list_eligible_expenses,
     reject_suggested_match,
+    rematch_document,
     targeted_match,
 )
 
@@ -215,23 +222,34 @@ class TestBuildInbox:
         upload = _pending_upload(db_session)
         apply_match_result(db_session, upload, _extracted(business_name="Super Shuk"))
 
-        orphan_receipt = Expense(
-            business_name="Standalone Receipt",
-            amount=Decimal("10.00"),
-            currency="ILS",
-            category=ExpenseCategory.DINING,
-            expense_date=date(2026, 9, 1),
-            source=ExpenseSource.RECEIPT_UPLOAD,
-            document_status=DocumentStatus.ATTACHED,
-        )
-        db_session.add(orphan_receipt)
-        db_session.commit()
+        unassigned_upload = _pending_upload(db_session, stored_filename="orphan.png")
 
         inbox = build_inbox(db_session)
 
         assert missing.id in {e.id for e in inbox.missing_documents}
         assert suggested_source.id in {e.id for e in inbox.suggested_matches}
-        assert orphan_receipt.id in {e.id for e in inbox.documents_without_transactions}
+        assert unassigned_upload.id in {u.id for u in inbox.documents_without_transactions}
+
+    def test_unassigned_section_excludes_suggested_confirmed_and_discarded_uploads(self, db_session):
+        expense = _missing_expense(db_session, business_name="Super Shuk")
+        suggested_upload = _pending_upload(db_session, stored_filename="suggested.png")
+        apply_match_result(db_session, suggested_upload, _extracted(business_name="Super Shuk"))
+
+        confirmed_upload = _pending_upload(db_session, stored_filename="confirmed.png")
+        confirmed_upload.status = ReceiptUploadStatus.CONFIRMED
+        discarded_upload = _pending_upload(db_session, stored_filename="discarded.png")
+        discarded_upload.status = ReceiptUploadStatus.DISCARDED
+        db_session.commit()
+
+        truly_unassigned = _pending_upload(db_session, stored_filename="unassigned.png")
+
+        inbox = build_inbox(db_session)
+
+        unassigned_ids = {u.id for u in inbox.documents_without_transactions}
+        assert unassigned_ids == {truly_unassigned.id}
+        assert suggested_upload.id not in unassigned_ids
+        assert confirmed_upload.id not in unassigned_ids
+        assert discarded_upload.id not in unassigned_ids
 
 
 class TestAttachToExpense:
@@ -300,3 +318,142 @@ class TestTargetedMatch:
 
         db_session.refresh(upload)
         assert upload.status == ReceiptUploadStatus.PENDING
+
+
+class TestRejectReappearsUnassigned:
+    def test_rejecting_a_suggestion_makes_its_receipt_reappear_as_unassigned(self, db_session):
+        """The concrete regression test for 'must not leave the rejected
+        receipt as an invisible pending upload' — this is a structural
+        consequence of clearing only the Expense-side pointer, not a
+        separately implemented behavior."""
+        expense = _missing_expense(db_session, business_name="Super Shuk")
+        upload = _pending_upload(db_session)
+        extracted = _extracted(date=date(2026, 9, 3))
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+        apply_match_result(db_session, upload, extracted)
+
+        before = build_inbox(db_session)
+        assert upload.id not in {u.id for u in before.documents_without_transactions}
+
+        reject_suggested_match(db_session, expense.id)
+
+        after = build_inbox(db_session)
+        assert upload.id in {u.id for u in after.documents_without_transactions}
+        db_session.refresh(upload)
+        assert upload.extracted_business_name == "Shufersal"
+
+
+class TestRematchDocument:
+    def test_rematch_creates_a_suggestion_when_a_candidate_now_qualifies(self, db_session):
+        upload = _pending_upload(db_session)
+        extracted = _extracted(business_name="Super Shuk")
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+
+        outcome = rematch_document(db_session, upload.id)
+        assert outcome.decision == MatchDecision.NO_MATCH
+
+        expense = _missing_expense(db_session, business_name="Super Shuk")
+        outcome = rematch_document(db_session, upload.id)
+
+        assert outcome.decision != MatchDecision.NO_MATCH
+        assert outcome.expense is not None
+        assert outcome.expense.id == expense.id
+
+    def test_rematch_is_a_no_op_when_nothing_matches(self, db_session):
+        upload = _pending_upload(db_session)
+        extracted = _extracted(business_name="Totally Unrelated")
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+
+        outcome = rematch_document(db_session, upload.id)
+
+        assert outcome.decision == MatchDecision.NO_MATCH
+        db_session.refresh(upload)
+        assert upload.status == ReceiptUploadStatus.PENDING
+
+    def test_rematch_unknown_document_raises(self, db_session):
+
+        with pytest.raises(ReceiptNotFoundError):
+            rematch_document(db_session, "does-not-exist")
+
+    def test_rematch_discarded_document_raises(self, db_session):
+        upload = _pending_upload(db_session)
+        upload.status = ReceiptUploadStatus.DISCARDED
+        db_session.commit()
+
+        with pytest.raises(ReceiptNotAvailableError):
+            rematch_document(db_session, upload.id)
+
+
+class TestListEligibleExpenses:
+    def test_lists_only_missing_expenses_with_a_conflict_preview(self, db_session):
+
+        matching = _missing_expense(db_session, business_name="Super Shuk", external_id="tx-a")
+        conflicting = _missing_expense(
+            db_session, business_name="Super Shuk", amount=Decimal("999.99"), external_id="tx-b"
+        )
+        not_missing = _missing_expense(
+            db_session, business_name="Super Shuk", external_id="tx-c", document_status=DocumentStatus.ATTACHED
+        )
+        upload = _pending_upload(db_session)
+        extracted = _extracted(business_name="Super Shuk", date=date(2026, 9, 1))
+        ReceiptUploadRepository(db_session).save_extraction(upload, extracted)
+
+        candidates = list_eligible_expenses(db_session, upload.id)
+        candidate_ids = {c.expense_id for c in candidates}
+
+        assert matching.id in candidate_ids
+        assert conflicting.id in candidate_ids
+        assert not_missing.id not in candidate_ids
+        conflicting_candidate = next(c for c in candidates if c.expense_id == conflicting.id)
+        assert conflicting_candidate.has_conflict is True
+
+
+class TestDiscardDocument:
+    def test_discard_marks_document_discarded(self, db_session):
+
+        upload = _pending_upload(db_session)
+
+        discard_document(db_session, upload.id)
+
+        db_session.refresh(upload)
+        assert upload.status == ReceiptUploadStatus.DISCARDED
+
+    def test_discard_clears_a_dangling_suggestion_pointer(self, db_session):
+
+        expense = _missing_expense(db_session, business_name="Super Shuk")
+        upload = _pending_upload(db_session)
+        apply_match_result(db_session, upload, _extracted(date=date(2026, 9, 3)))
+        db_session.refresh(expense)
+        assert expense.document_status == DocumentStatus.SUGGESTED
+
+        discard_document(db_session, upload.id)
+
+        db_session.refresh(expense)
+        assert expense.document_status == DocumentStatus.MISSING
+        assert expense.suggested_receipt_upload_id is None
+
+    def test_discard_is_idempotent(self, db_session):
+
+        upload = _pending_upload(db_session)
+
+        discard_document(db_session, upload.id)
+        discard_document(db_session, upload.id)
+
+        db_session.refresh(upload)
+        assert upload.status == ReceiptUploadStatus.DISCARDED
+
+    def test_discarded_document_can_never_be_approved_or_attached(self, db_session):
+
+        expense = _missing_expense(db_session)
+        upload = _pending_upload(db_session)
+        ReceiptUploadRepository(db_session).save_extraction(upload, _extracted())
+
+        discard_document(db_session, upload.id)
+
+        with pytest.raises(ReceiptNotAvailableError):
+            attach_to_expense(db_session, upload.id, expense.id)
+
+    def test_discard_unknown_document_raises(self, db_session):
+
+        with pytest.raises(ReceiptNotFoundError):
+            discard_document(db_session, "does-not-exist")

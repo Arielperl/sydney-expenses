@@ -12,6 +12,7 @@ from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings, get_settings
 from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource, ExtractionStatus
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 from app.schemas.receipt import ExtractedReceiptData
@@ -21,7 +22,15 @@ from app.services.reconciliation.exceptions import (
     ReceiptNotAvailableError,
     ReceiptNotFoundError,
 )
-from app.services.reconciliation.matching import MatchDecision, decide, find_candidates, score_candidate
+from app.services.reconciliation.matching import (
+    MatchDecision,
+    MatchScore,
+    decide,
+    extracted_from_snapshot,
+    find_candidates,
+    score_candidate,
+)
+from app.services.storage import StorageError, build_storage
 
 DEFAULT_INBOX_SECTION_LIMIT = 20
 RECENTLY_COMPLETED_LIMIT = 10
@@ -38,7 +47,7 @@ class MatchOutcome:
 class ReconciliationInbox:
     missing_documents: list[Expense]
     suggested_matches: list[Expense]
-    documents_without_transactions: list[Expense]
+    documents_without_transactions: list[ReceiptUpload]
     needs_review: list[Expense]
     recently_completed: list[Expense]
 
@@ -264,11 +273,19 @@ def build_inbox(db: Session, *, limit: int = DEFAULT_INBOX_SECTION_LIMIT) -> Rec
         order_desc_field=Expense.updated_at,
         section_limit=limit,
     )
-    documents_without_transactions = _query(
-        Expense.source == ExpenseSource.RECEIPT_UPLOAD,
-        Expense.external_id.is_(None),
-        order_desc_field=Expense.created_at,
-        section_limit=limit,
+    suggested_upload_ids = select(Expense.suggested_receipt_upload_id).where(
+        Expense.suggested_receipt_upload_id.isnot(None)
+    )
+    documents_without_transactions = list(
+        db.scalars(
+            select(ReceiptUpload)
+            .where(
+                ReceiptUpload.status == ReceiptUploadStatus.PENDING,
+                ReceiptUpload.id.not_in(suggested_upload_ids),
+            )
+            .order_by(ReceiptUpload.created_at.desc())
+            .limit(limit)
+        ).all()
     )
     needs_review = _query(
         Expense.document_status == DocumentStatus.NEEDS_REVIEW,
@@ -289,3 +306,73 @@ def build_inbox(db: Session, *, limit: int = DEFAULT_INBOX_SECTION_LIMIT) -> Rec
         needs_review=needs_review,
         recently_completed=recently_completed,
     )
+
+
+def rematch_document(db: Session, upload_id: str) -> MatchOutcome:
+    """Re-runs matching for an unassigned document against the current pool
+    of `missing` expenses, using its persisted extraction snapshot rather
+    than re-extracting. A no-op (NO_MATCH, no side effects) when nothing
+    qualifies — the document simply stays unassigned."""
+    upload = db.get(ReceiptUpload, upload_id)
+    if upload is None:
+        raise ReceiptNotFoundError()
+    if upload.status != ReceiptUploadStatus.PENDING:
+        raise ReceiptNotAvailableError()
+
+    extracted = extracted_from_snapshot(upload)
+    return apply_match_result(db, upload, extracted)
+
+
+def list_eligible_expenses(db: Session, upload_id: str) -> list[MatchScore]:
+    """Scores every `missing`-document expense against this document's
+    persisted snapshot, best-first, so a manual match picker can show a
+    conflict warning before the user commits to an attach."""
+    upload = db.get(ReceiptUpload, upload_id)
+    if upload is None:
+        raise ReceiptNotFoundError()
+
+    extracted = extracted_from_snapshot(upload)
+    return find_candidates(db, extracted)
+
+
+def discard_document(db: Session, upload_id: str, settings: Settings | None = None) -> None:
+    """Discards a pending, unassigned document: conditionally marks it
+    discarded (never a select-then-update), clears any dangling suggestion
+    pointer left on an expense, and best-effort deletes the stored file —
+    mirroring the non-blocking storage-cleanup pattern used for expired
+    uploads. Idempotent: discarding an already-discarded upload is a no-op,
+    not an error."""
+    upload = db.get(ReceiptUpload, upload_id)
+    if upload is None:
+        raise ReceiptNotFoundError()
+    if upload.status == ReceiptUploadStatus.DISCARDED:
+        return
+    if upload.status != ReceiptUploadStatus.PENDING:
+        raise ReceiptNotAvailableError()
+
+    db.execute(
+        update(Expense)
+        .where(Expense.suggested_receipt_upload_id == upload_id)
+        .values(
+            document_status=DocumentStatus.MISSING,
+            reconciliation_confidence=None,
+            reconciliation_reasons=None,
+            suggested_receipt_upload_id=None,
+        )
+    )
+    claim = db.execute(
+        update(ReceiptUpload)
+        .where(ReceiptUpload.id == upload_id, ReceiptUpload.status == ReceiptUploadStatus.PENDING)
+        .values(status=ReceiptUploadStatus.DISCARDED)
+    )
+    if claim.rowcount == 0:
+        db.rollback()
+        return
+    db.commit()
+
+    settings = settings or get_settings()
+    try:
+        storage = build_storage(upload.storage_provider or "local", settings)
+        storage.delete(upload.stored_filename)
+    except StorageError:
+        pass
