@@ -6,7 +6,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource, ExtractionStatus
 from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.services.storage import StorageError, build_storage
@@ -82,6 +82,8 @@ def confirm_receipt_upload(
             storage_provider=claimed_upload.storage_provider,
             extraction_confidence=extraction_confidence,
             extraction_status=ExtractionStatus.CONFIRMED,
+            source=ExpenseSource.RECEIPT_UPLOAD,
+            document_status=DocumentStatus.ATTACHED,
         )
         db.add(expense)
         db.flush()

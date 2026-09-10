@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.database import Base
-from app.models import expense, receipt_upload  # noqa: F401 - ensures models are registered on Base.metadata
+from app.models import expense, import_batch, receipt_upload  # noqa: F401 - ensures models are registered on Base.metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)

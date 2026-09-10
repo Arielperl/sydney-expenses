@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExpenseSource, ExtractionStatus
 from app.schemas.validators import (
     validate_business_name,
     validate_currency_code,
@@ -98,6 +98,14 @@ class ExpenseRead(ExpenseBase):
     receipt_image_url: str | None = None
     extraction_confidence: float | None = None
     extraction_status: ExtractionStatus
+    source: ExpenseSource
+    external_id: str | None = None
+    source_provider: str | None = None
+    raw_description: str | None = None
+    occurred_at: datetime | None = None
+    document_status: DocumentStatus
+    reconciliation_confidence: float | None = None
+    reconciliation_reasons: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -117,6 +125,14 @@ def expense_to_read(expense: Expense, receipt_image_url: str | None) -> ExpenseR
         receipt_image_url=receipt_image_url,
         extraction_confidence=expense.extraction_confidence,
         extraction_status=expense.extraction_status,
+        source=expense.source,
+        external_id=expense.external_id,
+        source_provider=expense.source_provider,
+        raw_description=expense.raw_description,
+        occurred_at=expense.occurred_at,
+        document_status=expense.document_status,
+        reconciliation_confidence=expense.reconciliation_confidence,
+        reconciliation_reasons=expense.reconciliation_reasons,
         created_at=expense.created_at,
         updated_at=expense.updated_at,
     )

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_settings_dep, resolve_receipt_image_url
 from app.core.config import Settings
 from app.database import get_db
-from app.models.expense import Expense, ExpenseCategory, ExtractionStatus
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory, ExtractionStatus
 from app.repositories.expense_repository import ExpenseRepository
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, expense_to_read
 from app.services.receipt_lifecycle_service import delete_expense_and_cleanup_receipt
@@ -48,7 +48,11 @@ def create_expense(
     db: Session = Depends(get_db),
 ) -> ExpenseRead:
     repository = ExpenseRepository(db)
-    expense = Expense(**payload.model_dump(), extraction_status=ExtractionStatus.MANUAL)
+    expense = Expense(
+        **payload.model_dump(),
+        extraction_status=ExtractionStatus.MANUAL,
+        document_status=DocumentStatus.NOT_REQUIRED,
+    )
     created = repository.create(expense)
     image_url = resolve_receipt_image_url(created.storage_provider, created.receipt_image_path)
     return expense_to_read(created, image_url)
