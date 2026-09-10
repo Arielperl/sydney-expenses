@@ -18,7 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.expense import Expense, ExpenseCategory
+from app.models.expense import DocumentStatus, Expense, ExpenseCategory
 
 _MONEY_PLACES = Decimal("0.01")
 _CATEGORY_VALUES = [c.value for c in ExpenseCategory]
@@ -60,7 +60,7 @@ def _filtered_expenses(db: Session, start_date: str | None, end_date: str | None
     return list(db.scalars(stmt).all())
 
 
-def get_total_revenue(
+def get_total_expenses(
     db: Session, start_date: str | None = None, end_date: str | None = None, category: str | None = None
 ) -> dict:
     try:
@@ -113,7 +113,7 @@ def _period_start(day: date, period: str) -> date:
     return date(day.year, day.month, 1)
 
 
-def get_revenue_trend(
+def get_expense_trend(
     db: Session, period: str = "month", start_date: str | None = None, end_date: str | None = None
 ) -> dict:
     if period not in ("month", "week"):
@@ -159,21 +159,52 @@ def list_recent_expenses(db: Session, limit: int = 10, category: str | None = No
     }
 
 
+def get_missing_documents_summary(db: Session) -> dict:
+    expenses = list(db.scalars(select(Expense).where(Expense.document_status == DocumentStatus.MISSING)).all())
+    total = sum((e.amount for e in expenses), Decimal("0"))
+    return {"count": len(expenses), "total": _round_money(total)}
+
+
+def get_match_rate(db: Session) -> dict:
+    counts: dict[str, int] = {}
+    for status in (DocumentStatus.ATTACHED, DocumentStatus.MISSING, DocumentStatus.SUGGESTED):
+        counts[status.value] = len(list(db.scalars(select(Expense).where(Expense.document_status == status)).all()))
+    denominator = counts["attached"] + counts["missing"] + counts["suggested"]
+    rate = _round_money(Decimal(counts["attached"]) / Decimal(denominator) * 100) if denominator > 0 else None
+    return {"attached": counts["attached"], "missing": counts["missing"], "suggested": counts["suggested"], "rate": rate}
+
+
+def get_pending_suggestions_summary(db: Session) -> dict:
+    count = len(
+        list(
+            db.scalars(
+                select(Expense).where(
+                    Expense.document_status.in_([DocumentStatus.SUGGESTED, DocumentStatus.NEEDS_REVIEW])
+                )
+            ).all()
+        )
+    )
+    return {"count": count}
+
+
 TOOL_FUNCTIONS = {
-    "get_total_revenue": get_total_revenue,
+    "get_total_expenses": get_total_expenses,
     "get_category_breakdown": get_category_breakdown,
     "get_top_merchants": get_top_merchants,
-    "get_revenue_trend": get_revenue_trend,
+    "get_expense_trend": get_expense_trend,
     "list_recent_expenses": list_recent_expenses,
+    "get_missing_documents_summary": get_missing_documents_summary,
+    "get_match_rate": get_match_rate,
+    "get_pending_suggestions_summary": get_pending_suggestions_summary,
 }
 
 TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
-            "name": "get_total_revenue",
+            "name": "get_total_expenses",
             "description": (
-                "Get total revenue (sum of amounts) and count of matching expenses, "
+                "Get total expenses (sum of amounts) and count of matching expenses, "
                 "optionally filtered by date range and/or category."
             ),
             "parameters": {
@@ -198,7 +229,7 @@ TOOL_DEFINITIONS = [
         "function": {
             "name": "get_category_breakdown",
             "description": (
-                "Get total revenue and count broken down by category, sorted by total "
+                "Get total expenses and count broken down by category, sorted by total "
                 "descending, optionally filtered by date range."
             ),
             "parameters": {
@@ -216,7 +247,7 @@ TOOL_DEFINITIONS = [
         "function": {
             "name": "get_top_merchants",
             "description": (
-                "Get the top customers/merchants by total revenue, sorted descending, "
+                "Get the top merchants/vendors by total expenses, sorted descending, "
                 "optionally filtered by date range."
             ),
             "parameters": {
@@ -233,9 +264,9 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
-            "name": "get_revenue_trend",
+            "name": "get_expense_trend",
             "description": (
-                "Get total revenue and count grouped by time period (month or week), "
+                "Get total expenses and count grouped by time period (month or week), "
                 "sorted chronologically, optionally filtered by date range."
             ),
             "parameters": {
@@ -266,6 +297,33 @@ TOOL_DEFINITIONS = [
                 },
                 "required": [],
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_missing_documents_summary",
+            "description": "Get the count and total value of expenses (transactions) that don't have a receipt or invoice attached yet.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_match_rate",
+            "description": (
+                "Get how many expenses have a document attached vs. missing vs. suggested, "
+                "and the overall document match rate as a percentage."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_pending_suggestions_summary",
+            "description": "Get the count of suggested receipt-to-transaction matches that are waiting for the user to confirm or reject.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
 ]

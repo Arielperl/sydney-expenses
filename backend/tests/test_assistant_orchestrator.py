@@ -104,7 +104,7 @@ def test_runs_a_tool_and_uses_its_result(db_session):
 
     client = _FakeOpenAIClient(
         [
-            _FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_revenue", "{}")]),
+            _FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_expenses", "{}")]),
             _FakeMessage(content="You made 100.00 ILS total."),
         ]
     )
@@ -132,7 +132,7 @@ def test_unknown_tool_name_returns_error_result_not_crash(db_session):
 
 def test_stops_after_max_tool_rounds(db_session):
     # 5 tool-call rounds (the cap) + 1 final forced text-only call.
-    behaviors = [_FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_revenue", "{}")]) for _ in range(5)]
+    behaviors = [_FakeMessage(tool_calls=[_FakeToolCall("call_1", "get_total_expenses", "{}")]) for _ in range(5)]
     behaviors.append(_FakeMessage(content="Here's what I found so far."))
     client = _FakeOpenAIClient(behaviors)
     reply = answer_question(_settings_with_openai(), db_session, "keep asking", [], client=client)
