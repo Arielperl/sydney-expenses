@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.database import get_db
 from app.repositories.receipt_upload_repository import ReceiptUploadRepository
 from app.schemas.expense import ExpenseRead, expense_to_read
-from app.schemas.receipt import ExtractedReceiptData, ReceiptConfirmRequest, ReceiptUploadResponse
+from app.schemas.receipt import ExtractedReceiptData, MatchCandidateRead, ReceiptConfirmRequest, ReceiptUploadResponse
 from app.services.extraction.base import ReceiptExtractor
 from app.services.receipt_lifecycle_service import (
     ReceiptUploadAlreadyConfirmedError,
@@ -17,6 +17,8 @@ from app.services.receipt_lifecycle_service import (
     ReceiptUploadNotFoundError,
     confirm_receipt_upload,
 )
+from app.services.reconciliation.matching import MatchDecision
+from app.services.reconciliation.workflow import apply_match_result
 from app.services.storage.base import ReceiptStorage
 from app.services.storage.exceptions import StorageError
 from app.services.upload_service import FileTooLargeError, UnsupportedFileTypeError, UploadService
@@ -97,6 +99,45 @@ async def upload_receipt(
             pending_upload.id,
             ",".join(_missing_required_fields(extracted)) or "none",
         )
+
+        match_outcome = apply_match_result(db, pending_upload, extracted)
+        logger.info(
+            "receipt_reconciliation decision=%s upload_id=%s expense_id=%s",
+            match_outcome.decision.value,
+            pending_upload.id,
+            match_outcome.expense.id if match_outcome.expense else "none",
+        )
+
+        if match_outcome.decision == MatchDecision.AUTO_MATCH and match_outcome.expense is not None:
+            return ReceiptUploadResponse(
+                upload_id=pending_upload.id,
+                receipt_image_url=image_url,
+                extraction_succeeded=True,
+                extracted_data=extracted,
+                auto_matched=True,
+                matched_expense_id=match_outcome.expense.id,
+                match_reasons=match_outcome.reasons,
+            )
+
+        if (
+            match_outcome.decision in (MatchDecision.SUGGESTED, MatchDecision.NEEDS_REVIEW)
+            and match_outcome.expense is not None
+        ):
+            return ReceiptUploadResponse(
+                upload_id=pending_upload.id,
+                receipt_image_url=image_url,
+                extraction_succeeded=True,
+                extracted_data=extracted,
+                suggested_match=MatchCandidateRead(
+                    expense_id=match_outcome.expense.id,
+                    business_name=match_outcome.expense.business_name,
+                    amount=match_outcome.expense.amount,
+                    currency=match_outcome.expense.currency,
+                    expense_date=match_outcome.expense.expense_date,
+                    score=match_outcome.expense.reconciliation_confidence or 0.0,
+                    reasons=match_outcome.reasons,
+                ),
+            )
 
         return ReceiptUploadResponse(
             upload_id=pending_upload.id,

@@ -36,12 +36,29 @@ class ExtractedReceiptData(BaseModel):
         return value
 
 
+class MatchCandidateRead(BaseModel):
+    """A concise, explainable view of a reconciliation match — never the raw
+    extracted payload, only the expense it matched against and why."""
+
+    expense_id: str
+    business_name: str
+    amount: Decimal
+    currency: str
+    expense_date: date_type
+    score: float
+    reasons: list[str]
+
+
 class ReceiptUploadResponse(BaseModel):
     upload_id: str
     receipt_image_url: str
     extraction_succeeded: bool
     extracted_data: ExtractedReceiptData | None = None
     error_message: str | None = None
+    auto_matched: bool = False
+    matched_expense_id: str | None = None
+    match_reasons: list[str] = Field(default_factory=list)
+    suggested_match: MatchCandidateRead | None = None
 
 
 class ReceiptConfirmRequest(BaseModel):
