@@ -152,4 +152,12 @@ describe('ExpensesPage', () => {
     )
     expect(within(dialog).queryByRole('img')).not.toBeInTheDocument()
   })
+
+  it('shows an "add expense manually" link to the fallback add-expense route', async () => {
+    server.use(http.get(EXPENSES_URL, () => HttpResponse.json([])))
+    renderWithProviders(<ExpensesPage />)
+
+    const link = await screen.findByRole('link', { name: 'הוספת הוצאה ידנית' })
+    expect(link).toHaveAttribute('href', '/add-expense')
+  })
 })

@@ -12,6 +12,7 @@ from app.schemas.reconciliation import (
     MatchDecisionResponse,
     ReconciliationInboxResponse,
     RematchResponse,
+    SuggestedMatchRead,
     UnassignedDocumentRead,
 )
 from app.services.reconciliation.exceptions import (
@@ -33,18 +34,31 @@ from app.services.reconciliation.workflow import (
 router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
 
 
-def _to_unassigned_document_read(upload: ReceiptUpload) -> UnassignedDocumentRead:
+def _to_document_read(upload: ReceiptUpload) -> UnassignedDocumentRead:
     return UnassignedDocumentRead(
         id=upload.id,
         received_at=upload.created_at,
         preview_url=resolve_receipt_image_url(upload.storage_provider, upload.stored_filename),
         extracted_business_name=upload.extracted_business_name,
         extracted_total=upload.extracted_total,
+        extracted_vat=upload.extracted_vat,
         extracted_currency=upload.extracted_currency,
         extracted_date=upload.extracted_date,
+        extracted_receipt_number=upload.extracted_receipt_number,
+        extracted_category=upload.extracted_category,
         extraction_confidence=upload.extraction_confidence,
         extraction_warnings=upload.extraction_warnings or [],
     )
+
+
+def _to_suggested_match_read(db: Session, expense) -> SuggestedMatchRead:
+    image_url = resolve_receipt_image_url(expense.storage_provider, expense.receipt_image_path)
+    document = None
+    if expense.suggested_receipt_upload_id is not None:
+        upload = db.get(ReceiptUpload, expense.suggested_receipt_upload_id)
+        if upload is not None:
+            document = _to_document_read(upload)
+    return SuggestedMatchRead(expense=expense_to_read(expense, image_url), document=document)
 
 
 @router.post("/attach", response_model=MatchDecisionResponse)
@@ -77,8 +91,8 @@ def get_inbox(
 
     return ReconciliationInboxResponse(
         missing_documents=[_to_read(e) for e in inbox.missing_documents],
-        suggested_matches=[_to_read(e) for e in inbox.suggested_matches],
-        documents_without_transactions=[_to_unassigned_document_read(u) for u in inbox.documents_without_transactions],
+        suggested_matches=[_to_suggested_match_read(db, e) for e in inbox.suggested_matches],
+        documents_without_transactions=[_to_document_read(u) for u in inbox.documents_without_transactions],
         needs_review=[_to_read(e) for e in inbox.needs_review],
         recently_completed=[_to_read(e) for e in inbox.recently_completed],
     )

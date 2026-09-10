@@ -43,6 +43,24 @@ export function makeExpense(overrides: Record<string, unknown> = {}) {
   }
 }
 
+export function makeUnassignedDocument(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'upload-1',
+    received_at: '2026-08-20T10:00:00',
+    preview_url: '/uploads/upload-1.png',
+    extracted_business_name: 'Cofix',
+    extracted_total: '42.50',
+    extracted_vat: '6.15',
+    extracted_currency: 'ILS',
+    extracted_date: '2026-08-20',
+    extracted_receipt_number: 'R-500',
+    extracted_category: 'dining',
+    extraction_confidence: 0.8,
+    extraction_warnings: [],
+    ...overrides,
+  }
+}
+
 export const handlers = [
   http.get(`${API_BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
   http.get(`${API_BASE}/expenses`, () => HttpResponse.json([])),

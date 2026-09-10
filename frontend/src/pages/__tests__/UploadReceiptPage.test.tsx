@@ -7,9 +7,39 @@ import { UploadReceiptPage } from '../UploadReceiptPage'
 import { server } from '../../test/msw/server'
 import { renderWithProviders, screen, waitFor, waitForElementToBeRemoved } from '../../test/test-utils'
 
-const UPLOAD_URL = 'http://localhost:8000/api/receipts/upload'
-const CONFIRM_URL = 'http://localhost:8000/api/receipts/confirm'
-const CAPABILITIES_URL = 'http://localhost:8000/api/system/capabilities'
+const API_BASE = 'http://localhost:8000/api'
+const UPLOAD_URL = `${API_BASE}/receipts/upload`
+const CONFIRM_URL = `${API_BASE}/receipts/confirm`
+const CAPABILITIES_URL = `${API_BASE}/system/capabilities`
+
+function makeExpense(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'expense-target',
+    business_name: 'Shufersal',
+    receipt_number: null,
+    amount: '60.13',
+    vat_amount: null,
+    currency: 'ILS',
+    category: 'groceries',
+    expense_date: '2026-08-22',
+    payment_method: null,
+    notes: null,
+    receipt_image_url: null,
+    extraction_confidence: null,
+    extraction_status: 'manual',
+    source: 'webhook',
+    external_id: 'tx-1',
+    source_provider: 'demo-bank',
+    raw_description: null,
+    occurred_at: null,
+    document_status: 'missing',
+    reconciliation_confidence: null,
+    reconciliation_reasons: null,
+    created_at: '2026-08-20T10:00:00',
+    updated_at: '2026-08-20T10:00:00',
+    ...overrides,
+  }
+}
 
 function fakeReceiptFile() {
   return new File(['fake-image-bytes'], 'receipt.png', { type: 'image/png' })
@@ -547,5 +577,75 @@ describe('UploadReceiptPage', () => {
     await user.click(screen.getByRole('button', { name: 'דחיית ההתאמה' }))
 
     await screen.findByText('סקירה ואישור')
+  })
+
+  describe('targeted attach (?expenseId=)', () => {
+    const EXPENSE_URL = `${API_BASE}/expenses/expense-target`
+
+    it('fetches and displays the target expense', async () => {
+      server.use(http.get(EXPENSE_URL, () => HttpResponse.json(makeExpense())))
+
+      renderWithProviders(<UploadReceiptPage />, { route: '/upload-receipt?expenseId=expense-target' })
+
+      expect(await screen.findByText('Shufersal')).toBeInTheDocument()
+      expect(screen.getByText('צרפו קבלה')).toBeInTheDocument()
+    })
+
+    it('shows a direct success state with no conflict, without the blank confirm form', async () => {
+      const user = userEvent.setup()
+      server.use(
+        http.get(EXPENSE_URL, () => HttpResponse.json(makeExpense())),
+        http.post(UPLOAD_URL, () =>
+          HttpResponse.json({ ...successfulExtraction, attached_to_expense_id: 'expense-target', conflict: null }),
+        ),
+      )
+
+      renderWithProviders(<UploadReceiptPage />, { route: '/upload-receipt?expenseId=expense-target' })
+      await screen.findByText('Shufersal')
+      await selectFile(user)
+
+      expect(await screen.findByText('הקבלה צורפה')).toBeInTheDocument()
+      expect(screen.queryByText('סקירה ואישור')).not.toBeInTheDocument()
+    })
+
+    it('shows both sides and requires an explicit confirm click before attaching on conflict', async () => {
+      const user = userEvent.setup()
+      let attachCalled = false
+      server.use(
+        http.get(EXPENSE_URL, () => HttpResponse.json(makeExpense())),
+        http.post(UPLOAD_URL, () =>
+          HttpResponse.json({
+            ...successfulExtraction,
+            attached_to_expense_id: null,
+            conflict: {
+              expense_id: 'expense-target',
+              business_name: 'Shufersal',
+              amount: '60.13',
+              currency: 'ILS',
+              expense_date: '2026-08-22',
+              score: 0,
+              reasons: ['amount_mismatch'],
+            },
+          }),
+        ),
+        http.post(`${API_BASE}/reconciliation/attach`, () => {
+          attachCalled = true
+          return HttpResponse.json({ expense: { ...makeExpense(), document_status: 'attached' } })
+        }),
+      )
+
+      renderWithProviders(<UploadReceiptPage />, { route: '/upload-receipt?expenseId=expense-target' })
+      await screen.findByText('Shufersal')
+      await selectFile(user)
+
+      await screen.findByText('הקבלה הזו לא לגמרי תואמת את העסקה')
+      expect(attachCalled).toBe(false)
+      expect(screen.queryByText('הקבלה צורפה')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'צירוף בכל זאת' }))
+
+      await waitFor(() => expect(attachCalled).toBe(true))
+      expect(await screen.findByText('הקבלה צורפה')).toBeInTheDocument()
+    })
   })
 })

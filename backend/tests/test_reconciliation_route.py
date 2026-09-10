@@ -79,6 +79,33 @@ def test_reconciliation_inbox_lists_missing_documents(client, db_session):
     assert expense.id in ids
 
 
+def test_inbox_suggested_matches_show_both_transaction_and_receipt(client, db_session):
+    extracted = _extracted_for_valid_png()
+    expense = _missing_expense(
+        db_session,
+        business_name="Totally Unrelated Store Name",
+        amount=extracted.total,
+        currency=extracted.currency,
+        expense_date=extracted.date,
+        external_id="tx-suggested-pair",
+    )
+    upload_response = client.post(
+        "/api/receipts/upload",
+        files={"file": ("receipt.png", io.BytesIO(VALID_PNG_BYTES), "image/png")},
+    )
+    upload_id = upload_response.json()["upload_id"]
+    assert upload_response.json()["suggested_match"] is not None
+
+    response = client.get("/api/reconciliation/inbox")
+
+    assert response.status_code == 200
+    match = next(m for m in response.json()["suggested_matches"] if m["expense"]["id"] == expense.id)
+    assert match["document"] is not None
+    assert match["document"]["id"] == upload_id
+    assert match["document"]["extracted_business_name"] == extracted.business_name
+    assert match["document"]["preview_url"] is not None
+
+
 def test_approve_match_endpoint(client, db_session):
     from app.models.receipt_upload import ReceiptUpload, ReceiptUploadStatus
 

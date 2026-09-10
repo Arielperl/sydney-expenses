@@ -32,6 +32,9 @@ export interface ReceiptUploadResponse {
   matched_expense_id: string | null
   match_reasons: string[]
   suggested_match: MatchCandidate | null
+  // Set only when the upload was scoped to a specific expense (?expenseId=).
+  attached_to_expense_id: string | null
+  conflict: MatchCandidate | null
 }
 
 export interface ReceiptConfirmInput {

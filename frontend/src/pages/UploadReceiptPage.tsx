@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ExpenseForm } from '../components/ExpenseForm'
 import { ExtractionModeBadge } from '../components/ExtractionModeBadge'
 import { ReceiptDropzone } from '../components/ReceiptDropzone'
 import { LoadingState } from '../components/StatusStates'
 import { uploadReceipt, confirmReceipt } from '../services/receiptService'
-import { approveMatch, rejectMatch } from '../services/reconciliationService'
+import { approveMatch, attachMatch, rejectMatch } from '../services/reconciliationService'
+import { getExpense } from '../services/expenseService'
 import { getSystemCapabilities } from '../services/systemService'
 import { toApiError } from '../services/apiClient'
 import type { ExpenseFormInput, ExpenseFormValues } from '../schemas/expense'
@@ -58,12 +59,21 @@ export function UploadReceiptPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const targetExpenseId = searchParams.get('expenseId')
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [uploadResult, setUploadResult] = useState<ReceiptUploadResponse | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [matchRejected, setMatchRejected] = useState(false)
   const [matchApproved, setMatchApproved] = useState(false)
+  const [conflictConfirmed, setConflictConfirmed] = useState(false)
+
+  const { data: targetExpense, isLoading: isLoadingTargetExpense } = useQuery({
+    queryKey: ['expense', targetExpenseId],
+    queryFn: () => getExpense(targetExpenseId!),
+    enabled: !!targetExpenseId,
+  })
 
   useEffect(() => {
     if (!file) {
@@ -76,8 +86,25 @@ export function UploadReceiptPage() {
   }, [file])
 
   const uploadMutation = useMutation({
-    mutationFn: uploadReceipt,
-    onSuccess: (result) => setUploadResult(result),
+    mutationFn: (selectedFile: File) => uploadReceipt(selectedFile, targetExpenseId ?? undefined),
+    onSuccess: (result) => {
+      setUploadResult(result)
+      if (result.attached_to_expense_id) {
+        queryClient.invalidateQueries({ queryKey: ['expenses'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['reconciliation-inbox'] })
+      }
+    },
+  })
+
+  const attachMutation = useMutation({
+    mutationFn: () => attachMatch(uploadResult!.upload_id, targetExpenseId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-inbox'] })
+      setConflictConfirmed(true)
+    },
   })
 
   const confirmMutation = useMutation({
@@ -91,12 +118,7 @@ export function UploadReceiptPage() {
   })
 
   const approveMutation = useMutation({
-    mutationFn: (expenseId: string) =>
-      approveMatch(expenseId, {
-        vat_amount: uploadResult?.extracted_data?.vat ? Number(uploadResult.extracted_data.vat) : null,
-        receipt_number: uploadResult?.extracted_data?.receipt_number ?? null,
-        category: uploadResult?.extracted_data?.category ?? null,
-      }),
+    mutationFn: (expenseId: string) => approveMatch(expenseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
@@ -119,6 +141,7 @@ export function UploadReceiptPage() {
     setUploadResult(null)
     setMatchRejected(false)
     setMatchApproved(false)
+    setConflictConfirmed(false)
     uploadMutation.mutate(selectedFile)
   }
 
@@ -161,11 +184,34 @@ export function UploadReceiptPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.title')}</h1>
+          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
+            {targetExpenseId ? t('uploadReceipt.attachTitle') : t('uploadReceipt.title')}
+          </h1>
           <ExtractionModeBadge />
         </div>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('uploadReceipt.subtitle')}</p>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+          {targetExpenseId ? t('uploadReceipt.attachSubtitle') : t('uploadReceipt.subtitle')}
+        </p>
       </div>
+
+      {targetExpenseId && isLoadingTargetExpense && <LoadingState label={t('common.loading')} />}
+
+      {targetExpenseId && targetExpense && (
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{t('uploadReceipt.targetExpenseLabel')}</p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-stone-900 dark:text-stone-100">{targetExpense.business_name}</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {formatDate(targetExpense.expense_date, i18n.language)} · {t(`expenseSource.${targetExpense.source}`)}
+              </p>
+            </div>
+            <p className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
+              {formatCurrency(targetExpense.amount, targetExpense.currency, i18n.language)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {showOllamaUnavailableWarning && (
         <div
@@ -212,7 +258,94 @@ export function UploadReceiptPage() {
         </div>
       )}
 
-      {uploadResult?.auto_matched && (
+      {uploadResult?.attached_to_expense_id && (
+        <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
+          <p className="font-semibold">{t('uploadReceipt.attachedSuccessTitle')}</p>
+          <p className="mt-1">{t('uploadReceipt.attachedSuccessBody')}</p>
+          <Link to="/expenses" className="mt-2 inline-block font-medium underline">
+            {t('dashboard.viewAll')}
+          </Link>
+        </div>
+      )}
+
+      {uploadResult?.conflict && !conflictConfirmed && (
+        <div className="rounded-2xl border border-amber-400/40 bg-white p-4 shadow-sm dark:border-amber-500/30 dark:bg-stone-900">
+          <p className="font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.conflictTitle')}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('uploadReceipt.conflictBody')}</p>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-stone-200 p-3 dark:border-stone-800">
+              <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{t('uploadReceipt.transactionLabel')}</p>
+              <p className="mt-1 font-medium text-stone-900 dark:text-stone-100">{uploadResult.conflict.business_name}</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {formatDate(uploadResult.conflict.expense_date, i18n.language)}
+              </p>
+              <p className="mt-1 font-medium tabular-nums text-stone-900 dark:text-stone-100">
+                {formatCurrency(uploadResult.conflict.amount, uploadResult.conflict.currency, i18n.language)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-stone-200 p-3 dark:border-stone-800">
+              <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{t('uploadReceipt.receiptLabel')}</p>
+              <p className="mt-1 font-medium text-stone-900 dark:text-stone-100">
+                {uploadResult.extracted_data?.business_name ?? '—'}
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {uploadResult.extracted_data?.date ? formatDate(uploadResult.extracted_data.date, i18n.language) : '—'}
+              </p>
+              {uploadResult.extracted_data?.total != null && (
+                <p className="mt-1 font-medium tabular-nums text-stone-900 dark:text-stone-100">
+                  {formatCurrency(
+                    uploadResult.extracted_data.total,
+                    uploadResult.extracted_data.currency,
+                    i18n.language,
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {uploadResult.conflict.reasons.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {uploadResult.conflict.reasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+                >
+                  {t(`reconciliation.reasons.${reason}`, reason)}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {attachMutation.isError && (
+            <p role="alert" className="mt-3 text-sm text-danger-600">
+              {toApiError(attachMutation.error).message}
+            </p>
+          )}
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => attachMutation.mutate()}
+              disabled={attachMutation.isPending}
+              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {attachMutation.isPending ? t('uploadReceipt.confirmingAttach') : t('uploadReceipt.confirmAttachAnyway')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {conflictConfirmed && (
+        <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
+          <p className="font-semibold">{t('uploadReceipt.attachedSuccessTitle')}</p>
+          <Link to="/expenses" className="mt-2 inline-block font-medium underline">
+            {t('dashboard.viewAll')}
+          </Link>
+        </div>
+      )}
+
+      {!targetExpenseId && uploadResult?.auto_matched && (
         <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
           <p className="font-semibold">{t('uploadReceipt.autoMatchedTitle')}</p>
           <p className="mt-1">{t('uploadReceipt.autoMatchedBody')}</p>
@@ -234,7 +367,7 @@ export function UploadReceiptPage() {
         </div>
       )}
 
-      {uploadResult?.suggested_match && !matchRejected && !matchApproved && (
+      {!targetExpenseId && uploadResult?.suggested_match && !matchRejected && !matchApproved && (
         <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
           <p className="font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.suggestedMatchTitle')}</p>
           <div className="mt-2 flex items-center justify-between">
@@ -283,7 +416,7 @@ export function UploadReceiptPage() {
         </div>
       )}
 
-      {matchApproved && (
+      {!targetExpenseId && matchApproved && (
         <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
           <p className="font-semibold">{t('uploadReceipt.autoMatchedTitle')}</p>
           <Link to="/expenses" className="mt-2 inline-block font-medium underline">
@@ -292,7 +425,11 @@ export function UploadReceiptPage() {
         </div>
       )}
 
-      {uploadResult && !uploadResult.auto_matched && !matchApproved && (!uploadResult.suggested_match || matchRejected) && (
+      {!targetExpenseId &&
+        uploadResult &&
+        !uploadResult.auto_matched &&
+        !matchApproved &&
+        (!uploadResult.suggested_match || matchRejected) && (
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('uploadReceipt.reviewAndConfirm')}</h2>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { ExpenseForm } from '../components/ExpenseForm'
 import { ExpenseList } from '../components/ExpenseList'
@@ -74,9 +75,17 @@ export function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('expenses.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('expenses.subtitle')}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('expenses.title')}</h1>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('expenses.subtitle')}</p>
+        </div>
+        <Link
+          to="/add-expense"
+          className="shrink-0 rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+        >
+          {t('expenses.addExpenseManually')}
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap dark:border-stone-800 dark:bg-stone-900">

@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { Layout } from '../Layout'
 import { ThemeProvider } from '../../contexts/ThemeContext'
-import { render, screen } from '../../test/test-utils'
+import { render, screen, within } from '../../test/test-utils'
 
 function renderLayout() {
   return render(
@@ -26,6 +26,14 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: /לוח בקרה/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /עוזר AI/ })).toBeInTheDocument()
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
+  })
+
+  it('shows a 5-item primary nav without Upload Receipt or Add Expense', () => {
+    renderLayout()
+    const nav = screen.getByRole('navigation', { name: 'ניווט ראשי' })
+    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    expect(within(nav).queryByRole('link', { name: /העלאת קבלה/ })).not.toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: /הוספת הוצאה/ })).not.toBeInTheDocument()
   })
 
   it('opens the mobile drawer and closes it on Escape', async () => {
