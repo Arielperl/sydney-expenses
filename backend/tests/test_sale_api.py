@@ -46,6 +46,41 @@ def test_create_sale_requires_customer_and_service_name(client):
     assert response.status_code == 422
 
 
+def test_create_sale_accepts_each_allowed_payment_method(client):
+    for method in ("card", "cash", "other"):
+        response = client.post("/api/sales", json=_sale_payload(payment_method=method))
+        assert response.status_code == 201
+        assert response.json()["payment_method"] == method
+
+
+def test_create_sale_accepts_null_payment_method(client):
+    response = client.post("/api/sales", json=_sale_payload(payment_method=None))
+    assert response.status_code == 201
+    assert response.json()["payment_method"] is None
+
+
+def test_create_sale_rejects_arbitrary_payment_method_string(client):
+    response = client.post("/api/sales", json=_sale_payload(payment_method="bitcoin"))
+    assert response.status_code == 422
+
+
+def test_update_sale_rejects_arbitrary_payment_method_string(client):
+    created = client.post("/api/sales", json=_sale_payload()).json()
+
+    response = client.put(f"/api/sales/{created['id']}", json={"payment_method": "bitcoin"})
+
+    assert response.status_code == 422
+
+
+def test_update_sale_accepts_a_valid_payment_method_change(client):
+    created = client.post("/api/sales", json=_sale_payload(payment_method="card")).json()
+
+    response = client.put(f"/api/sales/{created['id']}", json={"payment_method": "cash"})
+
+    assert response.status_code == 200
+    assert response.json()["payment_method"] == "cash"
+
+
 def test_list_sales_date_to_includes_the_whole_last_day(client):
     """Regression test: Sale.occurred_at is a full timestamp — a date_to
     filter built from a plain <input type="date"> (midnight) must still

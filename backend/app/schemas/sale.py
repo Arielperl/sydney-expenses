@@ -7,6 +7,7 @@ from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
 from app.schemas.validators import (
     validate_currency_code,
     validate_finite_decimal,
+    validate_payment_method,
     validate_required_text,
     validate_transaction_datetime_reasonable,
     validate_vat_not_exceeding_amount,
@@ -39,6 +40,11 @@ class SaleBase(BaseModel):
     @classmethod
     def _validate_finite(cls, value: Decimal | None) -> Decimal | None:
         return validate_finite_decimal(value)
+
+    @field_validator("payment_method")
+    @classmethod
+    def _validate_payment_method(cls, value: str | None) -> str | None:
+        return validate_payment_method(value)
 
     @field_validator("occurred_at")
     @classmethod
@@ -85,6 +91,11 @@ class SaleUpdate(BaseModel):
     @classmethod
     def _validate_finite(cls, value: Decimal | None) -> Decimal | None:
         return validate_finite_decimal(value)
+
+    @field_validator("payment_method")
+    @classmethod
+    def _validate_payment_method(cls, value: str | None) -> str | None:
+        return validate_payment_method(value)
 
     @field_validator("occurred_at")
     @classmethod

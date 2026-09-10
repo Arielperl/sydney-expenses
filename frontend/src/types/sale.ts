@@ -12,6 +12,9 @@ export const DOCUMENT_CATEGORIES = [
 ] as const
 export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number]
 
+export const PAYMENT_METHODS = ['card', 'cash', 'other'] as const
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
+
 export const SALE_SOURCES = ['manual', 'csv', 'webhook'] as const
 export type SaleSource = (typeof SALE_SOURCES)[number]
 
@@ -56,7 +59,7 @@ export interface SaleInput {
   vat_amount?: number | null
   processing_fee?: number | null
   currency: string
-  payment_method?: string | null
+  payment_method?: PaymentMethod | null
   occurred_at: string
 }
 

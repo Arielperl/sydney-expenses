@@ -2,8 +2,11 @@ import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+from app.models.sale import PaymentMethod
+
 MIN_REASONABLE_DATE = date(2000, 1, 1)
 CURRENCY_CODE_PATTERN = re.compile(r"^[A-Za-z]{3}$")
+_ALLOWED_PAYMENT_METHODS = {method.value for method in PaymentMethod}
 
 
 def validate_required_text(value: str) -> str:
@@ -52,3 +55,17 @@ def validate_finite_decimal(value: Decimal | None) -> Decimal | None:
 def validate_vat_not_exceeding_amount(amount: Decimal | None, vat_amount: Decimal | None) -> None:
     if amount is not None and vat_amount is not None and vat_amount > amount:
         raise ValueError("vat_amount must not be greater than the gross amount")
+
+
+def validate_payment_method(value: str | None) -> str | None:
+    """Restricts `payment_method` to the closed set a human can pick through
+    the sale create/update API (`card`/`cash`/`other`) — never an arbitrary
+    string. Webhook-ingested sales bypass this (see `PaymentMethod`'s own
+    docstring) since a real payment provider's own method names shouldn't be
+    rejected on ingestion."""
+    if value is None:
+        return value
+    if value not in _ALLOWED_PAYMENT_METHODS:
+        allowed = ", ".join(sorted(_ALLOWED_PAYMENT_METHODS))
+        raise ValueError(f"payment_method must be one of: {allowed}")
+    return value

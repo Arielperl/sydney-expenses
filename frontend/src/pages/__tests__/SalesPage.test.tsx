@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import i18n from '../../i18n'
 import { SalesPage } from '../SalesPage'
 import { server } from '../../test/msw/server'
 import { makeSale } from '../../test/msw/handlers'
@@ -83,5 +84,98 @@ describe('SalesPage', () => {
     renderWithProviders(<SalesPage />)
 
     await waitFor(() => expect(screen.getByText('לא נמצאו מכירות')).toBeInTheDocument())
+  })
+
+  it('opens the edit dialog with "card" selected for an existing credit-card sale', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ payment_method: 'card' })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const select = within(dialog).getByLabelText('אמצעי תשלום') as HTMLSelectElement
+    expect(select).toHaveValue('card')
+    expect(within(select).getByRole('option', { name: 'כרטיס אשראי', selected: true })).toBeInTheDocument()
+  })
+
+  it('changing payment method to "cash" sends payment_method: "cash" in the update request', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ payment_method: 'card' })
+    let capturedBody: Record<string, unknown> | null = null
+
+    server.use(
+      http.get(SALES_URL, () => HttpResponse.json([sale])),
+      http.put(`${SALES_URL}/:id`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ ...sale, ...capturedBody })
+      }),
+    )
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const select = within(dialog).getByLabelText('אמצעי תשלום')
+    await user.selectOptions(select, 'cash')
+    await user.click(within(dialog).getByRole('button', { name: 'שמירת שינויים' }))
+
+    await waitFor(() => expect(capturedBody).toMatchObject({ payment_method: 'cash' }))
+  })
+
+  it('normalizes an unknown legacy payment_method to "other" instead of crashing the edit form', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ payment_method: 'bit' })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const select = within(dialog).getByLabelText('אמצעי תשלום') as HTMLSelectElement
+    expect(select).toHaveValue('other')
+  })
+
+  it('renders a webhook-created sale with payment_method "card" correctly', async () => {
+    const sale = makeSale({ source: 'webhook', payment_method: 'card', source_provider: 'demo-pay' })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    renderWithProviders(<SalesPage />)
+
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    expect(screen.getByText('ספק תשלומים')).toBeInTheDocument()
+  })
+
+  it('renders Hebrew and English payment method option labels correctly', async () => {
+    const user = userEvent.setup()
+    const sale = makeSale({ payment_method: 'card' })
+    server.use(http.get(SALES_URL, () => HttpResponse.json([sale])))
+
+    const { unmount } = renderWithProviders(<SalesPage />)
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /עריכת Dana Cohen/ }))
+    let dialog = screen.getByRole('dialog')
+    let select = within(dialog).getByLabelText('אמצעי תשלום')
+    expect(within(select).getByRole('option', { name: 'כרטיס אשראי' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'מזומן' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'אחר' })).toBeInTheDocument()
+    unmount()
+
+    await i18n.changeLanguage('en')
+    renderWithProviders(<SalesPage />)
+    await waitFor(() => expect(screen.getByText('Dana Cohen')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Edit Dana Cohen/ }))
+    dialog = screen.getByRole('dialog')
+    select = within(dialog).getByLabelText('Payment method')
+    expect(within(select).getByRole('option', { name: 'Credit card' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'Cash' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'Other' })).toBeInTheDocument()
   })
 })

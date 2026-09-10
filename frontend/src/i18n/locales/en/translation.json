@@ -176,9 +176,14 @@
     "currency": "Currency",
     "saleDate": "Sale date",
     "paymentMethod": "Payment method",
-    "paymentMethodPlaceholder": "e.g. Credit card",
+    "paymentMethodPlaceholder": "Select a payment method",
     "description": "Notes",
     "saveSale": "Save sale"
+  },
+  "paymentMethod": {
+    "card": "Credit card",
+    "cash": "Cash",
+    "other": "Other"
   },
   "validation": {
     "customerNameRequired": "Customer name is required",
@@ -197,7 +202,6 @@
     "dateRequired": "Date is required",
     "dateTooOld": "Date is too far in the past",
     "dateFuture": "Date cannot be in the future",
-    "paymentMethodTooLong": "Payment method is too long",
     "descriptionTooLong": "Notes are too long"
   },
   "errors": {

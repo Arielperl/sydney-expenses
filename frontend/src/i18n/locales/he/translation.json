@@ -176,9 +176,14 @@
     "currency": "מטבע",
     "saleDate": "תאריך המכירה",
     "paymentMethod": "אמצעי תשלום",
-    "paymentMethodPlaceholder": "לדוגמה: כרטיס אשראי",
+    "paymentMethodPlaceholder": "בחרו אמצעי תשלום",
     "description": "הערות",
     "saveSale": "שמירת המכירה"
+  },
+  "paymentMethod": {
+    "card": "כרטיס אשראי",
+    "cash": "מזומן",
+    "other": "אחר"
   },
   "validation": {
     "customerNameRequired": "שם הלקוח הוא שדה חובה",
@@ -197,7 +202,6 @@
     "dateRequired": "יש להזין תאריך",
     "dateTooOld": "התאריך רחוק מדי בעבר",
     "dateFuture": "התאריך לא יכול להיות בעתיד",
-    "paymentMethodTooLong": "אמצעי התשלום ארוך מדי",
     "descriptionTooLong": "ההערות ארוכות מדי"
   },
   "errors": {

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { FormField, inputClasses } from './FormField'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from '../schemas/sale'
 import { todayIsoDate } from '../lib/format'
+import { PAYMENT_METHODS } from '../types/sale'
 
 const DEFAULT_VALUES: SaleFormInput = {
   customer_name: '',
@@ -169,12 +170,14 @@ export function SaleForm({
           htmlFor="payment_method"
           error={translateError(t, errors.payment_method?.message)}
         >
-          <input
-            id="payment_method"
-            className={inputClasses}
-            placeholder={t('form.paymentMethodPlaceholder')}
-            {...register('payment_method')}
-          />
+          <select id="payment_method" className={inputClasses} {...register('payment_method')}>
+            <option value="">{t('form.paymentMethodPlaceholder')}</option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {t(`paymentMethod.${method}`)}
+              </option>
+            ))}
+          </select>
         </FormField>
       </div>
 

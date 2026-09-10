@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
+import type { Sale } from '../../types/sale'
+
 const API_BASE = 'http://localhost:8000/api'
 
 export const emptyDashboardStats = {
@@ -22,7 +24,7 @@ export const emptyDashboardStats = {
   refunds_total: '0.00',
 }
 
-export function makeSale(overrides: Record<string, unknown> = {}) {
+export function makeSale(overrides: Partial<Sale> = {}): Sale {
   return {
     id: 'sale-1',
     external_id: null,

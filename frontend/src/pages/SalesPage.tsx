@@ -13,7 +13,20 @@ import { deleteSale, listSales, updateSale } from '../services/saleService'
 import { toApiError } from '../services/apiClient'
 import type { SaleFormInput, SaleFormValues } from '../schemas/sale'
 import type { Sale, SaleStatus } from '../types/sale'
-import { SALE_STATUSES } from '../types/sale'
+import { PAYMENT_METHODS, SALE_STATUSES } from '../types/sale'
+
+// A sale's stored payment_method isn't guaranteed to be one of the values the
+// <select> offers — webhook ingestion accepts a payment provider's own method
+// names as-is, and older records may predate this closed set entirely. This
+// is the one place that normalizes any such legacy/unknown value down to
+// "other" so the edit form always has a valid option selected, never a blank
+// or crashing select.
+function normalizePaymentMethod(value: string | null): (typeof PAYMENT_METHODS)[number] | '' {
+  if (!value) return ''
+  return (PAYMENT_METHODS as readonly string[]).includes(value)
+    ? (value as (typeof PAYMENT_METHODS)[number])
+    : 'other'
+}
 
 function saleToFormValues(sale: Sale): SaleFormInput {
   return {
@@ -25,7 +38,7 @@ function saleToFormValues(sale: Sale): SaleFormInput {
     processing_fee: sale.processing_fee ?? '',
     currency: sale.currency,
     sale_date: sale.occurred_at.slice(0, 10),
-    payment_method: sale.payment_method ?? '',
+    payment_method: normalizePaymentMethod(sale.payment_method),
     description: sale.description ?? '',
   }
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { todayIsoDate } from '../lib/format'
+import { PAYMENT_METHODS } from '../types/sale'
 
 const MIN_DATE = '2000-01-01'
 
@@ -45,7 +46,7 @@ export const saleFormSchema = z
       .min(1, 'validation.dateRequired')
       .refine((value) => value >= MIN_DATE, 'validation.dateTooOld')
       .refine(isNotInFuture, 'validation.dateFuture'),
-    payment_method: z.string().trim().max(50, 'validation.paymentMethodTooLong').optional().or(z.literal('')),
+    payment_method: z.enum(PAYMENT_METHODS).optional().or(z.literal('')),
     description: z.string().trim().max(2000, 'validation.descriptionTooLong').optional().or(z.literal('')),
   })
   .superRefine((values, ctx) => {

@@ -26,6 +26,18 @@ class SaleStatus(str, enum.Enum):
     PARTIALLY_REFUNDED = "partially_refunded"
 
 
+class PaymentMethod(str, enum.Enum):
+    """The closed set of payment methods selectable through the sale
+    create/update API. `Sale.payment_method` itself stays a plain string
+    column, not an enum, because webhook-ingested sales may legitimately
+    carry a payment-provider-specific value outside this set — validation
+    against this enum applies only at the API boundary a human fills in."""
+
+    CARD = "card"
+    CASH = "cash"
+    OTHER = "other"
+
+
 class DocumentStatus(str, enum.Enum):
     """Tracks the receipt/tax document issued *to the customer* for this
     sale — an outgoing document, never one received from a supplier."""
