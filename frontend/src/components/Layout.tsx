@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
 
-import logoUrl from '../assets/sidney-logo-vector.svg'
+import logoUrl from '../assets/investment-logo.svg'
 import { DemoBusinessBadge } from './DemoBusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
