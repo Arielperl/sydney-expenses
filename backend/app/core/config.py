@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # (mock extraction, default CORS origins) with no error at all.
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "Receiptly API"
+    app_name: str = "Sydney Transaction Management API"
     database_url: str = f"sqlite:///{BACKEND_DIR / 'receiptly.db'}"
     uploads_dir: str = str(BACKEND_DIR / "uploads")
     max_upload_size_bytes: int = 10 * 1024 * 1024  # 10 MB

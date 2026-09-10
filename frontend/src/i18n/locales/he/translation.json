@@ -34,6 +34,8 @@
     "system": "לפי המערכת"
   },
   "common": {
+    "appShortName": "סידני",
+    "appFullName": "סידני — ניהול עסקאות",
     "loading": "טוען...",
     "somethingWentWrong": "משהו השתבש",
     "tryAgain": "נסו שוב",

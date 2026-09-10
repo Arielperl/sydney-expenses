@@ -1,8 +1,8 @@
-# Receiptly
+# Sydney Transaction Management
 
-Receiptly is a local-first, AI-ready receipt and expense manager with a provider-independent extraction interface and a deterministic mock provider. Upload a receipt image, review the extracted details in an editable, bilingual (Hebrew/English) confirmation form, and save the confirmed expense — or just add an expense manually. Built as a portfolio project demonstrating a clean, modular full-stack architecture.
+Sydney (סידני — ניהול עסקאות) is a local-first, AI-ready receipt and expense manager with a provider-independent extraction interface and a deterministic mock provider. Upload a receipt image, review the extracted details in an editable, bilingual (Hebrew/English) confirmation form, and save the confirmed expense — or just add an expense manually. Built as a portfolio project demonstrating a clean, modular full-stack architecture.
 
-**Note on naming:** the GitHub repository is `sydney-expenses` (its original working name); the product itself is **Receiptly**, and the backend service identifies itself as **Receiptly API**. These are intentionally distinct — the repo name is not being renamed.
+**Note on naming:** the GitHub repository is `sydney-expenses` (its original working name); the product itself is **Sydney Transaction Management** (סידני — ניהול עסקאות), shortened to **Sydney** (סידני) in the UI, and the backend service identifies itself as **Sydney Transaction Management API**. These are intentionally distinct — the repo name is not being renamed.
 
 **Note on AI:** receipt extraction supports three interchangeable providers behind the same `ReceiptExtractor` interface: `MockReceiptExtractor` (default — deterministic, synthetic, needs nothing), `LocalReceiptExtractor` (real Vision extraction that runs entirely on your machine via Tesseract OCR + a local Ollama model — no API key, no external network call, no per-request cost), and `OpenAIReceiptExtractor` (real Vision extraction via the OpenAI Responses API). Mock mode is what the automated test suite and the default local setup use. The local provider has been run for real against a live local Ollama + Tesseract stack in this environment, A/B-tested across two vision models (`gemma3:12b`, the current default, and `qwen3-vl:8b` — see "Local mode" below); the OpenAI provider has been verified with **mocked** responses only — no OpenAI API key was available here, so its real-world accuracy is not yet claimed. See "Receipt extraction: mock vs. local vs. real AI mode" below.
 
@@ -21,7 +21,7 @@ Receiptly is a local-first, AI-ready receipt and expense manager with a provider
 ## Project structure
 
 ```
-receiptly/  (repository: sydney-expenses)
+sydney/  (repository: sydney-expenses)
 ├── frontend/           React + Vite + TypeScript SPA
 │   └── src/
 │       ├── components/  Reusable UI (forms, tables, charts, states, language switcher)

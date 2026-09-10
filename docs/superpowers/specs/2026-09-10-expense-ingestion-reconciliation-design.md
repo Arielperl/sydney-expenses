@@ -2,7 +2,7 @@
 
 ## Problem
 
-Receiptly currently only learns about an expense when a human manually creates
+Sydney Transaction Management currently only learns about an expense when a human manually creates
 one or uploads a receipt for OCR. The product goal is to flip this: expenses
 should arrive automatically from a financial source, and the user's job
 narrows to handling exceptions — a transaction with no document, a document
@@ -12,7 +12,7 @@ keep working unchanged as fallbacks.
 
 ## Domain language
 
-Receiptly is an **expense management** product, not a sales/revenue product.
+Sydney Transaction Management is an **expense management** product, not a sales/revenue product.
 User-facing copy and the AI assistant use *expense*, *merchant/vendor*,
 *total expenses*, *spending trend* — never *revenue*, *sales*, *customer*.
 This is a language-and-tool-naming fix (assistant tool names, example

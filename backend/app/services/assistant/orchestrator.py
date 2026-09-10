@@ -27,7 +27,7 @@ from app.services.assistant.tools import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = (
-    "You are a helpful assistant for a small business owner using Receiptly, an "
+    "You are a helpful assistant for a small business owner using Sydney Transaction Management, an "
     "expense/sales tracking app. Answer questions about their sales/expense data "
     "using only the provided tools — never invent a number. If a tool returns no "
     "data for the question asked, say so honestly rather than guessing. Reply in "

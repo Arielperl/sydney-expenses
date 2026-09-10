@@ -1,6 +1,6 @@
 # Project instructions for Claude Code
 
-These instructions apply to this repository (`sydney-expenses` / Receiptly) only.
+These instructions apply to this repository (`sydney-expenses` / Sydney Transaction Management) only.
 
 ## Verification before commit
 

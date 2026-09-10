@@ -44,12 +44,13 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function BrandMark() {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center gap-2 px-2">
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-        R
+        S
       </span>
-      <span className="text-lg font-semibold text-stone-900 dark:text-stone-100">Receiptly</span>
+      <span className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('common.appShortName')}</span>
     </div>
   )
 }

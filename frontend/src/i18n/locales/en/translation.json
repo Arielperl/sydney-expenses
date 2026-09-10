@@ -34,6 +34,8 @@
     "system": "System"
   },
   "common": {
+    "appShortName": "Sydney",
+    "appFullName": "Sydney Transaction Management",
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong",
     "tryAgain": "Try again",
