@@ -28,7 +28,7 @@ export type TransactionCurrency = (typeof TRANSACTION_CURRENCIES)[number]
 export const TAX_TREATMENTS = ['standard', 'zero_rate', 'exempt'] as const
 export type TaxTreatment = (typeof TAX_TREATMENTS)[number]
 
-export const SALE_SOURCES = ['manual', 'csv', 'webhook'] as const
+export const SALE_SOURCES = ['manual', 'csv', 'webhook', 'demo'] as const
 export type SaleSource = (typeof SALE_SOURCES)[number]
 
 export const SALE_STATUSES = ['succeeded', 'pending', 'failed', 'refunded', 'partially_refunded'] as const

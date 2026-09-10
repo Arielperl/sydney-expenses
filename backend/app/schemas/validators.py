@@ -1,7 +1,8 @@
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from decimal import Decimal
 
+from app.domain.business_time import business_date_of, business_today
 from app.models.sale import PaymentMethod, SaleCurrency, TaxTreatment
 
 MIN_REASONABLE_DATE = date(2000, 1, 1)
@@ -24,16 +25,15 @@ def validate_currency_code(value: str) -> str:
     return value.upper()
 
 
-def _today_utc() -> date:
-    return datetime.now(timezone.utc).date()
-
-
 def validate_date_reasonable(value: date | None) -> date | None:
+    """Compares against `business_today()` — this demo business's own
+    calendar date (Asia/Jerusalem) — never a bare UTC or OS-local "today".
+    See app.domain.business_time for why that distinction matters."""
     if value is None:
         return value
     if value < MIN_REASONABLE_DATE:
         raise ValueError(f"date must not be earlier than {MIN_REASONABLE_DATE.isoformat()}")
-    if value > _today_utc():
+    if value > business_today():
         raise ValueError("date must not be in the future")
     return value
 
@@ -41,8 +41,7 @@ def validate_date_reasonable(value: date | None) -> date | None:
 def validate_transaction_datetime_reasonable(value: datetime | None) -> datetime | None:
     if value is None:
         return value
-    value_date = value.date() if value.tzinfo is None else value.astimezone(timezone.utc).date()
-    validate_date_reasonable(value_date)
+    validate_date_reasonable(business_date_of(value))
     return value
 
 

@@ -22,6 +22,7 @@ from openai import (
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.domain.business_time import business_today
 from app.services.assistant.exceptions import AssistantConfigError, AssistantProviderError
 from app.services.assistant.tools import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 
@@ -34,9 +35,10 @@ def _system_prompt(today: date) -> str:
     # month"/"today"/"this week" needs resolving — this must be told, never
     # assumed.
     return (
-        f"Today's date is {today.isoformat()}. When the user asks about 'this month', 'today', 'this week', "
-        "or any other relative period, compute the actual start_date/end_date from that real date yourself — "
-        "never guess or assume a different year.\n\n"
+        f"Today's date is {today.isoformat()} (the business's own Israel calendar date, Asia/Jerusalem — not "
+        "UTC). When the user asks about 'this month', 'today', 'this week', or any other relative period, "
+        "compute the actual start_date/end_date from that real date yourself — never guess or assume a "
+        "different year.\n\n"
         "You are a helpful assistant for a small business owner using Sydney Transaction Management, a sales "
         "and revenue management app. Answer questions about their sales, customers, revenue, VAT, processing "
         "fees, refunds, and customer receipt/invoice status using only the provided tools — never invent a "
@@ -81,7 +83,9 @@ def answer_question(
     if client is None:
         client = OpenAI(api_key=settings.openai_api_key, max_retries=0)
 
-    messages: list[dict] = [{"role": "system", "content": _system_prompt(today or date.today())}]
+    # Never the server's OS timezone or a bare UTC date — see
+    # app.domain.business_time for why that distinction matters here.
+    messages: list[dict] = [{"role": "system", "content": _system_prompt(today or business_today())}]
     messages.extend(history)
     messages.append({"role": "user", "content": message})
 

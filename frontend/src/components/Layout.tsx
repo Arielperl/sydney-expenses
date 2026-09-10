@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, LayoutDashboard, Menu, PlugZap, ShoppingCart, X } from 'lucide-react'
+import { AlertTriangle, Bot, FlaskConical, LayoutDashboard, Menu, PlugZap, ShoppingCart, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/sales', key: 'sales', end: false, icon: ShoppingCart },
   { to: '/exceptions', key: 'exceptions', end: false, icon: AlertTriangle },
   { to: '/imports', key: 'imports', end: false, icon: PlugZap },
+  { to: '/demo', key: 'demo', end: false, icon: FlaskConical },
   { to: '/assistant', key: 'assistant', end: false, icon: Bot },
 ] as const
 

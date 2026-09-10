@@ -3,10 +3,15 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from sqlalchemy import select
+
 from app.database import get_db
 from app.models.sale import Sale, SaleSource, SaleStatus
+from app.models.sale_event import SaleEvent, SaleEventSource, SaleEventType
 from app.repositories.sale_repository import SaleRepository
 from app.schemas.sale import RefundRequest, SaleCreate, SaleRead, SaleUpdate, sale_to_read
+from app.schemas.sale_event import SaleEventRead
+from app.services.sale_events import record_event
 from app.services.sale_service import RefundExceedsNetAmountError, compute_net_amount, finalize_new_sale, record_refund
 from app.services.tax.vat import calculate_vat, vat_rate_snapshot
 
@@ -96,6 +101,13 @@ def update_sale(
         # ambiguous — clear any "needs review" flag a legacy-data migration
         # may have set.
         updates["tax_treatment_needs_review"] = False
+    if updates:
+        # Field names only — never the values themselves, which may include
+        # customer contact details that shouldn't be duplicated into a log.
+        record_event(
+            db, sale.id, SaleEventType.SALE_DETAILS_EDITED, SaleEventSource.MANUAL,
+            {"fields": sorted(updates.keys())},
+        )
     updated = repository.update(sale, updates)
     return sale_to_read(updated)
 
@@ -110,6 +122,25 @@ def delete_sale(
     if sale is None:
         raise HTTPException(status_code=404, detail="Sale not found")
     repository.delete(sale)
+
+
+@router.get("/{sale_id}/events", response_model=list[SaleEventRead])
+def list_sale_events(
+    sale_id: str,
+    db: Session = Depends(get_db),
+) -> list[SaleEventRead]:
+    """The sale's persisted timeline, oldest first. A sale created before
+    events existed (or one whose creation predates this feature) may
+    legitimately have none or only some events — the frontend must show
+    that as "no earlier history available", never invent one."""
+    repository = SaleRepository(db)
+    sale = repository.get(sale_id)
+    if sale is None:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    events = db.scalars(
+        select(SaleEvent).where(SaleEvent.sale_id == sale_id).order_by(SaleEvent.created_at.asc())
+    ).all()
+    return [SaleEventRead.model_validate(e) for e in events]
 
 
 @router.post("/{sale_id}/refund", response_model=SaleRead)

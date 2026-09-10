@@ -87,7 +87,16 @@ def upgrade() -> None:
                     "UPDATE sales SET tax_treatment = :treatment, vat_rate = :rate, "
                     "tax_treatment_needs_review = false WHERE id = :id"
                 ),
-                {"treatment": "standard", "rate": str(STANDARD_VAT_RATE), "id": sale_id},
+                # SQLAlchemy's Enum(..., native_enum=False) stores a Python
+                # enum's *member name* ('STANDARD'), not its `.value`
+                # ('standard') — the same convention every other enum
+                # column on this table (status, source, document_status)
+                # already follows when written through the ORM. This raw
+                # SQL backfill bypasses the ORM, so it must match that
+                # convention explicitly or a later read raises
+                # LookupError: 'standard' is not among the defined enum
+                # values (verified against a real round-trip, not assumed).
+                {"treatment": "STANDARD", "rate": str(STANDARD_VAT_RATE), "id": sale_id},
             )
         else:
             # Ambiguous: vat_amount is null, exactly zero (could be
@@ -103,8 +112,13 @@ def upgrade() -> None:
     # rows that predate it, in the statement above — every row going
     # forward sets it explicitly at the application layer (see
     # app/api/routes/sales.py, app/services/ingestion/), so the server-side
-    # default is removed once the backfill is done.
-    op.alter_column('sales', 'tax_treatment_needs_review', server_default=None)
+    # default is removed once the backfill is done. Wrapped in batch mode:
+    # SQLite has no native ALTER COLUMN ... DROP DEFAULT (it requires a
+    # table rebuild), which plain op.alter_column() doesn't do on its own —
+    # batch_alter_table handles that transparently on SQLite while still
+    # emitting a normal ALTER COLUMN on Postgres.
+    with op.batch_alter_table('sales', schema=None) as batch_op:
+        batch_op.alter_column('tax_treatment_needs_review', server_default=None)
 
 
 def downgrade() -> None:

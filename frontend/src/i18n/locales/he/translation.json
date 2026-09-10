@@ -4,6 +4,7 @@
     "sales": "מכירות",
     "exceptions": "מרכז חריגים",
     "imports": "ייבוא וחיבורים",
+    "demo": "אזור הדגמה",
     "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי",
     "openMenu": "פתיחת תפריט"
@@ -240,7 +241,69 @@
   "saleSource": {
     "manual": "ידני",
     "csv": "ייבוא CSV",
-    "webhook": "ספק תשלומים"
+    "webhook": "ספק תשלומים",
+    "demo": "מדמה הדגמה"
+  },
+  "saleEvent": {
+    "sale_received": "המכירה התקבלה",
+    "sale_created_manually": "המכירה נוצרה ידנית",
+    "sale_imported_from_csv": "המכירה יובאה מקובץ CSV",
+    "payment_succeeded": "התשלום הצליח",
+    "payment_pending": "התשלום ממתין",
+    "payment_failed": "התשלום נכשל",
+    "document_issuance_attempted": "בוצע ניסיון להפקת מסמך",
+    "document_issued": "המסמך הופק",
+    "document_issuance_failed": "הפקת המסמך נכשלה",
+    "refund_partial": "נרשם זיכוי חלקי",
+    "refund_full": "נרשם זיכוי מלא",
+    "sale_details_edited": "פרטי המכירה נערכו"
+  },
+  "saleEventSource": {
+    "manual": "ידני",
+    "webhook": "וובהוק",
+    "csv": "ייבוא CSV",
+    "demo": "מדמה הדגמה",
+    "system": "מערכת"
+  },
+  "saleDetails": {
+    "backToSales": "← חזרה למכירות",
+    "notProvided": "לא סופק",
+    "notApplicable": "—",
+    "customerAndService": "לקוח ושירות",
+    "description": "תיאור",
+    "originAndTiming": "מקור ותזמון",
+    "source": "מקור",
+    "sourceProvider": "ספק המקור",
+    "externalReference": "מזהה עסקה חיצוני",
+    "occurredAt": "תאריך ושעת העסקה המקורית",
+    "paymentAndCurrency": "תשלום ומטבע",
+    "status": "סטטוס תשלום",
+    "financialBreakdown": "פירוט פיננסי",
+    "grossAmount": "סכום ברוטו",
+    "grossAmountHint": "הסכום הכולל ששילם הלקוח, לפני כל ניכוי.",
+    "vatRate": "שיעור מע\"מ (בעת המכירה)",
+    "vatAmountHint": "החלק מהסכום המוחזק עבור רשות המסים — אינו הכנסת העסק.",
+    "revenueBeforeVat": "הכנסה לפני מע\"מ",
+    "revenueBeforeVatHint": "סכום ברוטו פחות מע\"מ.",
+    "processingFeeHint": "מוחזק על ידי ספק התשלומים — אינו הכנסת העסק.",
+    "netRevenue": "הכנסה נטו",
+    "netRevenueHint": "ברוטו פחות מע\"מ פחות עמלת סליקה — מה שהעסק בפועל מרוויח מהמכירה הזו.",
+    "refundedAmount": "סכום שזוכה",
+    "remainingAfterRefunds": "הכנסה נותרת לאחר זיכויים",
+    "remainingAfterRefundsHint": "הכנסה נטו פחות כל סכום שזוכה.",
+    "customerDocument": "מסמך ללקוח",
+    "documentStatus": "סטטוס מסמך",
+    "documentNumber": "מספר מסמך",
+    "timeline": "ציר זמן",
+    "noHistoryAvailable": "אין היסטוריה קודמת זמינה עבור מכירה זו.",
+    "timelineHonestyNote": "ציר הזמן מציג רק אירועים שנרשמו בפועל על ידי המערכת — מכירה שנוצרה לפני קיום היסטוריה זו עשויה להציג פחות אירועים ממכירה חדשה יותר.",
+    "editSale": "עריכת מכירה",
+    "recordRefund": "רישום זיכוי",
+    "refundableAmount": "יתרה לזיכוי: {{amount}}",
+    "refundAmountLabel": "סכום הזיכוי",
+    "refundAmountHint": "השאירו ריק לזיכוי מלא.",
+    "refundFullPlaceholder": "זיכוי מלא",
+    "confirmRefund": "אישור הזיכוי"
   },
   "exceptions": {
     "title": "מרכז חריגים",
@@ -289,8 +352,42 @@
       "statusLabel": "סטטוס",
       "statusValue": "ממשק ספק והדגמה מקומית בלבד",
       "description": "זהו לא חיבור חי לספק תשלומים — זו הדגמה שמראה איך תיראה קליטת מכירה אוטומטית מספק תשלומים או קופה אמיתיים.",
-      "instructions": "כדי לשלוח אירוע חתום לדוגמה באופן מקומי, הריצו:",
+      "tryItInDemoArea": "כדי לנסות זאת בלי טרמינל, השתמשו",
+      "demoAreaLink": "באזור ההדגמה המקומי",
+      "developerNote": "הבקשה החתומה שמודגמת כאן, וכיצד לשלוח אחת בעצמכם מהטרמינל, מתועדות בקובץ ה-README של הפרויקט (למפתחים).",
       "disclaimer": "לא מחובר שום ספק תשלומים, קופה או שירות הפקת חשבוניות אמיתי. \"demo-pay\" הוא שם ספק בדיוני המשמש להדגמה מקומית זו בלבד."
+    }
+  },
+  "demo": {
+    "title": "אזור הדגמה מקומי",
+    "badge": "נתוני הדגמה בלבד",
+    "subtitle": "הדמו תרחישי מכירה מציאותיים בלי טרמינל — כל רשומה מסומנת בבירור כנתוני הדגמה וניתנת להסרה בפעולת האיפוס שלמטה.",
+    "disabledTitle": "מדמה ההדגמה אינו זמין",
+    "disabledDescription": "סביבה זו מוגדרת כסביבת ייצור, שבה מדמה ההדגמה ופעולת האיפוס מושבתים.",
+    "scenarioLabel": "תרחיש",
+    "scenarioHint": "מה יקרה למכירת ההדגמה המדומה הזו.",
+    "scenario": {
+      "succeeded": "רכישה מוצלחת",
+      "pending": "תשלום ממתין",
+      "failed": "תשלום שנכשל",
+      "succeeded_document_failed": "מכירה מוצלחת, הפקת המסמך נכשלת",
+      "succeeded_partial_refund": "מכירה מוצלחת ולאחריה זיכוי חלקי",
+      "succeeded_full_refund": "מכירה מוצלחת ולאחריה זיכוי מלא"
+    },
+    "runScenario": "הפעלת התרחיש",
+    "simulating": "מריץ...",
+    "simulationSuccess": "מכירת הדגמה נוצרה.",
+    "viewInSales": "צפייה במכירות",
+    "reset": {
+      "heading": "איפוס נתוני הדגמה",
+      "description": "מוחק לצמיתות כל מכירה שנוצרה על ידי מדמה זה — ורק אותן. רשומות ידניות, ייבוא CSV ומכירות וובהוק אמיתיות לעולם לא נפגעות.",
+      "action": "איפוס נתוני הדגמה…",
+      "confirmTitle": "למחוק את כל נתוני ההדגמה?",
+      "confirmBody": "פעולה זו תמחק לצמיתות {{count}} מכירות הדגמה ואת היסטוריית האירועים שלהן.",
+      "confirmNote": "מכירות ידניות, ייבוא CSV, מסמכים שהועלו ומכירות וובהוק לעולם אינם נמחקים בפעולה זו.",
+      "confirmAction": "מחיקת נתוני הדגמה",
+      "deleting": "מוחק...",
+      "successSummary": "נמחקו {{count}} מכירות הדגמה."
     }
   }
 }

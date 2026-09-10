@@ -4,4 +4,5 @@ export interface SystemCapabilities {
   real_ai_enabled: boolean
   ollama_available: boolean | null
   tesseract_available: boolean | null
+  demo_simulator_enabled: boolean
 }

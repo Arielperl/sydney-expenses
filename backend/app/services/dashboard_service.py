@@ -47,8 +47,9 @@ Metric definitions:
   this phase: a future implementation adding one has a documented extension
   point (`Sale.currency` plus this per-currency grouping), not a rewrite.
 - **Reporting period**: every "this month" / "previous month" figure uses
-  calendar-month boundaries computed from the server's local date (there is
-  currently no per-business timezone setting — see "What's next"). A sale's
+  calendar-month boundaries computed from `app.domain.business_time`'s
+  business-calendar "today" (Asia/Jerusalem — see app.domain.demo_business),
+  never the server process's own OS timezone or a bare UTC date. A sale's
   period is always its *original occurrence* (`occurred_at`), including for
   refunds: a refund reduces the revenue of the month the sale happened in,
   not the month the refund itself was recorded, because `Sale` does not yet
@@ -63,6 +64,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.domain.business_time import business_today
 from app.domain.demo_business import DEMO_REPORTING_CURRENCY
 from app.models.sale import DocumentStatus, Sale, SaleStatus
 from app.schemas.dashboard import CurrencyAmount, DashboardStats, RevenueTrendPoint, TopService
@@ -152,7 +154,9 @@ def _percentage_change_by_currency(
 
 
 def build_dashboard_stats(db: Session, today: date | None = None) -> DashboardStats:
-    today = today or date.today()
+    # Never the server's OS timezone or a bare UTC date — see
+    # app.domain.business_time for why that distinction matters here.
+    today = today or business_today()
     current_start, current_end = _month_bounds(today.year, today.month)
     prev_year, prev_month = _previous_month(today.year, today.month)
     prev_start, prev_end = _month_bounds(prev_year, prev_month)

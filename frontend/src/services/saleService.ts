@@ -1,5 +1,6 @@
 import { apiClient, toApiError } from './apiClient'
 import type { Sale, SaleFilters, SaleInput } from '../types/sale'
+import type { SaleEvent } from '../types/saleEvent'
 
 export async function listSales(filters: SaleFilters = {}): Promise<Sale[]> {
   try {
@@ -54,6 +55,15 @@ export async function deleteSale(id: string): Promise<void> {
 export async function refundSale(id: string, amount?: number): Promise<Sale> {
   try {
     const response = await apiClient.post<Sale>(`/sales/${id}/refund`, amount != null ? { amount } : {})
+    return response.data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getSaleEvents(id: string): Promise<SaleEvent[]> {
+  try {
+    const response = await apiClient.get<SaleEvent[]>(`/sales/${id}/events`)
     return response.data
   } catch (error) {
     throw toApiError(error)

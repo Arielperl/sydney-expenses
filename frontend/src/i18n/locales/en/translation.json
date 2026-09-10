@@ -4,6 +4,7 @@
     "sales": "Sales",
     "exceptions": "Exception Center",
     "imports": "Imports & Connections",
+    "demo": "Demo Area",
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu"
@@ -240,7 +241,69 @@
   "saleSource": {
     "manual": "Manual",
     "csv": "CSV import",
-    "webhook": "Payment provider"
+    "webhook": "Payment provider",
+    "demo": "Demo simulator"
+  },
+  "saleEvent": {
+    "sale_received": "Sale received",
+    "sale_created_manually": "Sale created manually",
+    "sale_imported_from_csv": "Sale imported from CSV",
+    "payment_succeeded": "Payment succeeded",
+    "payment_pending": "Payment pending",
+    "payment_failed": "Payment failed",
+    "document_issuance_attempted": "Document issuance attempted",
+    "document_issued": "Document issued",
+    "document_issuance_failed": "Document issuance failed",
+    "refund_partial": "Partial refund recorded",
+    "refund_full": "Full refund recorded",
+    "sale_details_edited": "Sale details edited"
+  },
+  "saleEventSource": {
+    "manual": "Manual",
+    "webhook": "Webhook",
+    "csv": "CSV import",
+    "demo": "Demo simulator",
+    "system": "System"
+  },
+  "saleDetails": {
+    "backToSales": "← Back to Sales",
+    "notProvided": "Not provided",
+    "notApplicable": "—",
+    "customerAndService": "Customer & service",
+    "description": "Description",
+    "originAndTiming": "Origin & timing",
+    "source": "Source",
+    "sourceProvider": "Source provider",
+    "externalReference": "External transaction reference",
+    "occurredAt": "Original transaction date & time",
+    "paymentAndCurrency": "Payment & currency",
+    "status": "Payment status",
+    "financialBreakdown": "Financial breakdown",
+    "grossAmount": "Gross amount",
+    "grossAmountHint": "The total amount the customer paid, before anything is subtracted.",
+    "vatRate": "VAT rate (at the time of sale)",
+    "vatAmountHint": "The portion of the gross amount held for the tax authority — not business revenue.",
+    "revenueBeforeVat": "Revenue before VAT",
+    "revenueBeforeVatHint": "Gross amount minus VAT.",
+    "processingFeeHint": "Kept by the payment provider — not business revenue.",
+    "netRevenue": "Net revenue",
+    "netRevenueHint": "Gross minus VAT minus processing fee — what the business actually nets from this sale.",
+    "refundedAmount": "Refunded amount",
+    "remainingAfterRefunds": "Remaining revenue after refunds",
+    "remainingAfterRefundsHint": "Net revenue minus any refunded amount.",
+    "customerDocument": "Customer document",
+    "documentStatus": "Document status",
+    "documentNumber": "Document number",
+    "timeline": "Timeline",
+    "noHistoryAvailable": "No earlier history is available for this sale.",
+    "timelineHonestyNote": "This timeline shows only events actually recorded by the system — a sale created before this history existed may show fewer events than a newer one.",
+    "editSale": "Edit sale",
+    "recordRefund": "Record refund",
+    "refundableAmount": "Refundable remaining: {{amount}}",
+    "refundAmountLabel": "Refund amount",
+    "refundAmountHint": "Leave blank for a full refund.",
+    "refundFullPlaceholder": "Full refund",
+    "confirmRefund": "Confirm refund"
   },
   "exceptions": {
     "title": "Exception Center",
@@ -289,8 +352,42 @@
       "statusLabel": "Status",
       "statusValue": "Provider interface and local demo only",
       "description": "This is not a live payment provider connection — it's a demo showing how automatic sale ingestion from a real payment provider or POS system would work.",
-      "instructions": "To send one signed demo event locally, run:",
+      "tryItInDemoArea": "To try this without a terminal, use the",
+      "demoAreaLink": "Local Demo Area",
+      "developerNote": "The signed HTTP request this simulates, and how to send one yourself from a terminal, is documented in the project README (for developers).",
       "disclaimer": "No real payment provider, POS, or invoicing service is connected. \"demo-pay\" is a fictional provider name used only for this local demo."
+    }
+  },
+  "demo": {
+    "title": "Local Demo Area",
+    "badge": "Demo data only",
+    "subtitle": "Simulate realistic sale scenarios without a terminal — every record is clearly labeled as demo data and can be removed with the reset action below.",
+    "disabledTitle": "Demo simulator not available",
+    "disabledDescription": "This environment is configured as production, where the demo simulator and reset action are disabled.",
+    "scenarioLabel": "Scenario",
+    "scenarioHint": "What should happen to this simulated sale.",
+    "scenario": {
+      "succeeded": "Successful purchase",
+      "pending": "Pending payment",
+      "failed": "Failed payment",
+      "succeeded_document_failed": "Successful sale, document generation fails",
+      "succeeded_partial_refund": "Successful sale, then a partial refund",
+      "succeeded_full_refund": "Successful sale, then a full refund"
+    },
+    "runScenario": "Run scenario",
+    "simulating": "Running…",
+    "simulationSuccess": "Demo sale created.",
+    "viewInSales": "View it in Sales",
+    "reset": {
+      "heading": "Reset demo data",
+      "description": "Permanently deletes every sale created by this simulator — and only those. Manual entries, CSV imports, and real webhook sales are never affected.",
+      "action": "Reset demo data…",
+      "confirmTitle": "Delete all demo data?",
+      "confirmBody": "This will permanently delete {{count}} demo sale(s) and their event history.",
+      "confirmNote": "Manual sales, CSV imports, uploaded documents, and webhook sales are never deleted by this action.",
+      "confirmAction": "Delete demo data",
+      "deleting": "Deleting…",
+      "successSummary": "Deleted {{count}} demo sale(s)."
     }
   }
 }

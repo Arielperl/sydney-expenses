@@ -28,12 +28,13 @@ describe('Layout', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
   })
 
-  it('shows a 5-item primary nav: dashboard, sales, exceptions, imports, assistant', () => {
+  it('shows a 6-item primary nav: dashboard, sales, exceptions, imports, demo area, assistant', () => {
     renderLayout()
     const nav = screen.getByRole('navigation', { name: 'ניווט ראשי' })
-    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    expect(within(nav).getAllByRole('link')).toHaveLength(6)
     expect(within(nav).getByRole('link', { name: /מכירות/ })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: /מרכז חריגים/ })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: /אזור הדגמה/ })).toBeInTheDocument()
   })
 
   it('opens the mobile drawer and closes it on Escape', async () => {

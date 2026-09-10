@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 
 from app.models.import_batch import ImportBatch, ImportStatus
 from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus, TaxTreatment
+from app.models.sale_event import SaleEventSource, SaleEventType
 from app.schemas.validators import validate_date_reasonable, validate_currency_code, validate_required_text
+from app.services.sale_events import record_event
 from app.services.sale_service import attempt_document_generation
 from app.services.tax.vat import calculate_vat, vat_rate_snapshot
 
@@ -155,6 +157,9 @@ def create_import_batch_and_sales(
             savepoint.rollback()
             duplicate_count += 1
             continue
+        record_event(db, sale.id, SaleEventType.SALE_IMPORTED_FROM_CSV, SaleEventSource.CSV)
+        record_event(db, sale.id, SaleEventType.PAYMENT_SUCCEEDED, SaleEventSource.CSV)
+        db.commit()
         attempt_document_generation(db, sale)
 
     batch.created_count = created_count

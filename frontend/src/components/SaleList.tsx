@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import type { Sale } from '../types/sale'
 import { DocumentStatusBadge } from './DocumentStatusBadge'
@@ -19,6 +19,7 @@ export function SaleList({
   onViewDocument: (sale: Sale) => void
 }) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
@@ -55,9 +56,19 @@ export function SaleList({
         </thead>
         <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
           {sales.map((sale) => (
-            <tr key={sale.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
+            <tr
+              key={sale.id}
+              onClick={() => navigate(`/sales/${sale.id}`)}
+              className="cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50"
+            >
               <td className="px-4 py-3 text-start align-top">
-                <p className="truncate font-medium text-stone-900 dark:text-stone-100">{sale.customer_name}</p>
+                <Link
+                  to={`/sales/${sale.id}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="truncate font-medium text-stone-900 hover:text-brand-600 hover:underline dark:text-stone-100 dark:hover:text-brand-400"
+                >
+                  {sale.customer_name}
+                </Link>
                 {sale.customer_contact && (
                   <p className="truncate text-xs text-stone-400 dark:text-stone-500">{sale.customer_contact}</p>
                 )}
@@ -100,7 +111,7 @@ export function SaleList({
                   </p>
                 )}
               </td>
-              <td className="px-4 py-3 text-end align-top">
+              <td className="px-4 py-3 text-end align-top" onClick={(event) => event.stopPropagation()}>
                 <div className="flex flex-wrap justify-end gap-2">
                   {sale.document_url && (
                     <button

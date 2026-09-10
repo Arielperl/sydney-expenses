@@ -39,10 +39,13 @@ const previewResponse = {
 }
 
 describe('ImportsPage', () => {
-  it('renders the webhook demo instructions', () => {
+  it('renders the webhook demo section without exposing terminal commands, linking to the in-product demo area instead', () => {
     renderWithProviders(<ImportsPage />)
     expect(screen.getByText('חיבור וובהוק תשלומים (הדגמה)')).toBeInTheDocument()
-    expect(screen.getByText(/demo_webhook_request/)).toBeInTheDocument()
+    expect(screen.queryByText(/demo_webhook_request/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/WEBHOOK_SIGNING_SECRET/)).not.toBeInTheDocument()
+    const demoAreaLink = screen.getByRole('link', { name: 'באזור ההדגמה המקומי' })
+    expect(demoAreaLink).toHaveAttribute('href', '/demo')
   })
 
   it('previews a CSV file and shows the parsed rows', async () => {

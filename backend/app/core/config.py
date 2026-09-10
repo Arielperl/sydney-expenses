@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Sydney Transaction Management API"
+    # Gates the in-product demo simulator's destructive reset action (see
+    # app/api/routes/demo.py) — "development" (the honest default, since
+    # this app has no real production deployment yet) allows it,
+    # "production" disables it outright regardless of any other setting.
+    app_environment: Literal["development", "production"] = "development"
     database_url: str = f"sqlite:///{BACKEND_DIR / 'receiptly.db'}"
     uploads_dir: str = str(BACKEND_DIR / "uploads")
     max_upload_size_bytes: int = 10 * 1024 * 1024  # 10 MB

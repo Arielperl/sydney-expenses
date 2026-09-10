@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import i18n from '../../i18n'
 import { SaleList } from '../SaleList'
 import { makeSale } from '../../test/msw/handlers'
-import { render, screen } from '../../test/test-utils'
+import { renderWithProviders, screen } from '../../test/test-utils'
 
 function noop() {}
 
 describe('SaleList', () => {
   it('uses logical text-start/text-end alignment on headers, never hardcoded text-left/text-right', () => {
-    render(<SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />)
+    renderWithProviders(<SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />)
 
     const headers = screen.getAllByRole('columnheader')
     expect(headers).toHaveLength(6)
@@ -29,7 +29,7 @@ describe('SaleList', () => {
   })
 
   it('mirrors the same logical alignment on the body cells as the headers', () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />,
     )
 
@@ -50,7 +50,7 @@ describe('SaleList', () => {
   })
 
   it('gives every column a stable, fixed width via a colgroup so the actions column never shifts the data columns', () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />,
     )
 
@@ -64,7 +64,7 @@ describe('SaleList', () => {
   })
 
   it('wraps the table in a horizontally scrollable container for small screens', () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />,
     )
 
@@ -73,7 +73,7 @@ describe('SaleList', () => {
 
   it('places the customer name and contact directly under the Customer header in RTL', () => {
     expect(document.documentElement.dir).toBe('rtl')
-    const { container } = render(
+    const { container } = renderWithProviders(
       <SaleList sales={[makeSale({ customer_contact: 'dana@example.com' })]} onEdit={noop} onDelete={noop} onViewDocument={noop} />,
     )
 
@@ -89,7 +89,7 @@ describe('SaleList', () => {
   })
 
   it('renders a webhook-created sale (payment provider source) without crashing', () => {
-    render(
+    renderWithProviders(
       <SaleList
         sales={[makeSale({ source: 'webhook', payment_method: 'card', source_provider: 'demo-pay' })]}
         onEdit={noop}
@@ -102,7 +102,7 @@ describe('SaleList', () => {
   })
 
   it('shows the VAT amount and tax treatment under the sale amount', () => {
-    render(
+    renderWithProviders(
       <SaleList
         sales={[makeSale({ vat_amount: '18.00', tax_treatment: 'standard' })]}
         onEdit={noop}
@@ -116,7 +116,7 @@ describe('SaleList', () => {
   })
 
   it('shows a "needs review" note instead of a fabricated VAT for a legacy sale with no tax treatment', () => {
-    render(
+    renderWithProviders(
       <SaleList
         sales={[makeSale({ tax_treatment: null, tax_treatment_needs_review: true })]}
         onEdit={noop}
@@ -129,7 +129,7 @@ describe('SaleList', () => {
   })
 
   it('notes that a foreign-currency sale still uses the Israeli demo tax profile', () => {
-    render(
+    renderWithProviders(
       <SaleList
         sales={[makeSale({ currency: 'USD', tax_treatment: 'standard' })]}
         onEdit={noop}
@@ -142,7 +142,7 @@ describe('SaleList', () => {
   })
 
   it('does not show the Israeli-tax note for an ILS sale', () => {
-    render(
+    renderWithProviders(
       <SaleList
         sales={[makeSale({ currency: 'ILS' })]}
         onEdit={noop}
@@ -154,11 +154,18 @@ describe('SaleList', () => {
     expect(screen.queryByText('עדיין ממוסה לפי כללי מע"מ ישראלי')).not.toBeInTheDocument()
   })
 
+  it('links the customer name to that sale\'s details page', () => {
+    const sale = makeSale()
+    renderWithProviders(<SaleList sales={[sale]} onEdit={noop} onDelete={noop} onViewDocument={noop} />)
+
+    expect(screen.getByRole('link', { name: sale.customer_name })).toHaveAttribute('href', `/sales/${sale.id}`)
+  })
+
   it('keeps the same logical alignment classes after switching to English/LTR', async () => {
     await i18n.changeLanguage('en')
     expect(document.documentElement.dir).toBe('ltr')
 
-    render(<SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />)
+    renderWithProviders(<SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />)
 
     const headers = screen.getAllByRole('columnheader')
     expect(headers[0].className).toContain('text-start')

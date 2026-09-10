@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { CsvImportWizard } from '../components/CsvImportWizard'
 
@@ -20,14 +21,14 @@ export function ImportsPage() {
           <span className="font-medium">{t('imports.webhook.statusLabel')}:</span> {t('imports.webhook.statusValue')}
         </p>
         <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">{t('imports.webhook.description')}</p>
-        <p className="mt-4 text-sm font-medium text-stone-700 dark:text-stone-300">{t('imports.webhook.instructions')}</p>
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-stone-100 p-3 text-xs text-stone-800 dark:bg-stone-800 dark:text-stone-200">
-          <code dir="ltr">
-            {`cd backend && source .venv/bin/activate
-export WEBHOOK_SIGNING_SECRET=demo-secret-change-me
-python -m scripts.demo_webhook_request`}
-          </code>
-        </pre>
+        <p className="mt-4 text-sm text-stone-700 dark:text-stone-300">
+          {t('imports.webhook.tryItInDemoArea')}{' '}
+          <Link to="/demo" className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400">
+            {t('imports.webhook.demoAreaLink')}
+          </Link>
+          .
+        </p>
+        <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{t('imports.webhook.developerNote')}</p>
         <p className="mt-4 text-xs text-stone-500 dark:text-stone-400">{t('imports.webhook.disclaimer')}</p>
       </div>
     </div>

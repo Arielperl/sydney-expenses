@@ -11,6 +11,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Callable
 
+from app.domain.business_time import normalize_to_naive_business_datetime
 from app.models.sale import SaleStatus, TaxTreatment
 from app.services.sale_service import PaymentEvent, compute_net_amount
 from app.services.tax.vat import calculate_vat, vat_amount_is_consistent, vat_rate_snapshot
@@ -88,6 +89,14 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
         occurred_at = datetime.fromisoformat(occurred_at_raw.replace("Z", "+00:00"))
     except ValueError as exc:
         raise WebhookPayloadError(f"'occurred_at' is not a valid ISO-8601 timestamp: {exc}") from exc
+    # Normalized to naive business-local (Asia/Jerusalem) wall-clock time
+    # exactly once, here at the ingestion boundary — see
+    # app.domain.business_time for why: a provider may legitimately send an
+    # aware timestamp with any UTC offset, but every `Sale.occurred_at`
+    # value this app stores and later compares (dashboard boundaries, sale-
+    # date validation) is naive business-local, so ingestion is where that
+    # gets reconciled, once, rather than at every later read.
+    occurred_at = normalize_to_naive_business_datetime(occurred_at)
 
     gross_amount = _require_decimal(payload, "gross_amount")
 

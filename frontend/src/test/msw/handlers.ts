@@ -67,6 +67,7 @@ export const handlers = [
       real_ai_enabled: false,
       ollama_available: null,
       tesseract_available: null,
+      demo_simulator_enabled: true,
     }),
   ),
 ]

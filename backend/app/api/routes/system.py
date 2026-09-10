@@ -46,4 +46,5 @@ def get_capabilities() -> SystemCapabilities:
         real_ai_enabled=provider in ("local", "openai"),
         ollama_available=ollama_available,
         tesseract_available=tesseract_available,
+        demo_simulator_enabled=settings.app_environment != "production",
     )

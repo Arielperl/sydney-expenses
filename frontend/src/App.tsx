@@ -4,9 +4,11 @@ import { Layout } from './components/Layout'
 import { AddSalePage } from './pages/AddSalePage'
 import { AssistantPage } from './pages/AssistantPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DemoSimulatorPage } from './pages/DemoSimulatorPage'
 import { ExceptionCenterPage } from './pages/ExceptionCenterPage'
 import { ImportDocumentPage } from './pages/ImportDocumentPage'
 import { ImportsPage } from './pages/ImportsPage'
+import { SaleDetailsPage } from './pages/SaleDetailsPage'
 import { SalesPage } from './pages/SalesPage'
 
 function App() {
@@ -16,10 +18,12 @@ function App() {
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="sales" element={<SalesPage />} />
+          <Route path="sales/:id" element={<SaleDetailsPage />} />
           <Route path="add-sale" element={<AddSalePage />} />
           <Route path="import-document" element={<ImportDocumentPage />} />
           <Route path="exceptions" element={<ExceptionCenterPage />} />
           <Route path="imports" element={<ImportsPage />} />
+          <Route path="demo" element={<DemoSimulatorPage />} />
           <Route path="assistant" element={<AssistantPage />} />
 
           {/* Old expense-oriented routes, kept as redirects to avoid broken navigation/bookmarks. */}

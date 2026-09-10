@@ -14,3 +14,7 @@ class SystemCapabilities(BaseModel):
     real_ai_enabled: bool
     ollama_available: bool | None = None
     tesseract_available: bool | None = None
+    # Gates the in-product demo simulator's UI (scenario picker + reset
+    # action) — the frontend must hide/disable that UI when this is false,
+    # matching the backend's own app_environment gate on /api/demo/*.
+    demo_simulator_enabled: bool = True
