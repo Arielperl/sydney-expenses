@@ -16,9 +16,9 @@
     "inputPlaceholder": "Ask a question...",
     "send": "Send",
     "emptyTitle": "Ask me something about your business",
-    "exampleQuestion1": "How much did I sell this month?",
-    "exampleQuestion2": "Who is my biggest customer?",
-    "exampleQuestion3": "How do sales trend by month?",
+    "exampleQuestion1": "How much did I spend this month?",
+    "exampleQuestion2": "Which merchant do I spend the most at?",
+    "exampleQuestion3": "How does my spending trend by month?",
     "errorMessage": "Couldn't get an answer right now, please try again.",
     "thinking": "Thinking..."
   },

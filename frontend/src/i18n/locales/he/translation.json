@@ -16,9 +16,9 @@
     "inputPlaceholder": "שאל שאלה...",
     "send": "שלח",
     "emptyTitle": "שאל אותי משהו על העסק שלך",
-    "exampleQuestion1": "כמה מכרתי החודש?",
-    "exampleQuestion2": "מי הלקוח הכי גדול שלי?",
-    "exampleQuestion3": "איך המכירות משתנות לפי חודש?",
+    "exampleQuestion1": "כמה הוצאתי החודש?",
+    "exampleQuestion2": "על איזה ספק אני מוציא הכי הרבה?",
+    "exampleQuestion3": "איך ההוצאות משתנות לפי חודש?",
     "errorMessage": "לא הצלחתי לענות כרגע, נסה שוב.",
     "thinking": "חושב..."
   },

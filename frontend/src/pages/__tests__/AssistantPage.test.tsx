@@ -11,22 +11,22 @@ const CHAT_URL = 'http://localhost:8000/api/assistant/chat'
 describe('AssistantPage', () => {
   it('shows example questions in the empty state', () => {
     renderWithProviders(<AssistantPage />)
-    expect(screen.getByText('כמה מכרתי החודש?')).toBeInTheDocument()
+    expect(screen.getByText('כמה הוצאתי החודש?')).toBeInTheDocument()
   })
 
   it('sends a message and shows the reply', async () => {
     server.use(
-      http.post(CHAT_URL, () => HttpResponse.json({ reply: 'מכרת 100 ש"ח החודש.' })),
+      http.post(CHAT_URL, () => HttpResponse.json({ reply: 'הוצאת 100 ש"ח החודש.' })),
     )
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
 
-    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'כמה מכרתי?')
+    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'כמה הוצאתי?')
     await user.click(screen.getByRole('button', { name: 'שלח' }))
 
-    expect(screen.getByText('כמה מכרתי?')).toBeInTheDocument()
+    expect(screen.getByText('כמה הוצאתי?')).toBeInTheDocument()
     await waitFor(() => {
-      expect(screen.getByText('מכרת 100 ש"ח החודש.')).toBeInTheDocument()
+      expect(screen.getByText('הוצאת 100 ש"ח החודש.')).toBeInTheDocument()
     })
   })
 
@@ -48,7 +48,7 @@ describe('AssistantPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
 
-    await user.click(screen.getByText('כמה מכרתי החודש?'))
+    await user.click(screen.getByText('כמה הוצאתי החודש?'))
 
     await waitFor(() => {
       expect(screen.getByText('תשובה')).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('AssistantPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
 
-    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'כמה מכרתי?')
+    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'כמה הוצאתי?')
     await user.click(screen.getByRole('button', { name: 'שלח' }))
 
     expect(screen.getByRole('status', { name: 'חושב...' })).toBeInTheDocument()
