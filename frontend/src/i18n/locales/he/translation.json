@@ -73,7 +73,11 @@
     "spendingByCategory": "הוצאות לפי קטגוריה",
     "currentMonth": "החודש הנוכחי",
     "recentExpenses": "הוצאות אחרונות",
-    "viewAll": "הצגת הכול"
+    "viewAll": "הצגת הכול",
+    "reconciliationOverview": "סטטוס התאמות",
+    "missingDocuments": "{{count}} עסקאות ללא מסמך",
+    "matchesAwaitingConfirmation": "התאמות הממתינות לאישור",
+    "documentAttachmentRate": "אחוז עסקאות עם מסמך"
   },
   "expenses": {
     "title": "הוצאות",

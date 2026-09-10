@@ -26,6 +26,10 @@ describe('DashboardPage', () => {
           percentage_change: 50,
           totals_by_category: [{ category: 'groceries', total: '150.00' }],
           recent_expenses: [makeExpense({ amount: '150.00' })],
+          missing_documents_count: 2,
+          missing_documents_total: '80.00',
+          matches_awaiting_confirmation_count: 1,
+          document_attachment_rate: 66.7,
         }),
       ),
     )
@@ -36,5 +40,8 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Shufersal')).toBeInTheDocument()
     })
     expect(screen.getByText(/50\.0%/)).toBeInTheDocument()
+    expect(screen.getByText('2 עסקאות ללא מסמך')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('66.7%')).toBeInTheDocument()
   })
 })

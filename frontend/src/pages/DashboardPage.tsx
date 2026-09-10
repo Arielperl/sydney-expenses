@@ -10,6 +10,17 @@ import { getDashboardStats } from '../services/dashboardService'
 import { formatCurrency, formatDate } from '../lib/format'
 import { toApiError } from '../services/apiClient'
 
+function CountStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <p className="text-sm font-medium text-stone-500 dark:text-stone-400">{label}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100">
+        {value}
+      </p>
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const { t, i18n } = useTranslation()
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -68,6 +79,35 @@ export function DashboardPage() {
             <StatCard label={t('dashboard.lastMonth')} amount={data.previous_month_total} currency={currency} />
           </div>
 
+          <div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                {t('dashboard.reconciliationOverview')}
+              </h2>
+              <Link
+                to="/reconciliation"
+                className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+              >
+                {t('dashboard.viewAll')}
+              </Link>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCard
+                label={t('dashboard.missingDocuments', { count: data.missing_documents_count })}
+                amount={data.missing_documents_total}
+                currency={currency}
+              />
+              <CountStat
+                label={t('dashboard.matchesAwaitingConfirmation')}
+                value={data.matches_awaiting_confirmation_count}
+              />
+              <CountStat
+                label={t('dashboard.documentAttachmentRate')}
+                value={data.document_attachment_rate != null ? `${data.document_attachment_rate}%` : '—'}
+              />
+            </div>
+          </div>
+
           {data.totals_by_category.length > 0 && (
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('dashboard.spendingByCategory')}</h2>
@@ -90,7 +130,9 @@ export function DashboardPage() {
                 <li key={expense.id} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-stone-900 dark:text-stone-100">{expense.business_name}</p>
-                    <p className="text-xs text-stone-500 dark:text-stone-400">{formatDate(expense.expense_date, i18n.language)}</p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      {formatDate(expense.expense_date, i18n.language)} · {t(`expenseSource.${expense.source}`)}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <CategoryBadge category={expense.category} />

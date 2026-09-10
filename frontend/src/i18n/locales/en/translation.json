@@ -73,7 +73,11 @@
     "spendingByCategory": "Spending by category",
     "currentMonth": "Current month",
     "recentExpenses": "Recent expenses",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "reconciliationOverview": "Reconciliation status",
+    "missingDocuments": "{{count}} transactions missing a document",
+    "matchesAwaitingConfirmation": "Matches awaiting confirmation",
+    "documentAttachmentRate": "% of transactions with a document"
   },
   "expenses": {
     "title": "Expenses",
