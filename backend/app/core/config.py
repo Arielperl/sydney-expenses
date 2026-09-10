@@ -124,6 +124,17 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str | None = None
     supabase_signed_url_ttl_seconds: int = 3600
 
+    # Webhook transaction ingestion (demo provider only — see
+    # app/services/ingestion/webhook_provider.py). No secret ships in source;
+    # this must be set locally to run the demo script against a live server.
+    webhook_signing_secret: str | None = None
+    webhook_timestamp_tolerance_seconds: float = 300.0
+    webhook_max_body_bytes: int = 64 * 1024  # 64 KB
+
+    # CSV bank/credit-card statement import.
+    csv_max_file_size_bytes: int = 2 * 1024 * 1024  # 2 MB
+    csv_max_rows: int = 2000
+
 
 class StorageConfigurationError(RuntimeError):
     """Raised at startup when STORAGE_PROVIDER=supabase but required Supabase

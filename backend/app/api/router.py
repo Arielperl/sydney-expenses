@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import assistant, dashboard, expenses, health, receipts, reconciliation, system
+from app.api.routes import assistant, dashboard, expenses, health, receipts, reconciliation, system, webhooks
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health.router)
@@ -10,3 +10,4 @@ api_router.include_router(dashboard.router)
 api_router.include_router(system.router)
 api_router.include_router(assistant.router)
 api_router.include_router(reconciliation.router)
+api_router.include_router(webhooks.router)
