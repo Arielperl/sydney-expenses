@@ -12,6 +12,11 @@ from app.services.connection_secrets import ConnectionSigningNotConfigured, deri
 router = APIRouter(prefix="/connections", tags=["connections"])
 
 
+def _require_development(settings: Settings) -> None:
+    if settings.app_environment == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 def _require_owner(request: Request, settings: Settings) -> None:
     if settings.auth_required and getattr(request.state, "user", {}).get("role") != "owner":
         raise HTTPException(status_code=403, detail="רק בעל העסק יכול לנהל חיבורים")
@@ -30,7 +35,10 @@ def _response(connection: IntegrationConnection) -> ConnectionResponse:
 
 
 @router.get("", response_model=list[ConnectionResponse])
-def list_connections(db: Session = Depends(get_db)) -> list[ConnectionResponse]:
+def list_connections(
+    db: Session = Depends(get_db), settings: Settings = Depends(get_settings)
+) -> list[ConnectionResponse]:
+    _require_development(settings)
     connections = db.scalars(select(IntegrationConnection).order_by(IntegrationConnection.created_at.desc())).all()
     return [_response(connection) for connection in connections]
 
@@ -42,6 +50,7 @@ def create_connection(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> ConnectionSecretResponse:
+    _require_development(settings)
     _require_owner(request, settings)
     connection = IntegrationConnection(provider=payload.provider, name=payload.name, secret_salt=new_connection_salt())
     db.add(connection)
@@ -67,6 +76,7 @@ def update_connection(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> ConnectionResponse:
+    _require_development(settings)
     _require_owner(request, settings)
     connection = db.get(IntegrationConnection, connection_id)
     if connection is None:
@@ -84,6 +94,7 @@ def rotate_connection_secret(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> ConnectionSecretResponse:
+    _require_development(settings)
     _require_owner(request, settings)
     connection = db.get(IntegrationConnection, connection_id)
     if connection is None:

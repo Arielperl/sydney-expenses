@@ -58,7 +58,9 @@ def finalize_new_sale(
     db.refresh(sale)
 
     if sale.status == SaleStatus.SUCCEEDED:
-        attempt_document_generation(db, sale, document_provider or get_document_provider(), event_source=event_source)
+        configured_provider = document_provider or get_document_provider()
+        if configured_provider is not None:
+            attempt_document_generation(db, sale, configured_provider, event_source=event_source)
 
     return sale
 
@@ -75,6 +77,10 @@ def attempt_document_generation(
     creation paths (like the CSV batch importer) that need to control their
     own transaction/savepoint boundaries around the row-level insert."""
     provider = provider or get_document_provider()
+    if provider is None:
+        # Keep the sale pending without inventing an issuance attempt. A real
+        # provider can process it once that integration is configured.
+        return
     record_event(db, sale.id, SaleEventType.DOCUMENT_ISSUANCE_ATTEMPTED, SaleEventSource.SYSTEM)
     try:
         result = provider.generate_document(sale)

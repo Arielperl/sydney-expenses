@@ -16,6 +16,9 @@ os.environ["STORAGE_PROVIDER"] = "local"
 # Likewise, never let a developer's own RECEIPT_EXTRACTOR_PROVIDER (e.g. "local" or
 # "openai") leak into the suite — tests that want a specific provider set it explicitly.
 os.environ["RECEIPT_EXTRACTOR_PROVIDER"] = "mock"
+# Synthetic document references are useful in tests but must never be emitted
+# by the production deployment, whose default provider is disabled.
+os.environ["DOCUMENT_PROVIDER"] = "mock"
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
@@ -73,4 +76,3 @@ VALID_PNG_BYTES = bytes.fromhex(
     "89504e470d0a1a0a0000000d4948445200000002000000020802000000fdd49a73"
     "0000001049444154789c63fccf00024c609201000d1d010382c971ff0000000049454e44ae426082"
 )
-

@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+from app.core.config import get_settings
 from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
 
 
@@ -37,6 +38,19 @@ def test_create_sale_manually_computes_net_amount_and_attempts_document(client, 
 
     sale = db_session.get(Sale, body["id"])
     assert sale.source == SaleSource.MANUAL
+
+
+def test_production_default_does_not_create_a_synthetic_document(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "document_provider", "disabled")
+
+    response = client.post("/api/sales", json=_sale_payload())
+
+    assert response.status_code == 201
+    assert response.json()["document_status"] == "pending"
+    assert response.json()["document_number"] is None
+    events = client.get(f"/api/sales/{response.json()['id']}/events").json()
+    assert all(not event["event_type"].startswith("document_") for event in events)
 
 
 def test_create_sale_vat_is_backend_computed_never_client_supplied(client):

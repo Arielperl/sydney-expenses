@@ -69,6 +69,16 @@ def test_valid_signature_creates_sale(client, db_session):
     assert sale.gross_amount == sale.vat_amount + sale.processing_fee + sale.net_amount
 
 
+def test_legacy_demo_webhook_is_not_available_in_production(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "app_environment", "production")
+    body = json.dumps(_event()).encode("utf-8")
+
+    response = client.post(WEBHOOK_URL, content=body, headers=_signed_headers(body))
+
+    assert response.status_code == 404
+
+
 def test_only_succeeded_payments_count_as_revenue(client, db_session):
     body = json.dumps(_event(external_transaction_id="txn-pending", event_id="evt-pending", status="pending")).encode(
         "utf-8"

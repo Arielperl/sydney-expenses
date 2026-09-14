@@ -8,7 +8,6 @@ import { Layout } from './components/Layout'
 const AddSalePage = lazy(() => import('./pages/AddSalePage').then(module => ({ default: module.AddSalePage })))
 const AssistantPage = lazy(() => import('./pages/AssistantPage').then(module => ({ default: module.AssistantPage })))
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })))
-const DemoSimulatorPage = lazy(() => import('./pages/DemoSimulatorPage').then(module => ({ default: module.DemoSimulatorPage })))
 const ExceptionCenterPage = lazy(() => import('./pages/ExceptionCenterPage').then(module => ({ default: module.ExceptionCenterPage })))
 const ImportDocumentPage = lazy(() => import('./pages/ImportDocumentPage').then(module => ({ default: module.ImportDocumentPage })))
 const ImportsPage = lazy(() => import('./pages/ImportsPage').then(module => ({ default: module.ImportsPage })))
@@ -33,7 +32,6 @@ function App() {
           <Route path="import-document" element={<ImportDocumentPage />} />
           <Route path="exceptions" element={<ExceptionCenterPage />} />
           <Route path="imports" element={<ImportsPage />} />
-          <Route path="demo" element={<DemoSimulatorPage />} />
           <Route path="assistant" element={<AssistantPage />} />
 
           {/* Old expense-oriented routes, kept as redirects to avoid broken navigation/bookmarks. */}

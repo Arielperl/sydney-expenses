@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     default_currency: str = "ILS"
     pending_upload_expiry_hours: int = 24
 
+    # Customer tax-document issuance is disabled until a real invoicing
+    # provider is connected. The mock provider exists only for local
+    # development and automated tests and must never run in production.
+    document_provider: Literal["disabled", "mock"] = "disabled"
+
     # Receipt extraction provider. "mock" (default) needs no external credentials and
     # never leaves the machine; "local" runs Tesseract OCR + a local Ollama model,
     # never leaving the machine either; "openai" sends the receipt image to OpenAI.
@@ -205,6 +210,10 @@ def validate_auth_settings(settings: Settings) -> None:
         problems.append("CSV_PREVIEW_SIGNING_SECRET must contain at least 32 characters in production")
     if not settings.connection_signing_secret or len(settings.connection_signing_secret) < 32:
         problems.append("CONNECTION_SIGNING_SECRET must contain at least 32 characters in production")
+    if settings.document_provider == "mock":
+        problems.append("DOCUMENT_PROVIDER=mock is not allowed in production")
+    if settings.receipt_extractor_provider == "mock":
+        problems.append("RECEIPT_EXTRACTOR_PROVIDER=mock is not allowed in production")
     localhost_origins = [
         origin for origin in settings.cors_allowed_origins if "localhost" in origin or "127.0.0.1" in origin
     ]

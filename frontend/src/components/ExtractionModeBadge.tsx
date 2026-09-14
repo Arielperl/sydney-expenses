@@ -12,15 +12,17 @@ const BADGE_STYLES: Record<SystemCapabilities['receipt_extraction_mode'], { badg
 
 export function ExtractionModeBadge() {
   const { t } = useTranslation()
-  // Defaults to "demo" while loading or on error — the safe direction is to
-  // never claim real AI extraction is active unless the backend confirms it.
   const { data } = useQuery({
     queryKey: ['system-capabilities'],
     queryFn: getSystemCapabilities,
     staleTime: Infinity,
     retry: 1,
   })
-  const mode = data?.receipt_extraction_mode ?? 'demo'
+  // Do not show a misleading mode while capabilities are loading or if the
+  // backend cannot confirm which extractor is active.
+  if (!data) return null
+
+  const mode = data.receipt_extraction_mode
   const styles = BADGE_STYLES[mode]
 
   return (

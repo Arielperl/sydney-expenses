@@ -3,8 +3,7 @@
     "dashboard": "Dashboard",
     "sales": "Sales",
     "exceptions": "Exception Center",
-    "imports": "Imports & Connections",
-    "demo": "Demo Area",
+    "imports": "Data Import",
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu"
@@ -52,7 +51,6 @@
     "appShortName": "Revenue Manager",
     "appFullName": "Sydney Transaction Management",
     "logoAlt": "Revenue Manager logo",
-    "demoBusinessBadge": "Business workspace",
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong",
     "tryAgain": "Try again",
@@ -63,7 +61,8 @@
     "deleting": "Deleting…",
     "edit": "Edit",
     "close": "Close",
-    "closeDialog": "Close dialog"
+    "closeDialog": "Close dialog",
+    "businessBadge": "Business workspace"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -375,8 +374,8 @@
     "editInSales": "Edit in Sales"
   },
   "imports": {
-    "title": "Imports & Connections",
-    "subtitle": "Import a sales report and connect sources that send sales to the business automatically.",
+    "title": "Data Import",
+    "subtitle": "Import an existing sales report to keep your business data in one place.",
     "csv": {
       "heading": "Import a CSV file",
       "chooseFile": "Choose a CSV file",
@@ -399,72 +398,6 @@
       "columnCurrency": "Currency",
       "columnError": "Error",
       "formatNote": "Supported format (with a header row): date,customer,service,amount,currency"
-    },
-    "connections": {
-      "heading": "POS and payment connections",
-      "description": "Create a secure, business-specific endpoint where a POS or payment provider can send each transaction immediately after purchase.",
-      "nameLabel": "Connection name",
-      "namePlaceholder": "For example: Main till",
-      "defaultName": "Demo till",
-      "create": "Create connection",
-      "creating": "Creating...",
-      "empty": "No connections yet. Create the first one to receive a webhook URL and signing secret.",
-      "active": "Active",
-      "inactive": "Disabled",
-      "enable": "Enable",
-      "disable": "Disable",
-      "rotate": "Rotate secret",
-      "rotateConfirm": "Rotating the secret immediately invalidates the old one. Continue?",
-      "secretTitle": "Connection details are ready",
-      "secretWarning": "The secret is shown only now. Copy it and store it securely before closing this message.",
-      "webhookUrl": "Webhook URL",
-      "signingSecret": "Signing secret",
-      "copy": "Copy {{label}}",
-      "lastEvent": "Last event: {{date}}",
-      "noEvents": "No events received yet",
-      "demoDisclaimer": "The connection is secure and works end to end, but demo-pay is still a fictional provider. Connecting a commercial POS requires an adapter for the provider used by the business."
-    },
-    "webhook": {
-      "heading": "Payment webhook connection (demo)",
-      "statusLabel": "Status",
-      "statusValue": "Provider interface and local demo only",
-      "description": "This is not a live payment provider connection — it's a demo showing how automatic sale ingestion from a real payment provider or POS system would work.",
-      "tryItInDemoArea": "To try this without a terminal, use the",
-      "demoAreaLink": "Local Demo Area",
-      "developerNote": "The signed HTTP request this simulates, and how to send one yourself from a terminal, is documented in the project README (for developers).",
-      "disclaimer": "No real payment provider, POS, or invoicing service is connected. \"demo-pay\" is a fictional provider name used only for this local demo."
-    }
-  },
-  "demo": {
-    "title": "Local Demo Area",
-    "badge": "Demo data only",
-    "subtitle": "Simulate realistic sale scenarios without a terminal — every record is clearly labeled as demo data and can be removed with the reset action below.",
-    "disabledTitle": "Demo simulator not available",
-    "disabledDescription": "This environment is configured as production, where the demo simulator and reset action are disabled.",
-    "scenarioLabel": "Scenario",
-    "scenarioHint": "What should happen to this simulated sale.",
-    "scenario": {
-      "succeeded": "Successful purchase",
-      "pending": "Pending payment",
-      "failed": "Failed payment",
-      "succeeded_document_failed": "Successful sale, document generation fails",
-      "succeeded_partial_refund": "Successful sale, then a partial refund",
-      "succeeded_full_refund": "Successful sale, then a full refund"
-    },
-    "runScenario": "Run scenario",
-    "simulating": "Running…",
-    "simulationSuccess": "Demo sale created.",
-    "viewInSales": "View it in Sales",
-    "reset": {
-      "heading": "Reset demo data",
-      "description": "Permanently deletes every sale created by this simulator — and only those. Manual entries, CSV imports, and real webhook sales are never affected.",
-      "action": "Reset demo data…",
-      "confirmTitle": "Delete all demo data?",
-      "confirmBody": "This will permanently delete {{count}} demo sale(s) and their event history.",
-      "confirmNote": "Manual sales, CSV imports, uploaded documents, and webhook sales are never deleted by this action.",
-      "confirmAction": "Delete demo data",
-      "deleting": "Deleting…",
-      "successSummary": "Deleted {{count}} demo sale(s)."
     }
   }
 }

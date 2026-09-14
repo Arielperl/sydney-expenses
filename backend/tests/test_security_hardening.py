@@ -65,6 +65,8 @@ class TestApiDocsExposure:
         monkeypatch.setenv("ALLOWED_HOSTS", '["api.example.com"]')
         monkeypatch.setenv("CSV_PREVIEW_SIGNING_SECRET", "test-only-secret-with-at-least-32-characters")
         monkeypatch.setenv("CONNECTION_SIGNING_SECRET", "test-only-connection-key-at-least-32-characters")
+        monkeypatch.setenv("DOCUMENT_PROVIDER", "disabled")
+        monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "openai")
         from app.core.config import get_settings
 
         get_settings.cache_clear()
@@ -98,6 +100,8 @@ class TestProductionConfigValidation:
             allowed_hosts=["api.example.com"],
             csv_preview_signing_secret="test-only-secret-with-at-least-32-characters",
             connection_signing_secret="test-only-connection-key-at-least-32-characters",
+            document_provider="disabled",
+            receipt_extractor_provider="openai",
         )
         base.update(overrides)
         return Settings(**base)
@@ -121,6 +125,8 @@ class TestProductionConfigValidation:
             {"allowed_hosts": ["localhost"]},
             {"csv_preview_signing_secret": "short"},
             {"connection_signing_secret": "short"},
+            {"document_provider": "mock"},
+            {"receipt_extractor_provider": "mock"},
             {"supabase_url": "http://project.supabase.co"},
         ],
     )

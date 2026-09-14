@@ -1,11 +1,11 @@
-import { AlertTriangle, Bot, ChevronUp, FlaskConical, Home, LayoutDashboard, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
+import { AlertTriangle, Bot, ChevronUp, Home, LayoutDashboard, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
 
 import logoUrl from '../assets/investment-logo.svg'
 import { useAuth } from '../contexts/AuthContext'
-import { DemoBusinessBadge } from './DemoBusinessBadge'
+import { BusinessBadge } from './BusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { to: '/sales', key: 'sales', end: false, icon: ShoppingCart },
   { to: '/exceptions', key: 'exceptions', end: false, icon: AlertTriangle },
   { to: '/imports', key: 'imports', end: false, icon: PlugZap },
-  { to: '/demo', key: 'demo', end: false, icon: FlaskConical },
   { to: '/assistant', key: 'assistant', end: false, icon: Bot },
 ] as const
 
@@ -166,7 +165,7 @@ export function Layout() {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-hidden border-e border-stone-200 bg-white px-4 py-6 lg:flex dark:border-stone-800 dark:bg-stone-900">
         <BrandMark />
         <div className="mt-3 px-2">
-          <DemoBusinessBadge />
+          <BusinessBadge />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col overflow-y-auto">
           <NavLinks />
@@ -211,7 +210,7 @@ export function Layout() {
                 </button>
               </div>
               <div className="mb-4">
-                <DemoBusinessBadge />
+                <BusinessBadge />
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <NavLinks onNavigate={() => setIsDrawerOpen(false)} />

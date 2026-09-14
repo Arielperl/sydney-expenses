@@ -79,6 +79,8 @@ async def ingest_payment(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> WebhookIngestResponse:
+    if settings.app_environment == "production":
+        raise HTTPException(status_code=404, detail="Not found")
     if not settings.webhook_signing_secret:
         # Fail closed, not open: an unconfigured secret must never be treated
         # as "signature verification disabled".
@@ -124,6 +126,9 @@ async def ingest_connection_payment(
         business_id = connection.business_id
         expected_salt = connection.secret_salt
         provider = connection.provider
+
+    if settings.app_environment == "production" and provider == "demo-pay":
+        raise HTTPException(status_code=404, detail="Connection not found")
 
     raw_body = await _read_verified_body(request, settings, secret)
     payload, event = _parse_body(raw_body)

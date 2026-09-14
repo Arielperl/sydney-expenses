@@ -21,8 +21,15 @@ class MockDocumentProvider(DocumentProvider):
         return DocumentGenerationResult(succeeded=True, document_number=document_number, document_url=None)
 
 
-def get_document_provider() -> DocumentProvider:
-    """The only provider available today. A real deployment would read a
-    setting here (mirroring `receipt_extractor_provider`/`storage_provider`)
-    and select among registered real providers — none exist yet."""
-    return MockDocumentProvider()
+def get_document_provider() -> DocumentProvider | None:
+    """Return the configured provider, or ``None`` when issuance is off.
+
+    Production defaults to disabled until a legally valid invoicing
+    integration exists. The mock remains available for local development
+    and tests, where its synthetic references are useful and unambiguous.
+    """
+    from app.core.config import get_settings
+
+    if get_settings().document_provider == "mock":
+        return MockDocumentProvider()
+    return None

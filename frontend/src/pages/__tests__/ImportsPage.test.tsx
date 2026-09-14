@@ -8,7 +8,6 @@ import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
 
 const PREVIEW_URL = 'http://localhost:8000/api/imports/csv/preview'
 const CONFIRM_URL = 'http://localhost:8000/api/imports/csv/confirm'
-const CONNECTIONS_URL = 'http://localhost:8000/api/connections'
 
 function fakeCsvFile() {
   return new File(['date,customer,service,amount,currency\n2026-09-01,Dana Cohen,Consulting,45.50,ILS\n'], 'statement.csv', {
@@ -42,29 +41,6 @@ const previewResponse = {
 }
 
 describe('ImportsPage', () => {
-  it('renders business connection management without exposing terminal commands', async () => {
-    renderWithProviders(<ImportsPage />)
-    expect(screen.getByText('חיבורי קופה ותשלומים')).toBeInTheDocument()
-    expect(screen.queryByText(/demo_webhook_request/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/WEBHOOK_SIGNING_SECRET/)).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText(/עדיין אין חיבורים/)).toBeInTheDocument())
-  })
-
-  it('creates a connection and reveals its URL and signing secret', async () => {
-    server.use(http.post(CONNECTIONS_URL, () => HttpResponse.json({
-      id: 'connection-1', provider: 'demo-pay', name: 'הקופה הראשית', enabled: true,
-      webhook_path: '/api/webhooks/connections/connection-1', last_event_at: null,
-      created_at: '2026-09-13T10:00:00', signing_secret: 'secret-shown-once',
-    }, { status: 201 })))
-    const user = userEvent.setup()
-    renderWithProviders(<ImportsPage />)
-    await user.type(screen.getByLabelText('שם החיבור'), 'הקופה הראשית')
-    await user.click(screen.getByRole('button', { name: 'יצירת חיבור' }))
-    await waitFor(() => expect(screen.getByText('פרטי החיבור מוכנים')).toBeInTheDocument())
-    expect(screen.getByText('http://localhost:8000/api/webhooks/connections/connection-1')).toBeInTheDocument()
-    expect(screen.getByText('secret-shown-once')).toBeInTheDocument()
-  })
-
   it('previews a CSV file and shows the parsed rows', async () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json(previewResponse)))
     const user = userEvent.setup()

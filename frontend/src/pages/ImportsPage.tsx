@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
 import { CsvImportWizard } from '../components/CsvImportWizard'
-import { ConnectionsPanel } from '../components/ConnectionsPanel'
 
 export function ImportsPage() {
   const { t } = useTranslation()
@@ -14,8 +13,6 @@ export function ImportsPage() {
       </div>
 
       <CsvImportWizard />
-
-      <ConnectionsPanel />
     </div>
   )
 }

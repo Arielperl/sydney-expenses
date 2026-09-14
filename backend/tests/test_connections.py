@@ -139,3 +139,20 @@ def test_disabled_and_unknown_connections_reject_events(client, secured_business
     body = json.dumps(_event()).encode()
     assert client.post(connection["webhook_path"], content=body, headers=_headers(body, connection["signing_secret"])).status_code == 404
     assert client.post("/api/webhooks/connections/00000000-0000-4000-8000-000000000099", content=body, headers=_headers(body, connection["signing_secret"])).status_code == 404
+
+
+def test_demo_connections_are_not_available_in_production(client, secured_businesses, monkeypatch):
+    client.cookies.set("sydney_access", "owner-a")
+    connection = _create(client).json()
+    settings = get_settings()
+    monkeypatch.setattr(settings, "app_environment", "production")
+
+    assert client.get("/api/connections").status_code == 404
+    assert _create(client, "Another till").status_code == 404
+    body = json.dumps(_event("production-demo-txn")).encode()
+    response = client.post(
+        connection["webhook_path"],
+        content=body,
+        headers=_headers(body, connection["signing_secret"]),
+    )
+    assert response.status_code == 404
