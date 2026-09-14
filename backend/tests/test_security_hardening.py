@@ -8,6 +8,11 @@ from app.core.config import InsecureProductionConfigurationError, Settings, vali
 
 
 class TestSecurityHeaders:
+    def test_api_root_redirects_to_the_configured_frontend(self, client):
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == Settings().cors_allowed_origins[0]
+
     def test_baseline_headers_present_on_every_response(self, client):
         response = client.get("/api/health")
         assert response.headers["X-Content-Type-Options"] == "nosniff"

@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from app.api.routes.auth import current_user
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +33,12 @@ app = FastAPI(
     redoc_url=None if _is_production else "/redoc",
     openapi_url=None if _is_production else "/openapi.json",
 )
+
+
+@app.get("/", include_in_schema=False)
+def open_product() -> RedirectResponse:
+    """Send people who open the API hostname to the public web app."""
+    return RedirectResponse(url=settings.cors_allowed_origins[0], status_code=307)
 
 @app.middleware("http")
 async def protect_workspace(request: Request, call_next):
