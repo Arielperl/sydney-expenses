@@ -2,7 +2,9 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from app.core.config import get_settings
+from app.models.integration_connection import IntegrationConnection
 from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
+from app.models.webhook_event import WebhookEvent, WebhookEventStatus
 
 
 def _sale_payload(**overrides) -> dict:
@@ -215,6 +217,37 @@ def test_delete_sale(client):
     response = client.delete(f"/api/sales/{created['id']}")
     assert response.status_code == 204
     assert client.get(f"/api/sales/{created['id']}").status_code == 404
+
+
+def test_delete_webhook_sale_preserves_event_without_sale_reference(client, db_session):
+    created = client.post("/api/sales", json=_sale_payload()).json()
+    sale = db_session.get(Sale, created["id"])
+    connection = IntegrationConnection(
+        business_id=sale.business_id,
+        provider="cardcom",
+        name="Cardcom test",
+        secret_salt="test-salt",
+    )
+    db_session.add(connection)
+    db_session.flush()
+    webhook_event = WebhookEvent(
+        business_id=sale.business_id,
+        connection_id=connection.id,
+        provider="cardcom",
+        status=WebhookEventStatus.PROCESSED,
+        sale_id=sale.id,
+    )
+    db_session.add(webhook_event)
+    db_session.commit()
+    event_id = webhook_event.id
+
+    response = client.delete(f"/api/sales/{created['id']}")
+
+    assert response.status_code == 204
+    db_session.expire_all()
+    preserved_event = db_session.get(WebhookEvent, event_id)
+    assert preserved_event is not None
+    assert preserved_event.sale_id is None
 
 
 def test_full_refund_via_api(client):

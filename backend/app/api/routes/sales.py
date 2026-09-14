@@ -3,11 +3,12 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.database import get_db
 from app.models.sale import Sale, SaleSource, SaleStatus
 from app.models.sale_event import SaleEvent, SaleEventSource, SaleEventType
+from app.models.webhook_event import WebhookEvent
 from app.repositories.sale_repository import SaleRepository
 from app.schemas.sale import RefundRequest, SaleCreate, SaleRead, SaleUpdate, sale_to_read
 from app.schemas.sale_event import SaleEventRead
@@ -121,6 +122,10 @@ def delete_sale(
     sale = repository.get(sale_id)
     if sale is None:
         raise HTTPException(status_code=404, detail="Sale not found")
+    # Keep the durable provider-delivery history after a user deletes the
+    # resulting sale, but remove the foreign-key reference first. SaleEvent
+    # rows are deleted by their existing ON DELETE CASCADE constraint.
+    db.execute(update(WebhookEvent).where(WebhookEvent.sale_id == sale.id).values(sale_id=None))
     repository.delete(sale)
 
 
