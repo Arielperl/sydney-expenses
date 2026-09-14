@@ -25,6 +25,13 @@ CARDCOM_RAW_WEBHOOK_JSON = {
 
 CARDCOM_RAW_WEBHOOK_FORM = "TerminalNumber=1000&LowProfileId=8c92820a-2f6f-4120-a699-ab1969b2f78b"
 
+# Callback/Name-To-Value terminology observed in Cardcom's documentation
+# and in a live declined-payment callback.
+CARDCOM_RAW_WEBHOOK_CODE_JSON = {
+    "terminalnumber": "1000",
+    "LowProfileCode": "declined-lp-id-0001",
+}
+
 CARDCOM_GET_LP_RESULT_SUCCESS = {
     "ResponseCode": 0,
     "Description": "העסקה בוצעה בהצלחה",

@@ -399,7 +399,15 @@ async def _ingest_cardcom_event(
         content_type = request.headers.get("content-type", "")
         try:
             raw_body = await _read_unsigned_body(request, CARDCOM_MAX_BODY_BYTES)
-            payload = _extract_cardcom_payload(raw_body, content_type)
+            # Cardcom uses both body-based API v11 callbacks and legacy
+            # Name-To-Value callbacks that put LowProfileCode in the query
+            # string. Only this reference is consumed, and the financial
+            # result is still fetched directly from Cardcom afterward.
+            query_payload = dict(request.query_params)
+            if raw_body:
+                payload = {**query_payload, **_extract_cardcom_payload(raw_body, content_type)}
+            else:
+                payload = query_payload
             low_profile_id = extract_low_profile_id(payload)
         except HTTPException as exc:
             mark_rejected(db, webhook_event, category=WebhookEventFailureCategory.VALIDATION, message=str(exc.detail))

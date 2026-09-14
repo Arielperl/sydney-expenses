@@ -21,6 +21,7 @@ from tests.fixtures.cardcom_payloads import (
     CARDCOM_GET_LP_RESULT_SUCCESS,
     CARDCOM_GET_LP_RESULT_TOKEN_ONLY,
     CARDCOM_RAW_WEBHOOK_FORM,
+    CARDCOM_RAW_WEBHOOK_CODE_JSON,
     CARDCOM_RAW_WEBHOOK_JSON,
 )
 
@@ -34,6 +35,10 @@ class TestExtractLowProfileId:
 
         payload = dict(parse_qsl(CARDCOM_RAW_WEBHOOK_FORM))
         assert extract_low_profile_id(payload) == "8c92820a-2f6f-4120-a699-ab1969b2f78b"
+
+    def test_extracts_callback_low_profile_code_case_insensitively(self):
+        assert extract_low_profile_id(CARDCOM_RAW_WEBHOOK_CODE_JSON) == "declined-lp-id-0001"
+        assert extract_low_profile_id({"lowprofilecode": "lower-case-code"}) == "lower-case-code"
 
     def test_missing_low_profile_id_is_rejected(self):
         with pytest.raises(CardcomPayloadError):

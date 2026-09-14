@@ -78,14 +78,27 @@ class CardcomUnsupportedOperationError(ValueError):
 
 
 def extract_low_profile_id(payload: dict) -> str:
-    """Reads only `LowProfileId` out of a raw, UNVERIFIED webhook delivery
+    """Reads only Cardcom's Low Profile reference out of a raw, UNVERIFIED webhook delivery
     (already parsed from either JSON or form-encoded body by the route —
     see app/api/routes/webhooks.py). Deliberately reads nothing else:
     every other field in the raw delivery is untrusted per Cardcom's own
-    documentation (see module docstring)."""
-    value = payload.get("LowProfileId") or payload.get("lowprofileid") or payload.get("LowProfileID")
+    documentation (see module docstring).
+
+    Cardcom uses both ``LowProfileId`` (API v11) and ``LowProfileCode``
+    (callback/Name-To-Value terminology), with inconsistent casing between
+    integrations. Match only those two names case-insensitively; do not
+    consume any other unverified callback field.
+    """
+    value = next(
+        (
+            raw_value
+            for key, raw_value in payload.items()
+            if isinstance(key, str) and key.casefold() in {"lowprofileid", "lowprofilecode"} and raw_value
+        ),
+        None,
+    )
     if not isinstance(value, str) or not value.strip():
-        raise CardcomPayloadError("'LowProfileId' is required and must be a non-empty string")
+        raise CardcomPayloadError("'LowProfileId' or 'LowProfileCode' is required and must be a non-empty string")
     value = value.strip()
     if len(value) > 100 or any(ord(character) < 32 for character in value):
         raise CardcomPayloadError("'LowProfileId' is not a valid transaction reference")

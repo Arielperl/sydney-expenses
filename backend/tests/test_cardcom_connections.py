@@ -21,6 +21,7 @@ from tests.fixtures.cardcom_payloads import (
     CARDCOM_GET_LP_RESULT_SUCCESS,
     CARDCOM_GET_LP_RESULT_TOKEN_ONLY,
     CARDCOM_RAW_WEBHOOK_FORM,
+    CARDCOM_RAW_WEBHOOK_CODE_JSON,
     CARDCOM_RAW_WEBHOOK_JSON,
 )
 
@@ -195,6 +196,36 @@ class TestCardcomWebhookIngestion:
         _mock_verification(monkeypatch, CARDCOM_GET_LP_RESULT_SUCCESS)
         response = _post_cardcom_event(client, connection["webhook_path"], form=True)
         assert response.status_code == 201
+
+    def test_low_profile_code_callback_name_is_accepted(self, client, secured_businesses, monkeypatch):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_cardcom_connection(client).json()
+        _mock_verification(monkeypatch, CARDCOM_GET_LP_RESULT_DECLINED)
+        response = client.post(
+            connection["webhook_path"],
+            json=CARDCOM_RAW_WEBHOOK_CODE_JSON,
+            headers={"x-forwarded-for": CARDCOM_IP},
+        )
+        assert response.status_code == 201
+        with SessionLocal() as db:
+            sale = db.get(Sale, response.json()["sale_id"])
+            assert sale.status == SaleStatus.FAILED
+            assert sale.revenue_contribution() == 0
+
+    def test_query_string_callback_is_accepted_with_an_empty_body(self, client, secured_businesses, monkeypatch):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_cardcom_connection(client).json()
+        _mock_verification(monkeypatch, CARDCOM_GET_LP_RESULT_DECLINED)
+        response = client.post(
+            connection["webhook_path"],
+            params={"LowProfileCode": "declined-lp-id-0001"},
+            headers={"x-forwarded-for": CARDCOM_IP},
+        )
+        assert response.status_code == 201
+        with SessionLocal() as db:
+            sale = db.get(Sale, response.json()["sale_id"])
+            assert sale.status == SaleStatus.FAILED
+            assert sale.revenue_contribution() == 0
 
     def test_declined_transaction_becomes_a_failed_sale_never_revenue(self, client, secured_businesses, monkeypatch, db_session):
         client.cookies.set("sydney_access", "owner-a")
