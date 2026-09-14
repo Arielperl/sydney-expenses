@@ -160,6 +160,39 @@ class Settings(BaseSettings):
     # these local development values with its public API hostname(s).
     allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
 
+    # Grow's account-level webhook has no signing capability at all —
+    # webhookKey is not a secret (confirmed directly by Grow) — so the
+    # source IP is the only application-layer defense available. A plain,
+    # non-secret list (individual IPs or CIDR ranges) so it can be updated
+    # without a code change when Grow's published IP list changes. See
+    # https://developers.grow.business/reference/ip-address and
+    # app/core/client_ip.py. Empty by default: development never enforces
+    # it, and production startup refuses to run with it empty (see
+    # validate_auth_settings) — Grow ingestion must fail closed, not open,
+    # when this is misconfigured.
+    grow_webhook_allowed_ips: list[str] = []
+
+    # Cardcom account-level ("LowProfile") webhook ingestion — a completely
+    # separate provider from Grow, with its own IP allowlist (Cardcom's own
+    # published ranges, see docs/cardcom in README) and its own credential
+    # model. Unlike Grow, Cardcom's webhook payload is never trusted
+    # directly — Cardcom's own documentation requires a server-to-server
+    # verification call (LowProfile/GetLpResult) before treating a delivery
+    # as real; see app/services/ingestion/cardcom_provider.py.
+    cardcom_webhook_allowed_ips: list[str] = []
+    # Base URL for Cardcom's API — overridable for tests only; production
+    # always uses the real secure.cardcom.solutions host.
+    cardcom_api_base_url: str = "https://secure.cardcom.solutions"
+    cardcom_api_timeout_seconds: float = 15.0
+    # A per-deployment Fernet key (44-char urlsafe-base64, `Fernet.generate_key()`)
+    # used to encrypt each Cardcom connection's ApiName/ApiPassword at rest —
+    # these are the business owner's own real Cardcom credentials, entered
+    # once when creating the connection, never displayed again, and never
+    # sent to the frontend. Never reuse CONNECTION_SIGNING_SECRET or any
+    # other key for this — a leaked encryption key here is a leaked set of
+    # real third-party payment credentials, not just an internal secret.
+    cardcom_credential_encryption_key: str | None = None
+
 
 class StorageConfigurationError(RuntimeError):
     """Raised at startup when STORAGE_PROVIDER=supabase but required Supabase
@@ -225,6 +258,47 @@ def validate_auth_settings(settings: Settings) -> None:
         problems.append("ALLOWED_HOSTS must be an explicit production host allowlist")
     if any(host in {"localhost", "127.0.0.1", "testserver"} for host in settings.allowed_hosts):
         problems.append("ALLOWED_HOSTS must not include development hosts in production")
+    if not settings.grow_webhook_allowed_ips:
+        problems.append(
+            "GROW_WEBHOOK_ALLOWED_IPS must list at least one IP/CIDR in production "
+            "(Grow webhooks have no signing capability — this is the only application-layer defense)"
+        )
+    else:
+        import ipaddress
+
+        invalid_entries = []
+        for entry in settings.grow_webhook_allowed_ips:
+            try:
+                ipaddress.ip_network(entry, strict=False)
+            except ValueError:
+                invalid_entries.append(entry)
+        if invalid_entries:
+            problems.append(f"GROW_WEBHOOK_ALLOWED_IPS contains invalid IP/CIDR entries: {invalid_entries}")
+    if not settings.cardcom_webhook_allowed_ips:
+        problems.append(
+            "CARDCOM_WEBHOOK_ALLOWED_IPS must list at least one IP/CIDR in production "
+            "(defense-in-depth alongside Cardcom's own server-to-server verification call)"
+        )
+    else:
+        import ipaddress
+
+        invalid_cardcom_entries = []
+        for entry in settings.cardcom_webhook_allowed_ips:
+            try:
+                ipaddress.ip_network(entry, strict=False)
+            except ValueError:
+                invalid_cardcom_entries.append(entry)
+        if invalid_cardcom_entries:
+            problems.append(f"CARDCOM_WEBHOOK_ALLOWED_IPS contains invalid IP/CIDR entries: {invalid_cardcom_entries}")
+    if not settings.cardcom_credential_encryption_key:
+        problems.append("CARDCOM_CREDENTIAL_ENCRYPTION_KEY must be set in production (encrypts stored Cardcom API credentials at rest)")
+    else:
+        from cryptography.fernet import Fernet
+
+        try:
+            Fernet(settings.cardcom_credential_encryption_key.encode("utf-8"))
+        except Exception:
+            problems.append("CARDCOM_CREDENTIAL_ENCRYPTION_KEY must be a valid Fernet key (Fernet.generate_key())")
     if problems:
         raise InsecureProductionConfigurationError(
             "Refusing to start with APP_ENVIRONMENT=production and insecure configuration: " + "; ".join(problems)

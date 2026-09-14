@@ -6,6 +6,10 @@ import pytest
 
 from app.core.config import InsecureProductionConfigurationError, Settings, validate_auth_settings
 
+# A test-only Fernet key (never a real secret) — see
+# app/services/credential_encryption.py.
+TEST_CARDCOM_ENCRYPTION_KEY = "o8x1XJl4biNjdwxZjFAo44GqRGTX7C5gOaTx0fT6nlY="
+
 
 class TestSecurityHeaders:
     def test_api_root_redirects_to_the_configured_frontend(self, client):
@@ -67,6 +71,9 @@ class TestApiDocsExposure:
         monkeypatch.setenv("CONNECTION_SIGNING_SECRET", "test-only-connection-key-at-least-32-characters")
         monkeypatch.setenv("DOCUMENT_PROVIDER", "disabled")
         monkeypatch.setenv("RECEIPT_EXTRACTOR_PROVIDER", "openai")
+        monkeypatch.setenv("GROW_WEBHOOK_ALLOWED_IPS", '["3.123.194.128"]')
+        monkeypatch.setenv("CARDCOM_WEBHOOK_ALLOWED_IPS", '["82.80.227.17/29"]')
+        monkeypatch.setenv("CARDCOM_CREDENTIAL_ENCRYPTION_KEY", TEST_CARDCOM_ENCRYPTION_KEY)
         from app.core.config import get_settings
 
         get_settings.cache_clear()
@@ -102,6 +109,9 @@ class TestProductionConfigValidation:
             connection_signing_secret="test-only-connection-key-at-least-32-characters",
             document_provider="disabled",
             receipt_extractor_provider="openai",
+            grow_webhook_allowed_ips=["3.123.194.128", "18.198.97.252/32"],
+            cardcom_webhook_allowed_ips=["82.80.227.17/29", "82.80.222.124/29"],
+            cardcom_credential_encryption_key=TEST_CARDCOM_ENCRYPTION_KEY,
         )
         base.update(overrides)
         return Settings(**base)
@@ -128,6 +138,12 @@ class TestProductionConfigValidation:
             {"document_provider": "mock"},
             {"receipt_extractor_provider": "mock"},
             {"supabase_url": "http://project.supabase.co"},
+            {"grow_webhook_allowed_ips": []},
+            {"grow_webhook_allowed_ips": ["not-an-ip"]},
+            {"cardcom_webhook_allowed_ips": []},
+            {"cardcom_webhook_allowed_ips": ["not-an-ip"]},
+            {"cardcom_credential_encryption_key": None},
+            {"cardcom_credential_encryption_key": "not-a-valid-fernet-key"},
         ],
     )
     def test_insecure_production_config_fails_fast(self, overrides):

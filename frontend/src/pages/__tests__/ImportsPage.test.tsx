@@ -2,12 +2,29 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
+import { AuthProvider } from '../../contexts/AuthContext'
 import { ImportsPage } from '../ImportsPage'
 import { server } from '../../test/msw/server'
 import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
 
 const PREVIEW_URL = 'http://localhost:8000/api/imports/csv/preview'
 const CONFIRM_URL = 'http://localhost:8000/api/imports/csv/confirm'
+const SESSION_URL = 'http://localhost:8000/api/auth/session'
+
+function renderImportsPage() {
+  server.use(
+    http.get(SESSION_URL, () =>
+      HttpResponse.json({
+        user: { id: 'owner-1', email: 'owner@example.com', name: 'Owner', has_workspace: true, role: 'owner' },
+      }),
+    ),
+  )
+  return renderWithProviders(
+    <AuthProvider>
+      <ImportsPage />
+    </AuthProvider>,
+  )
+}
 
 function fakeCsvFile() {
   return new File(['date,customer,service,amount,currency\n2026-09-01,Dana Cohen,Consulting,45.50,ILS\n'], 'statement.csv', {
@@ -44,7 +61,7 @@ describe('ImportsPage', () => {
   it('previews a CSV file and shows the parsed rows', async () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json(previewResponse)))
     const user = userEvent.setup()
-    renderWithProviders(<ImportsPage />)
+    renderImportsPage()
 
     await selectFile(user)
 
@@ -60,7 +77,7 @@ describe('ImportsPage', () => {
       ),
     )
     const user = userEvent.setup()
-    renderWithProviders(<ImportsPage />)
+    renderImportsPage()
 
     await selectFile(user)
     await waitFor(() => expect(screen.getByRole('button', { name: 'אישור הייבוא' })).toBeInTheDocument())
@@ -73,7 +90,7 @@ describe('ImportsPage', () => {
   it('shows an error message when preview fails', async () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json({ detail: 'bad file' }, { status: 422 })))
     const user = userEvent.setup()
-    renderWithProviders(<ImportsPage />)
+    renderImportsPage()
 
     await selectFile(user)
 

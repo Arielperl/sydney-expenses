@@ -13,6 +13,7 @@ from typing import Callable
 
 from app.domain.business_time import normalize_to_naive_business_datetime
 from app.models.sale import SaleStatus, TaxTreatment
+from app.services.ingestion.grow_provider import parse_grow_event
 from app.services.sale_service import PaymentEvent, compute_net_amount
 from app.services.tax.vat import calculate_vat, vat_amount_is_consistent, vat_rate_snapshot
 from app.schemas.validators import validate_currency_code, validate_transaction_datetime_reasonable
@@ -189,6 +190,12 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
 
 WEBHOOK_PROVIDERS: dict[str, Callable[[dict], PaymentEvent]] = {
     "demo-pay": parse_demo_pay_event,
+    # Grow's account-level payload has no self-describing "provider" field
+    # (unlike demo-pay), so this registry entry is reached only by the
+    # connection-based route selecting it via `connection.provider` — see
+    # app/api/routes/webhooks.py — never by `parse_webhook_event`'s
+    # payload-sniffing dispatch below, which Grow payloads never match.
+    "grow": parse_grow_event,
 }
 
 

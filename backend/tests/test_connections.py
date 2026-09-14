@@ -142,13 +142,22 @@ def test_disabled_and_unknown_connections_reject_events(client, secured_business
 
 
 def test_demo_connections_are_not_available_in_production(client, secured_businesses, monkeypatch):
+    # demo-pay stays development/test-only in production: hidden from the
+    # connections list, rejected on creation, and its webhook URL rejects
+    # events — but the /api/connections routes themselves are NOT blocked
+    # wholesale in production anymore, since a business's real Grow
+    # connections must be manageable there. See test_grow_connections.py.
     client.cookies.set("sydney_access", "owner-a")
     connection = _create(client).json()
     settings = get_settings()
     monkeypatch.setattr(settings, "app_environment", "production")
 
-    assert client.get("/api/connections").status_code == 404
-    assert _create(client, "Another till").status_code == 404
+    listed = client.get("/api/connections")
+    assert listed.status_code == 200
+    assert connection["id"] not in [row["id"] for row in listed.json()]
+
+    assert _create(client, "Another till").status_code == 422
+
     body = json.dumps(_event("production-demo-txn")).encode()
     response = client.post(
         connection["webhook_path"],

@@ -45,8 +45,12 @@ async def protect_workspace(request: Request, call_next):
     path = request.url.path
     config = get_settings()
     # Webhooks keep their own timestamp/HMAC validation and never use browser cookies.
+    # Matches both a demo-pay connection's stable `id` (a UUID) and a
+    # URL-token provider's `url_token` (e.g. Grow — a `secrets.token_urlsafe`
+    # value, not UUID-shaped) — see IntegrationConnection's docstring for why
+    # two different path shapes exist.
     webhook = path == "/api/webhooks/payments" or bool(
-        re.fullmatch(r"/api/webhooks/connections/[0-9a-fA-F-]{36}", path)
+        re.fullmatch(r"/api/webhooks/connections/[0-9a-zA-Z_-]{20,64}", path)
     )
     if webhook:
         from app.models.business import LEGACY_BUSINESS_ID

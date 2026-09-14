@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 
+import { CardcomConnectionPanel } from '../components/CardcomConnectionPanel'
 import { CsvImportWizard } from '../components/CsvImportWizard'
+import { GrowConnectionPanel } from '../components/GrowConnectionPanel'
 
 export function ImportsPage() {
   const { t } = useTranslation()
@@ -12,6 +14,8 @@ export function ImportsPage() {
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('imports.subtitle')}</p>
       </div>
 
+      <GrowConnectionPanel />
+      <CardcomConnectionPanel />
       <CsvImportWizard />
     </div>
   )
