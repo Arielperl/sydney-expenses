@@ -1,22 +1,32 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
+import { AuthProvider, RequireAuth } from './contexts/AuthContext'
+import { AuthPage } from './pages/AuthPage'
+import { HomePage } from './pages/HomePage'
 import { Layout } from './components/Layout'
-import { AddSalePage } from './pages/AddSalePage'
-import { AssistantPage } from './pages/AssistantPage'
-import { DashboardPage } from './pages/DashboardPage'
-import { DemoSimulatorPage } from './pages/DemoSimulatorPage'
-import { ExceptionCenterPage } from './pages/ExceptionCenterPage'
-import { ImportDocumentPage } from './pages/ImportDocumentPage'
-import { ImportsPage } from './pages/ImportsPage'
-import { SaleDetailsPage } from './pages/SaleDetailsPage'
-import { SalesPage } from './pages/SalesPage'
+const AddSalePage = lazy(() => import('./pages/AddSalePage').then(module => ({ default: module.AddSalePage })))
+const AssistantPage = lazy(() => import('./pages/AssistantPage').then(module => ({ default: module.AssistantPage })))
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })))
+const DemoSimulatorPage = lazy(() => import('./pages/DemoSimulatorPage').then(module => ({ default: module.DemoSimulatorPage })))
+const ExceptionCenterPage = lazy(() => import('./pages/ExceptionCenterPage').then(module => ({ default: module.ExceptionCenterPage })))
+const ImportDocumentPage = lazy(() => import('./pages/ImportDocumentPage').then(module => ({ default: module.ImportDocumentPage })))
+const ImportsPage = lazy(() => import('./pages/ImportsPage').then(module => ({ default: module.ImportsPage })))
+const SaleDetailsPage = lazy(() => import('./pages/SaleDetailsPage').then(module => ({ default: module.SaleDetailsPage })))
+const SalesPage = lazy(() => import('./pages/SalesPage').then(module => ({ default: module.SalesPage })))
 
 function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
+      <Suspense fallback={<div className="auth-state" dir="rtl" role="status">טוענים את סביבת העבודה…</div>}>
       <Routes>
+        <Route index element={<HomePage />} />
+        <Route path="login" element={<AuthPage key="login" mode="login" />} />
+        <Route path="signup" element={<AuthPage key="signup" mode="signup" />} />
+        <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
-          <Route index element={<DashboardPage />} />
+          <Route path="app" element={<DashboardPage />} />
           <Route path="sales" element={<SalesPage />} />
           <Route path="sales/:id" element={<SaleDetailsPage />} />
           <Route path="add-sale" element={<AddSalePage />} />
@@ -32,7 +42,11 @@ function App() {
           <Route path="upload-receipt" element={<Navigate to="/import-document" replace />} />
           <Route path="reconciliation" element={<Navigate to="/exceptions" replace />} />
         </Route>
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
+    </AuthProvider>
     </BrowserRouter>
   )
 }

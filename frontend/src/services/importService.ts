@@ -18,12 +18,16 @@ export async function confirmCsvImport(
   fileHash: string,
   filename: string | null,
   validRows: CsvPreviewRow[],
+  previewSignature: string,
+  previewExpiresAt: number,
 ): Promise<CsvConfirmResponse> {
   try {
     const response = await apiClient.post<CsvConfirmResponse>('/imports/csv/confirm', {
       file_hash: fileHash,
       filename,
       valid_rows: validRows,
+      preview_signature: previewSignature,
+      preview_expires_at: previewExpiresAt,
     })
     return response.data
   } catch (error) {

@@ -1,5 +1,7 @@
 import io
 
+from PIL import Image
+
 from tests.conftest import VALID_PNG_BYTES
 
 
@@ -68,6 +70,23 @@ def test_import_document_rejects_invalid_image(client):
         "/api/documents/import",
         params={"sale_id": sale_id},
         files={"file": ("receipt.png", io.BytesIO(b"not an image"), "image/png")},
+    )
+
+    assert response.status_code == 422
+
+
+def test_import_document_rejects_decompression_bomb_dimensions(client, monkeypatch):
+    sale_id = _create_sale(client)
+    image_bytes = io.BytesIO()
+    Image.new("RGB", (100, 100), "white").save(image_bytes, format="PNG")
+
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_upload_pixels", 100)
+    response = client.post(
+        "/api/documents/import",
+        params={"sale_id": sale_id},
+        files={"file": ("receipt.png", io.BytesIO(image_bytes.getvalue()), "image/png")},
     )
 
     assert response.status_code == 422

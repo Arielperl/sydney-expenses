@@ -50,7 +50,17 @@ def test_full_migration_chain_applies_cleanly_to_an_empty_database(fresh_sqlite_
             row[0]
             for row in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).fetchall()
         }
-    assert {"sales", "sale_events", "import_batches", "alembic_version"} <= tables
+    assert {
+        "businesses",
+        "business_members",
+        "integration_connections",
+        "assistant_conversations",
+        "assistant_messages",
+        "sales",
+        "sale_events",
+        "import_batches",
+        "alembic_version",
+    } <= tables
 
 
 def test_legacy_sale_predating_tax_treatment_is_classified_and_readable_afterwards(fresh_sqlite_db):
@@ -99,5 +109,6 @@ def test_legacy_sale_predating_tax_treatment_is_classified_and_readable_afterwar
         sale = session.get(Sale, "legacy-1")  # must not raise LookupError
         assert sale.tax_treatment.value == "standard"
         assert sale.tax_treatment_needs_review is False
+        assert sale.business_id == "00000000-0000-4000-8000-000000000001"
     finally:
         session.close()

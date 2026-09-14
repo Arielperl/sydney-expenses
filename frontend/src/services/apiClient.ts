@@ -1,12 +1,13 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   // The fetch adapter is what MSW (used in tests) reliably intercepts; it also
   // avoids a known XHR + FormData/File hang under jsdom.
   adapter: 'fetch',
+  withCredentials: true,
 })
 
 export const UPLOADS_BASE_URL = API_BASE_URL
@@ -41,3 +42,19 @@ export function toApiError(error: unknown): ApiError {
   }
   return new ApiError('An unexpected error occurred.')
 }
+
+// One refresh for concurrent failed requests; do not replay writes without a 401.
+let refreshInFlight: Promise<unknown> | null = null
+apiClient.interceptors.response.use(response => response, async error => {
+  const config = error.config
+  if (error.response?.status !== 401 || !config || config._retried || (config.url?.startsWith('/auth/') && config.url !== '/auth/session')) return Promise.reject(error)
+  config._retried = true
+  try {
+    refreshInFlight ??= apiClient.post('/auth/refresh').finally(() => { refreshInFlight = null })
+    await refreshInFlight
+    return apiClient(config)
+  } catch (refreshError) {
+    window.dispatchEvent(new Event('sydney:session-expired'))
+    return Promise.reject(refreshError)
+  }
+})

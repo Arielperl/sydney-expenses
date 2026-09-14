@@ -41,15 +41,14 @@ def test_create_sale_manually_computes_net_amount_and_attempts_document(client, 
 
 def test_create_sale_vat_is_backend_computed_never_client_supplied(client):
     """`vat_amount` isn't accepted as a create-request field at all — sending
-    one is simply ignored, never trusted, because the backend is the sole
-    source of truth for the calculation."""
+    one is rejected, never trusted, because the backend is the sole source
+    of truth for the calculation."""
     payload = _sale_payload(gross_amount="118.00")
     payload["vat_amount"] = "999.00"  # not a real field on SaleCreate
 
     response = client.post("/api/sales", json=payload)
 
-    assert response.status_code == 201
-    assert response.json()["vat_amount"] == "18.00"
+    assert response.status_code == 422
 
 
 def test_create_sale_rejects_invalid_tax_treatment(client):

@@ -1,5 +1,5 @@
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { Layout } from '../Layout'
@@ -50,3 +50,5 @@ describe('Layout', () => {
     expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(1)
   })
 })
+
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ user: {email: 'test@example.com'}, logout: vi.fn() }) }))

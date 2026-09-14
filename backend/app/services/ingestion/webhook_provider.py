@@ -15,6 +15,7 @@ from app.domain.business_time import normalize_to_naive_business_datetime
 from app.models.sale import SaleStatus, TaxTreatment
 from app.services.sale_service import PaymentEvent, compute_net_amount
 from app.services.tax.vat import calculate_vat, vat_amount_is_consistent, vat_rate_snapshot
+from app.schemas.validators import validate_currency_code, validate_transaction_datetime_reasonable
 
 
 class WebhookPayloadError(ValueError):
@@ -32,18 +33,32 @@ _STATUS_MAP = {
 _TAX_TREATMENT_MAP = {treatment.value: treatment for treatment in TaxTreatment}
 
 
-def _require_str(payload: dict, field: str) -> str:
-    value = payload.get(field)
-    if not isinstance(value, str) or not value.strip():
+MAX_MONEY = Decimal("9999999999.99")
+
+
+def _clean_string(value: str, field: str, max_length: int) -> str:
+    value = value.strip()
+    if not value:
         raise WebhookPayloadError(f"'{field}' is required and must be a non-empty string")
+    if len(value) > max_length:
+        raise WebhookPayloadError(f"'{field}' must contain at most {max_length} characters")
+    if any(ord(character) < 32 for character in value):
+        raise WebhookPayloadError(f"'{field}' contains invalid control characters")
     return value
 
 
-def _optional_str(payload: dict, field: str) -> str | None:
+def _require_str(payload: dict, field: str, max_length: int) -> str:
+    value = payload.get(field)
+    if not isinstance(value, str):
+        raise WebhookPayloadError(f"'{field}' is required and must be a non-empty string")
+    return _clean_string(value, field, max_length)
+
+
+def _optional_str(payload: dict, field: str, max_length: int) -> str | None:
     value = payload.get(field)
     if value is not None and not isinstance(value, str):
         raise WebhookPayloadError(f"'{field}' must be a string when present")
-    return value
+    return None if value is None else _clean_string(value, field, max_length)
 
 
 def _require_decimal(payload: dict, field: str, *, allow_zero: bool = False) -> Decimal:
@@ -52,8 +67,10 @@ def _require_decimal(payload: dict, field: str, *, allow_zero: bool = False) -> 
         raise WebhookPayloadError(f"'{field}' is required")
     try:
         value = Decimal(str(raw))
-    except InvalidOperation as exc:
+    except (InvalidOperation, ValueError) as exc:
         raise WebhookPayloadError(f"'{field}' is not a valid number: {exc}") from exc
+    if not value.is_finite() or abs(value) > MAX_MONEY or value.as_tuple().exponent < -2:
+        raise WebhookPayloadError(f"'{field}' must be a finite monetary value with at most 2 decimals")
     if allow_zero:
         if value < 0:
             raise WebhookPayloadError(f"'{field}' must not be negative")
@@ -68,19 +85,25 @@ def _optional_decimal(payload: dict, field: str) -> Decimal | None:
         return None
     try:
         value = Decimal(str(raw))
-    except InvalidOperation as exc:
+    except (InvalidOperation, ValueError) as exc:
         raise WebhookPayloadError(f"'{field}' is not a valid number: {exc}") from exc
+    if not value.is_finite() or value > MAX_MONEY or value.as_tuple().exponent < -2:
+        raise WebhookPayloadError(f"'{field}' must be a finite monetary value with at most 2 decimals")
     if value < 0:
         raise WebhookPayloadError(f"'{field}' must not be negative")
     return value
 
 
 def parse_demo_pay_event(payload: dict) -> PaymentEvent:
-    event_id = _require_str(payload, "event_id")
-    external_transaction_id = _require_str(payload, "external_transaction_id")
-    customer_name = _require_str(payload, "customer_name")
-    service_name = _require_str(payload, "service_name")
-    currency = _require_str(payload, "currency")
+    event_id = _require_str(payload, "event_id", 255)
+    external_transaction_id = _require_str(payload, "external_transaction_id", 255)
+    customer_name = _require_str(payload, "customer_name", 255)
+    service_name = _require_str(payload, "service_name", 255)
+    currency = _require_str(payload, "currency", 3)
+    try:
+        currency = validate_currency_code(currency)
+    except ValueError as exc:
+        raise WebhookPayloadError(str(exc)) from exc
 
     occurred_at_raw = payload.get("occurred_at")
     if not isinstance(occurred_at_raw, str):
@@ -97,6 +120,10 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
     # date validation) is naive business-local, so ingestion is where that
     # gets reconciled, once, rather than at every later read.
     occurred_at = normalize_to_naive_business_datetime(occurred_at)
+    try:
+        validate_transaction_datetime_reasonable(occurred_at)
+    except ValueError as exc:
+        raise WebhookPayloadError(str(exc)) from exc
 
     gross_amount = _require_decimal(payload, "gross_amount")
 
@@ -130,6 +157,9 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
     net_amount = _optional_decimal(payload, "net_amount")
     if net_amount is None:
         net_amount = compute_net_amount(gross_amount, vat_amount, processing_fee)
+    expected_net = compute_net_amount(gross_amount, vat_amount, processing_fee)
+    if expected_net < 0 or abs(net_amount - expected_net) > Decimal("0.01"):
+        raise WebhookPayloadError("'net_amount' is inconsistent with gross amount, VAT, and processing fee")
 
     status_raw = payload.get("status")
     if not isinstance(status_raw, str) or status_raw not in _STATUS_MAP:
@@ -142,18 +172,18 @@ def parse_demo_pay_event(payload: dict) -> PaymentEvent:
         external_transaction_id=external_transaction_id,
         occurred_at=occurred_at,
         customer_name=customer_name,
-        customer_email=_optional_str(payload, "customer_email"),
+        customer_email=_optional_str(payload, "customer_email", 255),
         service_name=service_name,
         gross_amount=gross_amount,
         vat_amount=vat_amount,
         processing_fee=processing_fee,
         net_amount=net_amount,
         currency=currency.upper(),
-        payment_method=_optional_str(payload, "payment_method"),
+        payment_method=_optional_str(payload, "payment_method", 50),
         status=status,
         tax_treatment=tax_treatment,
         vat_rate=vat_rate_snapshot(tax_treatment),
-        description=_optional_str(payload, "description"),
+        description=_optional_str(payload, "description", 2000),
     )
 
 

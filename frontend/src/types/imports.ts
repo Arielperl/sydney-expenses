@@ -19,6 +19,8 @@ export interface CsvPreviewResponse {
   valid_rows: CsvPreviewRow[]
   errors: CsvRowError[]
   is_repeat_file: boolean
+  preview_signature: string
+  preview_expires_at: number
 }
 
 export interface CsvConfirmResponse {

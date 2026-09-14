@@ -1,10 +1,45 @@
 import { apiClient, toApiError } from './apiClient'
-import type { ChatMessage } from '../types/assistant'
+import type {
+  AssistantConversation,
+  AssistantConversationDetail,
+  ChatResponse,
+} from '../types/assistant'
 
-export async function sendChatMessage(message: string, history: ChatMessage[]): Promise<string> {
+export async function listAssistantConversations(): Promise<AssistantConversation[]> {
   try {
-    const response = await apiClient.post<{ reply: string }>('/assistant/chat', { message, history })
-    return response.data.reply
+    return (await apiClient.get<AssistantConversation[]>('/assistant/conversations')).data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function getAssistantConversation(id: string): Promise<AssistantConversationDetail> {
+  try {
+    return (await apiClient.get<AssistantConversationDetail>(`/assistant/conversations/${id}`)).data
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function deleteAssistantConversation(id: string): Promise<void> {
+  try {
+    await apiClient.delete(`/assistant/conversations/${id}`)
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function sendChatMessage(
+  message: string,
+  conversationId: string | null,
+): Promise<ChatResponse> {
+  try {
+    return (
+      await apiClient.post<ChatResponse>('/assistant/chat', {
+        message,
+        conversation_id: conversationId,
+      })
+    ).data
   } catch (error) {
     throw toApiError(error)
   }

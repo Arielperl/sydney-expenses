@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { DocumentStatusBadge } from '../components/DocumentStatusBadge'
 import { SaleStatusBadge } from '../components/SaleStatusBadge'
@@ -34,18 +35,20 @@ function SaleRow({ sale, action }: { sale: Sale; action?: ReactNode }) {
 }
 
 function SaleSection({
+  id,
   title,
   emptyLabel,
   sales,
   action,
 }: {
+  id: string
   title: string
   emptyLabel: string
   sales: Sale[]
   action?: (sale: Sale) => ReactNode
 }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-6">
       <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
       {sales.length === 0 ? (
         <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{emptyLabel}</p>
@@ -62,10 +65,21 @@ function SaleSection({
 
 export function ExceptionCenterPage() {
   const { t } = useTranslation()
+  const location = useLocation()
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['exception-center'],
     queryFn: getExceptionCenter,
   })
+
+  // React Router doesn't scroll to a `#hash` on its own client-side
+  // navigations (only real browser navigation does that) — this is what
+  // makes a dashboard link like `/exceptions#document-failures` actually
+  // land on the right section once the page's own data has rendered.
+  useEffect(() => {
+    if (!location.hash || !data) return
+    const target = document.querySelector(location.hash)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash, data])
 
   if (isLoading) return <LoadingState label={t('common.loading')} />
   if (isError) return <ErrorState message={toApiError(error).message} onRetry={() => refetch()} />
@@ -97,6 +111,7 @@ export function ExceptionCenterPage() {
       </div>
 
       <SaleSection
+        id="pending-documents"
         title={t('exceptions.sections.pendingDocuments')}
         emptyLabel={t('exceptions.emptyPendingDocuments')}
         sales={data.pending_documents}
@@ -104,6 +119,7 @@ export function ExceptionCenterPage() {
       />
 
       <SaleSection
+        id="document-failures"
         title={t('exceptions.sections.documentFailures')}
         emptyLabel={t('exceptions.emptyDocumentFailures')}
         sales={data.document_failures}
@@ -111,12 +127,14 @@ export function ExceptionCenterPage() {
       />
 
       <SaleSection
+        id="refunds-needing-attention"
         title={t('exceptions.sections.refundsNeedingAttention')}
         emptyLabel={t('exceptions.emptyRefunds')}
         sales={data.refunds_needing_attention}
       />
 
       <SaleSection
+        id="incomplete-details"
         title={t('exceptions.sections.incompleteDetails')}
         emptyLabel={t('exceptions.emptyIncompleteDetails')}
         sales={data.incomplete_details}

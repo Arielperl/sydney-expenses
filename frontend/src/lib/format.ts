@@ -39,6 +39,33 @@ export function formatDateTime(isoDateTime: string, language: string): string {
   }).format(date)
 }
 
+export function formatCompactCurrency(amount: number, currency: string, language: string): string {
+  const locale = intlLocale(language)
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(amount)
+  } catch {
+    return `${amount} ${currency}`
+  }
+}
+
+export function formatTrendPeriodLabel(
+  isoDate: string,
+  language: string,
+  granularity: 'day' | 'week' | 'month',
+): string {
+  const date = new Date(`${isoDate}T00:00:00`)
+  const locale = intlLocale(language)
+  if (granularity === 'month') {
+    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short' }).format(date)
+  }
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(date)
+}
+
 export function todayIsoDate(): string {
   const now = new Date()
   const year = now.getFullYear()

@@ -1,5 +1,5 @@
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { Layout } from '../../components/Layout'
 import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
@@ -134,3 +134,5 @@ describe('language / i18n', () => {
     expect(document.documentElement.lang).toBe('en')
   })
 })
+
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ user: {email: 'test@example.com'}, logout: vi.fn() }) }))

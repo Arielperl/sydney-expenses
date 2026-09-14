@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { SaleForm } from '../components/SaleForm'
 import { SaleList } from '../components/SaleList'
@@ -57,16 +57,30 @@ function saleToFormValues(sale: Sale): SaleFormInput {
 
 export function SalesPage() {
   const { t } = useTranslation()
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<SaleStatus | ''>('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  // Read initial filters from the URL (e.g. a dashboard "needs attention"
+  // link to `/sales?status=failed`) so a deep link actually filters the
+  // page, not just navigates to it — then keep the URL in sync as the user
+  // changes filters, so the current view stays shareable/refreshable.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') ?? '')
+  const [status, setStatus] = useState<SaleStatus | ''>((searchParams.get('status') as SaleStatus | null) ?? '')
+  const [dateFrom, setDateFrom] = useState(searchParams.get('date_from') ?? '')
+  const [dateTo, setDateTo] = useState(searchParams.get('date_to') ?? '')
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [deletingSale, setDeletingSale] = useState<Sale | null>(null)
   const [viewingDocumentSale, setViewingDocumentSale] = useState<Sale | null>(null)
 
   const queryClient = useQueryClient()
   const filters = { search, status, date_from: dateFrom, date_to: dateTo }
+
+  useEffect(() => {
+    const next = new URLSearchParams()
+    if (search) next.set('search', search)
+    if (status) next.set('status', status)
+    if (dateFrom) next.set('date_from', dateFrom)
+    if (dateTo) next.set('date_to', dateTo)
+    setSearchParams(next, { replace: true })
+  }, [search, status, dateFrom, dateTo, setSearchParams])
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['sales', filters],

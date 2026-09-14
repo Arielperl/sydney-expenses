@@ -1,14 +1,14 @@
 """Sends one signed demo customer-payment event to a running server.
 
-This is a *local development demo only* — WEBHOOK_SIGNING_SECRET below is a
-placeholder read from the environment, never a real secret. It must match
-whatever the server itself has configured (its own WEBHOOK_SIGNING_SECRET),
-or the request will be rejected with 401.
+This is a *local development demo only*. For a business connection, copy the
+URL and one-time secret from Imports & Connections into DEMO_WEBHOOK_URL and
+DEMO_WEBHOOK_SECRET. The legacy WEBHOOK_SIGNING_SECRET flow remains supported.
 
 Run against a locally running backend:
 
     cd backend && source .venv/bin/activate
-    export WEBHOOK_SIGNING_SECRET=demo-secret-change-me   # must match the server's .env
+    export DEMO_WEBHOOK_URL=http://localhost:8000/api/webhooks/connections/<id>
+    export DEMO_WEBHOOK_SECRET=<secret shown when the connection was created>
     python -m scripts.demo_webhook_request
 
 Re-running this script sends the *same* event_id/external_transaction_id
@@ -30,7 +30,8 @@ import httpx  # noqa: E402
 from app.services.ingestion.webhook_security import compute_signature  # noqa: E402
 
 BASE_URL = os.environ.get("DEMO_SERVER_URL", "http://localhost:8000")
-SECRET = os.environ.get("WEBHOOK_SIGNING_SECRET", "demo-secret-change-me")
+WEBHOOK_URL = os.environ.get("DEMO_WEBHOOK_URL", f"{BASE_URL}/api/webhooks/payments")
+SECRET = os.environ.get("DEMO_WEBHOOK_SECRET") or os.environ.get("WEBHOOK_SIGNING_SECRET", "demo-secret-change-me")
 
 DEMO_EVENT = {
     "event_id": "demo-evt-sale-184.90-fictional",
@@ -62,7 +63,7 @@ def main() -> None:
     signature = compute_signature(SECRET, timestamp, raw_body)
 
     response = httpx.post(
-        f"{BASE_URL}/api/webhooks/payments",
+        WEBHOOK_URL,
         content=raw_body,
         headers={
             "Content-Type": "application/json",

@@ -1,8 +1,8 @@
-# Sydney Transaction Management
+# Sydney Revenue Manager
 
-Sydney (סידני — ניהול עסקאות) is a local-first, AI-ready **sales and revenue management** app for a small business. A customer purchase arrives automatically (a signed demo payment webhook, or a CSV sales export) and appears immediately as a sale on the dashboard and sales list; the app tracks whether a receipt/tax document has been issued to the customer for it, and an AI assistant answers questions about revenue, VAT, fees, and refunds using only real data. Manually recording a sale, or importing a photo of a previously issued document, exist as fallbacks — not the primary workflow. Built as a portfolio project demonstrating a clean, modular full-stack architecture.
+Sydney (**מנהל הכנסות מבית Sydney**) is an AI-ready sales and revenue management product for Israeli small businesses. A customer purchase arrives automatically (through a signed demo payment webhook today, or a CSV sales export) and appears immediately on the dashboard and sales list; the app tracks whether a receipt/tax document has been issued to the customer, and an AI assistant answers questions about revenue, VAT, fees, and refunds using only the authenticated business's data. Manually recording a sale, or importing a photo of a previously issued document, exist as fallbacks rather than the primary workflow. Built as a portfolio project demonstrating a clean, modular full-stack architecture.
 
-**Note on naming:** the GitHub repository is `sydney-expenses` (its original working name, from before this product's domain model changed from expense-tracking to sales/revenue management — the repo name is not being renamed); the product itself is **Sydney Transaction Management** (סידני — ניהול עסקאות), shortened to **Sydney** (סידני) in the UI, and the backend service identifies itself as **Sydney Transaction Management API**.
+**Note on naming:** the GitHub repository is `sydney-expenses`, its original working name from before the domain model changed from expense tracking to sales and revenue management. The customer-facing product is **מנהל הכנסות מבית Sydney**. Some internal API and translation identifiers retain the earlier “Sydney Transaction Management” name and do not affect the product branding.
 
 **Note on AI:** receipt/document image extraction (used only by the secondary "import a historical document" feature, described below) supports three interchangeable providers behind the same `ReceiptExtractor` interface: `MockReceiptExtractor` (default — deterministic, synthetic, needs nothing), `LocalReceiptExtractor` (real Vision extraction that runs entirely on your machine via Tesseract OCR + a local Ollama model — no API key, no external network call, no per-request cost), and `OpenAIReceiptExtractor` (real Vision extraction via the OpenAI Responses API). Mock mode is what the automated test suite and the default local setup use. See "Importing a historical document" below for what's been field-verified and what hasn't.
 
@@ -33,8 +33,8 @@ sydney/  (repository: sydney-expenses)
 │       └── test/          Vitest setup, MSW mock server, test utilities
 ├── backend/            FastAPI application
 │   ├── app/
-│   │   ├── api/routes/   REST endpoints (sales, documents, dashboard, assistant, exceptions, webhooks, imports)
-│   │   ├── models/       SQLAlchemy ORM models (Sale, ImportBatch, DocumentCategory)
+│   │   ├── api/routes/   REST endpoints (auth, businesses, sales, dashboard, assistant, connections, webhooks, imports)
+│   │   ├── models/       SQLAlchemy ORM models (businesses/members, sales/events, imports, connections, AI conversations)
 │   │   ├── schemas/       Pydantic request/response models (Decimal money)
 │   │   ├── services/extraction/  ReceiptExtractor interface, mock + local (Ollama/Tesseract) + OpenAI providers — used only by the secondary historical-document-import feature
 │   │   ├── services/storage/     ReceiptStorage interface, local-disk + Supabase Storage providers
@@ -72,9 +72,9 @@ The target flow is: **a customer pays → a sale is created automatically → th
 
 Adding a sale manually, via **Add sale manually**, still works — it's the fallback path for when no payment provider is connected, not the primary workflow.
 
-## Israeli VAT and currency (demo business)
+## Israeli VAT and currency
 
-This app currently models exactly **one fixed fictional Israeli business** — no auth, no registration, no multi-business support in this phase. Every value that describes that business (country `IL`, tax jurisdiction `IL`, reporting currency `ILS`, timezone `Asia/Jerusalem`, standard VAT rate `18%`, default transaction currency `ILS`) lives in one place, [`app/domain/demo_business.py`](backend/app/domain/demo_business.py) — never scattered as separate literals across the codebase. A small "Israeli demo business" badge in the app header makes this honestly visible rather than implied.
+Each verified account creates a private business workspace. The current release supports Israeli businesses, with country `IL`, reporting currency `ILS`, timezone `Asia/Jerusalem`, and standard VAT rate `18%`. Existing calculation defaults remain centralized in [`app/domain/demo_business.py`](backend/app/domain/demo_business.py), while ownership and business metadata are stored in the database. International tax logic is not implemented yet.
 
 **Currency is not tax jurisdiction.** A sale can be charged in `ILS`, `USD`, or `EUR` (the closed set in the Sale form's currency select) while always being taxed under this business's Israeli VAT rules — switching a sale's currency never changes which tax rules apply, and this app implements no US sales-tax or EU-VAT logic of its own.
 
@@ -91,7 +91,7 @@ The goal of this feature is that a human should not need to type in every sale b
 **What's real today:**
 - **Local Demo Area** (`/demo`, [`app/services/demo_simulator.py`](backend/app/services/demo_simulator.py)) — simulate a successful/pending/failed sale, a document-issuance failure, or a partial/full refund, in ILS/USD/EUR, entirely from the UI. It runs through the exact same ingestion path (`ingest_payment_event`) a real webhook uses, so VAT, revenue, refund, document, and idempotency rules are never bypassed — only the sale's labeling (`source: demo`) is special-cased, so a dedicated reset action can remove exactly that data and nothing else.
 - **CSV import** ([`app/services/ingestion/csv_import.py`](backend/app/services/ingestion/csv_import.py)) — upload a sales-export CSV, preview the parsed rows and any validation errors, then confirm to create sales. One documented format: `date,customer,service,amount,currency` with a header row. A sample file with fictional data is at [`backend/samples/sales-sample.csv`](backend/samples/sales-sample.csv).
-- **Payment webhook ingestion** ([`app/api/routes/webhooks.py`](backend/app/api/routes/webhooks.py)) — `POST /api/webhooks/payments` is a real, working, HMAC-signed endpoint. It's genuinely secure (signature + timestamp + body-size checks, idempotent by `(provider, external_transaction_id)` at the database level, safe under concurrent delivery) — what's *not* real is the sender: only a `demo-pay` payload shape is registered in `WEBHOOK_PROVIDERS`, fed by a local script (or the Demo Area's own scenarios), not an actual payment provider or POS system.
+- **Payment webhook ingestion** ([`app/api/routes/webhooks.py`](backend/app/api/routes/webhooks.py)) — every business can create a connection with its own URL and one-time secret at `POST /api/webhooks/connections/{connection_id}`. Requests are HMAC-signed, timestamp checked, size capped, and idempotent by `(provider, external_transaction_id)` at the database level, including concurrent delivery. The legacy `POST /api/webhooks/payments` route remains for the original demo business. What is still simulated is the sender and payload adapter: only the `demo-pay` format is registered, not a live payment provider or POS system.
 - **Document issuance** ([`app/services/documents/`](backend/app/services/documents/)) — a `DocumentProvider` adapter interface, with only `MockDocumentProvider` implemented: it assigns a clearly-marked synthetic reference number (`DEMO-XXXXXXXX`) to a successful sale and nothing more — it never generates a PDF, image, or any artifact that could be mistaken for a real, legally valid tax receipt.
 - **Exception Center** (`/exceptions` in the app) and **Imports & Connections** (`/imports`) — real, working pages, not mockups.
 
@@ -99,7 +99,7 @@ The goal of this feature is that a human should not need to type in every sale b
 
 **Only completed payments count as revenue.** A `pending` or `failed` sale contributes nothing to any revenue total; a `refunded` sale contributes nothing; a `partially_refunded` sale contributes only its remaining (post-refund) net amount. See `Sale.revenue_contribution()` in [`app/models/sale.py`](backend/app/models/sale.py) — every dashboard stat and every assistant tool routes through this one method, so the "what counts as revenue" rule is defined in exactly one place.
 
-**Explicit non-goals for this phase** (extension points exist, nothing here claims they already work): a real payment provider/POS/OAuth connection, a real invoicing or tax-receipt provider, user authentication, organizations/roles.
+**Explicit non-goals for this phase** (extension points exist, nothing here claims they already work): a live payment-provider/POS adapter, provider OAuth, a real invoicing or tax-receipt provider, team invitations, and role-management UI. Authentication, verified accounts, private business workspaces, stored roles, and tenant isolation are implemented.
 
 ### The sale and document lifecycle
 
@@ -131,6 +131,17 @@ Every transition (creating a sale from a webhook, recording a refund) uses an at
 3. Check **Sales** (`/sales`) — the sale is there with its document already marked "issued" (the demo document provider ran automatically). Check **Exception Center** (`/exceptions`) — empty, since nothing needs attention yet.
 4. Re-run the same script — the response now reports `created: false` with the same `sale_id`: delivering the same event twice never creates a duplicate sale.
 5. Open the AI Assistant and ask "כמה הכנסתי החודש?" / "How much revenue did I make this month?" — it answers using the real sale you just created, correctly distinguishing gross from net revenue.
+
+For the business-specific flow, open **Imports & Connections**, create a POS/payment connection, and copy the URL and one-time secret. Then run:
+
+```bash
+cd backend && source .venv/bin/activate
+export DEMO_WEBHOOK_URL='http://localhost:8000/api/webhooks/connections/<connection-id>'
+export DEMO_WEBHOOK_SECRET='<secret shown in the app>'
+python -m scripts.demo_webhook_request
+```
+
+That endpoint identifies the business from the connection ID and verifies the request with that connection's own secret. The database stores only a random salt; the secret is derived from `CONNECTION_SIGNING_SECRET`, shown only when created or rotated, and never returned by the connection list API.
 
 ### Webhook signing (for real, not a simplification)
 
@@ -412,8 +423,9 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 
 ## Verification performed
 
-- `pytest` (backend, 338 tests) — sale validation (currency normalization, VAT-vs-gross-amount, non-finite rejection), Israeli VAT calculation (18% VAT-inclusive formula, zero-rate/exempt, currency-independent), business-timezone-correct date handling (including the Israel-after-midnight-while-UTC-is-still-yesterday regression), sale CRUD API, sale events/timeline, the demo simulator and its scoped reset action, decimal-precision dashboard math, mock/OpenAI/local extraction (all against fakes — no real network calls in any automated test), image-format verification, the payment webhook (signature/timestamp/body-size checks, idempotent delivery including a simulated concurrent-race test, VAT consistency validation, refund reducing revenue correctly, partial refund reducing net amount correctly, only-succeeded-counts-as-revenue), CSV import (parsing, duplicate detection, document auto-attempt on imported sales), document import for an existing sale (extraction-failure-still-attaches, 404 for an unknown sale, never creates a new sale), the exception center (each of its four sections independently), the AI assistant's tools (revenue/gross/VAT/fees/top-services/trend, refund-aware totals, currency-labeled), and the Alembic migration chain itself (against a genuinely fresh database, and a legacy pre-tax-treatment row). All passing.
-- `npm test` (frontend, 98 tests), `tsc -b`, `oxlint`, `npm run build` — all clean. Covers the sale form's validation schema, the sales list (search/edit/delete/empty-state, row-to-details navigation), manual sale creation, Sale Details (financial breakdown, timeline, edit, refund), the local demo simulator page, the exception center's four sections and their action links, and the historical-document-import page (target-sale fetch, successful import, extraction-failure-still-attaches).
+- `pytest` (backend, 424 tests) — including business isolation, per-business connection authorization, one-time/rotated connection secrets, signed webhook routing to the correct business, persisted assistant conversations, sale validation, VAT calculation, ingestion idempotency, CSV/document import, dashboard math, exception handling, security controls, and the complete Alembic migration chain. All passing.
+- `npm test` (frontend, 106 tests), `tsc -b`, `oxlint`, `npm run build` — all passing. Coverage includes authentication, connection creation, persisted assistant conversations, CSV import, sales, Sale Details, dashboard, demo simulator, exception center, and historical-document import. `oxlint` currently reports six non-blocking React warnings and no errors.
+- `npm audit --omit=dev` and `pip-audit` — no known production dependency vulnerabilities reported on 14 September 2026.
 - `alembic upgrade head` verified on a fresh temporary SQLite database (the entire migration chain, from the original `expenses` table through to `sale_events`) and separately as an incremental upgrade on the live development database carrying real prior data forward — this specifically caught and fixed a real bug (a data-backfill migration writing an enum value in the wrong case for how it's actually stored, which only surfaced on a genuine round-trip, not against the ORM-only test suite).
 - Manual end-to-end verification in the browser: local demo simulator → a realistic sale appears on the dashboard and sales list within seconds, clearly labeled as demo data → Sale Details shows the correct VAT/revenue breakdown and a real, persisted timeline → recording a partial refund updates the status, the remaining-revenue figure, and the timeline together → the dashboard total updates → the AI assistant correctly reports the same revenue, in the same currency.
 
@@ -431,17 +443,19 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - No secrets are hardcoded; all configuration is read from environment variables via `.env` (see `.env.example`). API keys are never logged, printed, or included in any API response.
 - `/api/system/capabilities` reports only the provider name, mode, a `real_ai_enabled` boolean, and (in `local` mode only) non-sensitive reachability booleans. Never a key, and never a filesystem path.
 - Structured logs never include image bytes, base64 data, OCR/document text, card numbers, webhook payloads/signatures/secrets, or full provider responses.
+- Browser authentication uses HttpOnly cookies, mutating requests require an allowed `Origin`, verified accounts are mapped to database-backed business memberships, and request-scoped ORM guards apply `business_id` isolation to reads and writes.
+- Production refuses to start with authentication disabled, missing Supabase credentials, localhost/non-HTTPS CORS origins, wildcard/local trusted hosts, or missing/short connection and CSV-signing secrets. Interactive API documentation is disabled in production and security headers are applied to all responses.
 
 ## What's next
 
 - **Replace the demo payment webhook with a real PSP/POS integration.** The `WEBHOOK_PROVIDERS` registry ([`app/services/ingestion/webhook_provider.py`](backend/app/services/ingestion/webhook_provider.py)) is the intended extension point — a real provider means writing one more payload-parsing function and registering it there; the signature verification, idempotency, and `Sale`-creation logic never change. This also implies real OAuth/credential management, which does not exist yet.
 - **Add a real invoicing/tax-receipt provider.** `DocumentProvider` ([`app/services/documents/base.py`](backend/app/services/documents/base.py)) is the intended extension point — a real provider (e.g. an Israeli-compliant e-invoicing service) means implementing that interface and selecting it via configuration; `sale_service.finalize_new_sale` never changes. No such provider exists yet, and `MockDocumentProvider` never claims to be one.
+- Add password recovery, account/business settings, data export/deletion, team invitations, and role-management UI. The underlying business membership model and owner/manager/viewer enforcement already exist.
+- Deploy the frontend and API behind HTTPS with production environment settings, database-aware health checks, centralized error monitoring, backup/restore procedures, and shared rate limiting before scaling beyond a single server.
 - Run a real, field-labeled accuracy evaluation of both the local and OpenAI document-extraction providers against a representative set of real (not synthetic) photographed receipts.
-- Add authentication and multi-business support if the app moves beyond one single fixed demo business.
 - **Normalized `Customer` and `Service` entities.** Sales still carry customer/service as plain snapshot fields on `Sale` itself, not foreign keys to their own tables — the right design for "who's my most frequent customer" / "which service earns the most" questions, but not yet built. Adding them is additive (new tables + a nullable FK on `Sale`, backfilled conservatively only on an exact email/phone match) and doesn't require touching existing sale records' historical meaning.
 - **A dedicated `Refund` model.** Refunds today are still a cumulative field on `Sale` (`refunded_amount`/`status`), not their own rows — sufficient for "how much is left on this sale" but not for "how much was refunded *in* a given period" versus "how much revenue occurred in that period," which need separate rows with their own timestamps to answer honestly. `SaleEvent` (added in this pass) already records *that* a refund happened, chronologically; a `Refund` table with its own amount/currency/reason/timestamp is the next step for period-accurate reporting.
-- **Dashboard and Sales-workspace redesign.** A reporting-period selector (this month/last 30 days/custom), a tighter top-of-page hierarchy, quick filters with live counts, a mobile card layout instead of a horizontally-scrolled table, and a compact tax-review badge (instead of the current under-the-amount note) are all designed-for but not yet built.
-- **Engineering quality follow-ups:** route-level lazy loading and code-splitting (the frontend bundle is a single ~294 KB gzipped chunk — flagged by the Vite build, not yet addressed), a GitHub Actions workflow running the backend/frontend suites + lint + build on every push, and page-level error boundaries.
+- **Engineering quality follow-ups:** add a GitHub Actions workflow running the backend/frontend suites, lint, dependency audits, and production build on every push; add page-level error boundaries and browser-level end-to-end tests for signup, onboarding, and the primary sales flow.
 - **Remaining storage/deployment gaps:** this app does not create or configure the Supabase bucket itself; there's no automated retry/backoff around Supabase Storage calls; and refund/gross-revenue reporting for a partially refunded sale doesn't proportionally re-derive VAT/fee splits (documented in `dashboard_service.py`) since no structured refund line-item exists to do that honestly yet.
 
 ## Commands reference
@@ -466,3 +480,53 @@ npm run test:watch  # Vitest in watch mode
 npm run build     # type-check + production build
 npm run lint      # lint
 ```
+
+## Public website and authentication
+
+The public home is `/`, email sign-up is `/signup`, login is `/login`, and the
+protected dashboard is `/app`. Existing sales/import/assistant URLs remain valid
+and now require authentication. The Higgsfield background is stored locally at
+`frontend/public/images/sydney-hero.png`.
+
+Authentication uses the existing server-side `SUPABASE_URL` and
+`SUPABASE_SECRET_KEY` through Supabase Auth (not the admin user-creation API).
+The browser receives HttpOnly session cookies, never the secret key or refresh
+token in JavaScript. All business APIs and local uploaded files require a verified
+Supabase account with a database-backed business membership. After verification,
+a new account creates a private Israeli business workspace. Every sale, import
+and audit event is scoped to that business in the backend. Existing records were
+preserved under the original business. Each business can now create its own
+signed payment/POS endpoint from Imports & Connections.
+
+The first release supports one business per user and three stored roles: owner,
+manager and viewer. Owners and managers may change business data; viewers can
+read reports and use the assistant. Team invitations and role-management UI are
+not exposed yet. See `docs/business-isolation.md` for the rollout boundaries.
+
+Assistant conversations are persisted in the database per user and business.
+Users can create, reopen, rename automatically through the first prompt, and
+delete conversations; switching pages or signing in again does not erase the
+conversation history. Only a bounded recent message window is sent to the model.
+
+In Supabase Authentication > URL Configuration, allow the actual frontend origin
+plus `/login` as a redirect URL, e.g. `http://localhost:5174/login`, and set Site URL
+to that frontend origin. Keep email confirmation enabled. After verifying the
+email, return to `/login` and sign in with the registered password. The signup
+request supplies the allowed frontend origin as its redirect target. No real
+registration/verification emails are sent by automated tests.
+
+`CORS_ALLOWED_ORIGINS` must list the exact frontend origin. Mutating browser API
+calls also require a matching Origin header for CSRF protection. Keep the frontend
+and API on the same site (localhost during development); production uses Secure
+cookies when `APP_ENVIRONMENT=production`, and should use HTTPS with an API reverse
+proxy or same-site subdomain. `AUTH_REQUIRED=false` is for isolated automated
+tests only and must not be used for a public deployment. The `/api/webhooks/payments`
+endpoint continues to require its own HMAC authentication instead of user cookies.
+
+Production startup also requires an explicit `ALLOWED_HOSTS` list and a dedicated
+random `CSV_PREVIEW_SIGNING_SECRET` of at least 32 characters. CSV preview rows are
+signed, bound to the current business and filename, and expire after 15 minutes;
+the confirmation endpoint rejects altered, expired, unsigned, or cross-business
+payloads. Configure request-body limits and TLS at the reverse proxy as well. See
+[`docs/security.md`](docs/security.md) for the deployment controls that cannot be
+enforced solely inside this repository.

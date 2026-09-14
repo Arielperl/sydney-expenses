@@ -66,7 +66,7 @@ async def import_historical_document(
             logger.info("document_import_extraction_failed sale_id=%s error_category=%s", sale.id, type(exc).__name__)
             extracted = None
             extraction_succeeded = False
-            error_message = f"Document extraction failed: {exc}"
+            error_message = "Document extraction failed. The image was stored for manual review."
 
         sale.document_status = DocumentStatus.ISSUED
         sale.document_url = document_url

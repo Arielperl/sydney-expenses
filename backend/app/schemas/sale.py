@@ -16,18 +16,20 @@ from app.schemas.validators import (
 
 
 class SaleBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     customer_name: str = Field(min_length=1, max_length=255)
     customer_contact: str | None = Field(default=None, max_length=255)
     service_name: str = Field(min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
-    gross_amount: Decimal = Field(ge=0, decimal_places=2)
+    gross_amount: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
     # `vat_amount` is deliberately NOT a field here: it is always backend-
     # computed from gross_amount + tax_treatment (see app/services/tax/vat.py
     # and app/api/routes/sales.py) — never client-supplied, so it can never
     # conflict with the selected tax treatment. SaleRead below exposes the
     # computed result.
     tax_treatment: TaxTreatment = Field(default=TaxTreatment.STANDARD)
-    processing_fee: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    processing_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     currency: str = Field(default=DEMO_DEFAULT_TRANSACTION_CURRENCY, min_length=3, max_length=3)
     payment_method: str | None = Field(default=None, max_length=50)
     occurred_at: datetime
@@ -74,13 +76,15 @@ class SaleCreate(SaleBase):
 
 
 class SaleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     customer_name: str | None = Field(default=None, min_length=1, max_length=255)
     customer_contact: str | None = Field(default=None, max_length=255)
     service_name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
-    gross_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    gross_amount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     tax_treatment: TaxTreatment | None = Field(default=None)
-    processing_fee: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+    processing_fee: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     payment_method: str | None = Field(default=None, max_length=50)
     occurred_at: datetime | None = None
@@ -159,7 +163,9 @@ class RefundRequest(BaseModel):
     webhook in this demo, so refunds are recorded explicitly. Omitting
     `amount` records a full refund."""
 
-    amount: Decimal | None = Field(default=None, gt=0, decimal_places=2)
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
 
     @field_validator("amount")
     @classmethod

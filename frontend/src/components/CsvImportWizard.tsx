@@ -35,7 +35,13 @@ export function CsvImportWizard() {
     setState('confirming')
     setError(null)
     try {
-      const result = await confirmCsvImport(preview.file_hash, preview.filename, preview.valid_rows)
+      const result = await confirmCsvImport(
+        preview.file_hash,
+        preview.filename,
+        preview.valid_rows,
+        preview.preview_signature,
+        preview.preview_expires_at,
+      )
       setSummary(result)
       setState('summary')
       queryClient.invalidateQueries({ queryKey: ['sales'] })

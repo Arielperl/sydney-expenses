@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.business import BusinessOwned
 
 
 class ImportStatus(str, enum.Enum):
@@ -14,7 +15,7 @@ class ImportStatus(str, enum.Enum):
     FAILED = "failed"
 
 
-class ImportBatch(Base):
+class ImportBatch(BusinessOwned, Base):
     """Tracks one CSV import attempt: which file, how many rows validated vs.
     errored, and (once confirmed) how many sales were created vs. skipped
     as duplicates. `file_hash` lets the import flow recognize a re-uploaded

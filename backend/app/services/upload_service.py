@@ -68,14 +68,20 @@ class UploadService:
             temp_path.unlink(missing_ok=True)
             raise
 
-    @staticmethod
-    def _verify_image(path: Path) -> str:
+    def _verify_image(self, path: Path) -> str:
         try:
             with Image.open(path) as image:
+                pixels = image.width * image.height
+                if pixels <= 0 or pixels > self._settings.max_upload_pixels:
+                    raise UnsupportedFileTypeError(
+                        f"Image dimensions exceed the {self._settings.max_upload_pixels:,}-pixel safety limit."
+                    )
                 image.verify()
             with Image.open(path) as image:
                 image.load()
                 return (image.format or "").upper()
+        except UnsupportedFileTypeError:
+            raise
         except Exception as exc:
             raise UnsupportedFileTypeError(
                 "The uploaded file is not a valid JPEG, PNG, or WebP image."

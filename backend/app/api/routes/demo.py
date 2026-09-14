@@ -7,7 +7,7 @@ this module is just the thin HTTP boundary plus the development-only gate.
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -28,10 +28,12 @@ router = APIRouter(prefix="/demo", tags=["demo"])
 
 
 class DemoSimulationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     customer_name: str = Field(min_length=1, max_length=255)
     customer_contact: str | None = Field(default=None, max_length=255)
     service_name: str = Field(min_length=1, max_length=255)
-    gross_amount: Decimal = Field(gt=0, decimal_places=2)
+    gross_amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     currency: str = Field(default="ILS", min_length=3, max_length=3)
     payment_method: str | None = Field(default=None, max_length=50)
     tax_treatment: TaxTreatment = Field(default=TaxTreatment.STANDARD)

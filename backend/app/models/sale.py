@@ -7,6 +7,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Tex
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.models.business import BusinessOwned
 from app.domain.business_time import business_now_naive
 
 AMOUNT_PRECISION = 12
@@ -81,7 +82,7 @@ class DocumentStatus(str, enum.Enum):
     NOT_REQUIRED = "not_required"
 
 
-class Sale(Base):
+class Sale(BusinessOwned, Base):
     """A single customer sale/revenue transaction — the central domain
     record of the app. Money fields: `gross_amount` is what the customer
     paid, `vat_amount` is the portion of that collected on behalf of the
@@ -90,7 +91,7 @@ class Sale(Base):
     actual revenue the business nets from the sale."""
 
     __tablename__ = "sales"
-    __table_args__ = (UniqueConstraint("source_provider", "external_id", name="uq_sales_source_provider_external_id"),)
+    __table_args__ = (UniqueConstraint("business_id", "source_provider", "external_id", name="uq_sales_source_provider_external_id"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 

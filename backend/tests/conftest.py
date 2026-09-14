@@ -11,6 +11,7 @@ os.environ["UPLOADS_DIR"] = str(_TEST_DIR / "uploads")
 # The test suite must never depend on real Supabase credentials, even when the
 # developer's own backend/.env is configured for STORAGE_PROVIDER=supabase.
 # Tests that exercise SupabaseReceiptStorage do so against a fake client instead.
+os.environ["AUTH_REQUIRED"] = "false"
 os.environ["STORAGE_PROVIDER"] = "local"
 # Likewise, never let a developer's own RECEIPT_EXTRACTOR_PROVIDER (e.g. "local" or
 # "openai") leak into the suite — tests that want a specific provider set it explicitly.
@@ -26,6 +27,19 @@ def _reset_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiters():
+    from app.api.routes import assistant as assistant_routes
+    from app.api.routes import auth as auth_routes
+
+    auth_routes._signup_by_ip.reset()
+    auth_routes._login_by_ip.reset()
+    auth_routes._login_by_email.reset()
+    auth_routes._refresh_by_ip.reset()
+    assistant_routes._chat_by_ip.reset()
+    yield
 
 
 @pytest.fixture(autouse=True)

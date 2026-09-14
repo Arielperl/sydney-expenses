@@ -78,7 +78,7 @@ def test_only_succeeded_payments_count_as_revenue(client, db_session):
     assert response.status_code == 201
 
     dashboard = client.get("/api/dashboard/stats").json()
-    assert dashboard["net_revenue_this_month"] == []
+    assert dashboard["net_revenue_current_period"] == []
 
 
 def test_repeated_delivery_is_idempotent(client, db_session):
@@ -123,6 +123,33 @@ def test_oversized_body_is_rejected(client):
     response = client.post(WEBHOOK_URL, content=body, headers=_signed_headers(body))
 
     assert response.status_code == 413
+
+
+def test_invalid_content_length_is_rejected_without_server_error(client):
+    body = json.dumps(_event()).encode("utf-8")
+    response = client.post(
+        WEBHOOK_URL,
+        content=body,
+        headers={**_signed_headers(body), "content-length": "not-a-number"},
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"gross_amount": "NaN"},
+        {"gross_amount": "1.001"},
+        {"gross_amount": "10000000000.00"},
+        {"customer_name": "x" * 256},
+        {"event_id": "safe\nforged-log-entry"},
+        {"net_amount": "1.00"},
+    ],
+)
+def test_webhook_rejects_values_that_cannot_be_safely_persisted(client, overrides):
+    body = json.dumps(_event(**overrides)).encode("utf-8")
+    response = client.post(WEBHOOK_URL, content=body, headers=_signed_headers(body))
+    assert response.status_code == 422
 
 
 def test_malformed_payload_is_rejected(client):
@@ -177,14 +204,14 @@ def test_refund_reduces_revenue_totals(client):
     sale_id = response.json()["sale_id"]
 
     before = client.get("/api/dashboard/stats").json()
-    assert before["net_revenue_this_month"] != []
+    assert before["net_revenue_current_period"] != []
 
     refund_response = client.post(f"/api/sales/{sale_id}/refund", json={})
     assert refund_response.status_code == 200
     assert refund_response.json()["status"] == "refunded"
 
     after = client.get("/api/dashboard/stats").json()
-    assert after["net_revenue_this_month"] == []
+    assert after["net_revenue_current_period"] == []
 
 
 def test_partial_refund_reduces_net_amount_correctly(client):
@@ -248,9 +275,10 @@ def test_webhook_zero_rate_and_exempt_produce_zero_vat(client, db_session):
         _event(
             external_transaction_id="txn-exempt",
             event_id="evt-exempt",
-            gross_amount="100.00",
-            vat_amount="0.00",
-            tax_treatment="exempt",
+                gross_amount="100.00",
+                vat_amount="0.00",
+                net_amount="94.45",
+                tax_treatment="exempt",
         )
     ).encode("utf-8")
 

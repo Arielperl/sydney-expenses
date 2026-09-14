@@ -95,7 +95,7 @@ def test_csv_import_records_import_and_payment_events(client):
     ).json()
     client.post(
         "/api/imports/csv/confirm",
-        json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+        json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
     )
 
     sales = client.get("/api/sales").json()

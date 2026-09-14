@@ -9,14 +9,14 @@ import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
 const CHAT_URL = 'http://localhost:8000/api/assistant/chat'
 
 describe('AssistantPage', () => {
-  it('shows example questions in the empty state', () => {
+  it('shows example questions in the empty state', async () => {
     renderWithProviders(<AssistantPage />)
-    expect(screen.getByText('כמה הכנסתי החודש?')).toBeInTheDocument()
+    expect(await screen.findByText('כמה הכנסתי החודש?')).toBeInTheDocument()
   })
 
   it('sends a message and shows the reply', async () => {
     server.use(
-      http.post(CHAT_URL, () => HttpResponse.json({ reply: 'הוצאת 100 ש"ח החודש.' })),
+      http.post(CHAT_URL, () => HttpResponse.json({ reply: 'הוצאת 100 ש"ח החודש.', conversation_id: 'chat-1' })),
     )
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
@@ -28,6 +28,34 @@ describe('AssistantPage', () => {
     await waitFor(() => {
       expect(screen.getByText('הוצאת 100 ש"ח החודש.')).toBeInTheDocument()
     })
+  })
+
+  it('loads the latest persisted conversation', async () => {
+    server.use(
+      http.get('http://localhost:8000/api/assistant/conversations', () =>
+        HttpResponse.json([
+          { id: 'chat-1', title: 'הכנסות החודש', created_at: '2026-09-13T10:00:00', updated_at: '2026-09-13T10:01:00' },
+        ]),
+      ),
+      http.get('http://localhost:8000/api/assistant/conversations/chat-1', () =>
+        HttpResponse.json({
+          id: 'chat-1',
+          title: 'הכנסות החודש',
+          created_at: '2026-09-13T10:00:00',
+          updated_at: '2026-09-13T10:01:00',
+          messages: [
+            { id: 'message-1', role: 'user', content: 'כמה הכנסתי?', created_at: '2026-09-13T10:00:00' },
+            { id: 'message-2', role: 'assistant', content: 'הכנסת ₪1,269.', created_at: '2026-09-13T10:01:00' },
+          ],
+        }),
+      ),
+    )
+
+    renderWithProviders(<AssistantPage />)
+
+    expect(await screen.findByText('כמה הכנסתי?')).toBeInTheDocument()
+    expect(screen.getByText('הכנסת ₪1,269.')).toBeInTheDocument()
+    expect(screen.getByText('הכנסות החודש')).toBeInTheDocument()
   })
 
   it('shows an error message when the request fails', async () => {
@@ -44,11 +72,11 @@ describe('AssistantPage', () => {
   })
 
   it('clicking an example question sends it', async () => {
-    server.use(http.post(CHAT_URL, () => HttpResponse.json({ reply: 'תשובה' })))
+    server.use(http.post(CHAT_URL, () => HttpResponse.json({ reply: 'תשובה', conversation_id: 'chat-1' })))
     const user = userEvent.setup()
     renderWithProviders(<AssistantPage />)
 
-    await user.click(screen.getByText('כמה הכנסתי החודש?'))
+    await user.click(await screen.findByText('כמה הכנסתי החודש?'))
 
     await waitFor(() => {
       expect(screen.getByText('תשובה')).toBeInTheDocument()
@@ -59,7 +87,7 @@ describe('AssistantPage', () => {
     server.use(
       http.post(CHAT_URL, async () => {
         await new Promise((resolve) => setTimeout(resolve, 50))
-        return HttpResponse.json({ reply: 'תשובה סופית' })
+        return HttpResponse.json({ reply: 'תשובה סופית', conversation_id: 'chat-1' })
       }),
     )
     const user = userEvent.setup()

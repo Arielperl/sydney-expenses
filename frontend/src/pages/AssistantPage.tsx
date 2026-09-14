@@ -1,15 +1,51 @@
-import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { MessageSquare, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { sendChatMessage } from '../services/assistantService'
+import {
+  deleteAssistantConversation,
+  getAssistantConversation,
+  listAssistantConversations,
+  sendChatMessage,
+} from '../services/assistantService'
 import type { ChatMessage } from '../types/assistant'
 
 export function AssistantPage() {
   const { t } = useTranslation()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const queryClient = useQueryClient()
+  // undefined means initial selection has not happened; null means the user
+  // deliberately opened a fresh conversation.
+  const [conversationId, setConversationId] = useState<string | null | undefined>(undefined)
+  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[] | null>(null)
   const [input, setInput] = useState('')
-  const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  const conversationsQuery = useQuery({
+    queryKey: ['assistant-conversations'],
+    queryFn: listAssistantConversations,
+  })
+  const activeConversationId = conversationId === undefined
+    ? conversationsQuery.data?.[0]?.id ?? null
+    : conversationId
+  const conversationQuery = useQuery({
+    queryKey: ['assistant-conversation', activeConversationId],
+    queryFn: () => getAssistantConversation(activeConversationId as string),
+    enabled: typeof activeConversationId === 'string',
+  })
+  const messages = optimisticMessages ?? conversationQuery.data?.messages ?? []
+  const messageCount = messages.length
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+  }, [messageCount])
+
+  const sendMutation = useMutation({
+    mutationFn: ({ question, activeId }: { question: string; activeId: string | null }) =>
+      sendChatMessage(question, activeId),
+  })
+  const deleteMutation = useMutation({ mutationFn: deleteAssistantConversation })
 
   const exampleQuestions = [
     t('assistant.exampleQuestion1'),
@@ -17,118 +53,196 @@ export function AssistantPage() {
     t('assistant.exampleQuestion3'),
   ]
 
-  async function send(question: string) {
-    const trimmed = question.trim()
-    if (!trimmed || isSending) return
-
-    const history = messages
-    const userMessage: ChatMessage = { role: 'user', content: trimmed }
-    setMessages([...history, userMessage])
+  function startNewConversation() {
+    if (sendMutation.isPending) return
+    setConversationId(null)
+    setOptimisticMessages([])
     setInput('')
     setError(null)
-    setIsSending(true)
+  }
+
+  async function removeConversation(id: string) {
+    if (!window.confirm(t('assistant.deleteConfirm'))) return
     try {
-      const reply = await sendChatMessage(trimmed, history)
-      setMessages([...history, userMessage, { role: 'assistant', content: reply }])
+      await deleteMutation.mutateAsync(id)
+      queryClient.removeQueries({ queryKey: ['assistant-conversation', id] })
+      const remaining = (conversationsQuery.data ?? []).filter((conversation) => conversation.id !== id)
+      queryClient.setQueryData(['assistant-conversations'], remaining)
+      if (activeConversationId === id) {
+        setConversationId(remaining[0]?.id ?? null)
+        setOptimisticMessages(null)
+      }
     } catch {
-      // Always the translated, generic message — never the raw backend
-      // detail text, which may be untranslated/technical (matches the
-      // "never leak the raw provider error" rule the backend route itself
-      // already follows for this endpoint).
-      setError(t('assistant.errorMessage'))
-    } finally {
-      setIsSending(false)
+      setError(t('assistant.deleteError'))
     }
   }
 
+  async function send(question: string) {
+    const trimmed = question.trim()
+    if (!trimmed || sendMutation.isPending) return
+
+    const activeId = activeConversationId ?? null
+    const userMessage: ChatMessage = { role: 'user', content: trimmed }
+    setOptimisticMessages([...messages, userMessage])
+    setInput('')
+    setError(null)
+    try {
+      const result = await sendMutation.mutateAsync({ question: trimmed, activeId })
+      setOptimisticMessages([...messages, userMessage, { role: 'assistant', content: result.reply }])
+      setConversationId(result.conversation_id)
+      await queryClient.invalidateQueries({ queryKey: ['assistant-conversations'] })
+      await queryClient.invalidateQueries({ queryKey: ['assistant-conversation', result.conversation_id] })
+    } catch {
+      // Remove the optimistic user bubble because the server persists a turn
+      // only after the provider returns successfully.
+      setOptimisticMessages(messages)
+      setError(t('assistant.errorMessage'))
+    }
+  }
+
+  const isInitialLoading = conversationsQuery.isLoading ||
+    (typeof activeConversationId === 'string' && conversationQuery.isLoading && messages.length === 0)
+
   return (
-    <div className="flex h-[70vh] flex-col">
+    <div className="flex h-[76vh] min-h-[560px] flex-col">
       <div>
         <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('assistant.title')}</h1>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('assistant.subtitle')}</p>
       </div>
 
-      <div className="mt-6 flex-1 space-y-3 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <p className="text-sm font-medium text-stone-700 dark:text-stone-300">{t('assistant.emptyTitle')}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {exampleQuestions.map((question) => (
+      <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col rounded-2xl border border-stone-200 bg-white p-3 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <button
+            type="button"
+            onClick={startNewConversation}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+          >
+            <Plus size={17} />
+            {t('assistant.newConversation')}
+          </button>
+          <p className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
+            {t('assistant.conversations')}
+          </p>
+          <div className="flex gap-2 overflow-x-auto lg:flex-1 lg:flex-col lg:overflow-y-auto">
+            {(conversationsQuery.data ?? []).map((conversation) => (
+              <div
+                key={conversation.id}
+                className={`group flex min-w-[210px] items-center gap-1 rounded-xl lg:min-w-0 ${
+                  activeConversationId === conversation.id
+                    ? 'bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200'
+                    : 'text-stone-600 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800'
+                }`}
+              >
                 <button
-                  key={question}
                   type="button"
-                  onClick={() => send(question)}
-                  className="rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+                  onClick={() => {
+                    setConversationId(conversation.id)
+                    setOptimisticMessages(null)
+                    setError(null)
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-start text-sm"
                 >
-                  {question}
+                  <MessageSquare size={16} className="shrink-0" />
+                  <span className="truncate">{conversation.title}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg, index) => (
-              <div key={index} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                <p
-                  className={
-                    msg.role === 'user'
-                      ? 'max-w-[80%] rounded-lg bg-brand-600 px-3 py-2 text-sm text-white'
-                      : 'max-w-[80%] rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-900 dark:bg-stone-800 dark:text-stone-100'
-                  }
+                <button
+                  type="button"
+                  onClick={() => removeConversation(conversation.id)}
+                  aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
+                  className="m-1 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 dark:hover:bg-stone-700"
                 >
-                  {msg.content}
-                </p>
+                  <Trash2 size={15} />
+                </button>
               </div>
             ))}
-            {isSending && (
+            {conversationsQuery.data?.length === 0 && (
+              <p className="px-2 py-3 text-sm text-stone-400">{t('assistant.noConversations')}</p>
+            )}
+          </div>
+        </aside>
+
+        <section className="flex min-h-0 flex-col">
+          <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            {isInitialLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-stone-400">
+                {t('assistant.loadingConversation')}
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                <p className="text-sm font-medium text-stone-700 dark:text-stone-300">{t('assistant.emptyTitle')}</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {exampleQuestions.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => send(question)}
+                      className="rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <div key={message.id ?? index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                  <p
+                    className={
+                      message.role === 'user'
+                        ? 'max-w-[80%] whitespace-pre-wrap rounded-lg bg-brand-600 px-3 py-2 text-sm text-white'
+                        : 'max-w-[80%] whitespace-pre-wrap rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-900 dark:bg-stone-800 dark:text-stone-100'
+                    }
+                  >
+                    {message.content}
+                  </p>
+                </div>
+              ))
+            )}
+            {sendMutation.isPending && (
               <div className="flex justify-start">
                 <div
                   role="status"
                   aria-label={t('assistant.thinking')}
                   className="flex items-center gap-1 rounded-lg bg-stone-100 px-3 py-2.5 dark:bg-stone-800"
                 >
-                  <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
-                    style={{ animationDelay: '0ms' }}
-                  />
-                  <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
-                    style={{ animationDelay: '150ms' }}
-                  />
-                  <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
-                    style={{ animationDelay: '300ms' }}
-                  />
+                  {[0, 150, 300].map((delay) => (
+                    <span
+                      key={delay}
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
+                      style={{ animationDelay: `${delay}ms` }}
+                    />
+                  ))}
                 </div>
               </div>
             )}
-          </>
-        )}
-        {error && <p className="text-sm text-danger-700 dark:text-danger-400">{error}</p>}
-      </div>
+            <div ref={endRef} />
+            {error && <p className="text-sm text-danger-700 dark:text-danger-400">{error}</p>}
+          </div>
 
-      <form
-        className="mt-4 flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          send(input)
-        }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder={t('assistant.inputPlaceholder')}
-          className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
-        />
-        <button
-          type="submit"
-          disabled={isSending}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {t('assistant.send')}
-        </button>
-      </form>
+          <form
+            className="mt-4 flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              send(input)
+            }}
+          >
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={t('assistant.inputPlaceholder')}
+              className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+            />
+            <button
+              type="submit"
+              disabled={sendMutation.isPending}
+              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {t('assistant.send')}
+            </button>
+          </form>
+        </section>
+      </div>
     </div>
   )
 }

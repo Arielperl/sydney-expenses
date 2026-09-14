@@ -1,15 +1,16 @@
-import { AlertTriangle, Bot, FlaskConical, LayoutDashboard, Menu, PlugZap, ShoppingCart, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { AlertTriangle, Bot, ChevronUp, FlaskConical, Home, LayoutDashboard, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
 
 import logoUrl from '../assets/investment-logo.svg'
+import { useAuth } from '../contexts/AuthContext'
 import { DemoBusinessBadge } from './DemoBusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
 
 const NAV_ITEMS = [
-  { to: '/', key: 'dashboard', end: true, icon: LayoutDashboard },
+  { to: '/app', key: 'dashboard', end: true, icon: LayoutDashboard },
   { to: '/sales', key: 'sales', end: false, icon: ShoppingCart },
   { to: '/exceptions', key: 'exceptions', end: false, icon: AlertTriangle },
   { to: '/imports', key: 'imports', end: false, icon: PlugZap },
@@ -58,6 +59,95 @@ function BrandMark() {
   )
 }
 
+function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation()
+  const { logout, user } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const [logoutError, setLogoutError] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const displayName = user?.name?.trim() || t('account.myAccount')
+  const initial = (user?.name?.trim() || user?.email || '?').charAt(0).toLocaleUpperCase()
+
+  useEffect(() => {
+    if (!isOpen) return
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false)
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOpen])
+
+  async function handleLogout() {
+    setLogoutError(false)
+    try {
+      await logout()
+      onNavigate?.()
+    } catch {
+      setLogoutError(true)
+    }
+  }
+
+  return (
+    <div ref={rootRef} className="relative mt-3 border-t border-stone-200 pt-3 dark:border-stone-800">
+      {isOpen && (
+        <div
+          role="menu"
+          className="absolute inset-x-0 bottom-full z-20 mb-2 overflow-hidden rounded-xl border border-stone-200 bg-white p-2 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-800"
+        >
+          <div className="border-b border-stone-100 px-3 py-2.5 dark:border-stone-700">
+            <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">{displayName}</p>
+            <p className="mt-0.5 truncate text-xs text-stone-500 dark:text-stone-400" dir="ltr">{user?.email}</p>
+          </div>
+          <NavLink
+            to="/"
+            role="menuitem"
+            onClick={() => { setIsOpen(false); onNavigate?.() }}
+            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-white"
+          >
+            <Home className="h-4 w-4" aria-hidden="true" />
+            {t('account.backToWebsite')}
+          </NavLink>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void handleLogout()}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-50 dark:text-danger-500 dark:hover:bg-danger-500/10"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {t('account.logout')}
+          </button>
+          {logoutError && <p className="px-3 pb-2 text-xs text-danger-600" role="alert">{t('account.logoutError')}</p>}
+        </div>
+      )}
+
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full items-center gap-3 rounded-xl border border-transparent p-2 text-start transition-colors hover:border-stone-200 hover:bg-stone-50 dark:hover:border-stone-700 dark:hover:bg-stone-800"
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-100 text-sm font-bold text-brand-800 dark:bg-brand-900 dark:text-brand-200" aria-hidden="true">
+          {initial || <UserRound className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-stone-800 dark:text-stone-100">{displayName}</span>
+          <span className="block truncate text-xs text-stone-500 dark:text-stone-400" dir="ltr">{user?.email}</span>
+        </span>
+        <ChevronUp className={`h-4 w-4 shrink-0 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <span className="sr-only">{t('account.openMenu')}</span>
+      </button>
+    </div>
+  )
+}
+
 export function Layout() {
   const { t } = useTranslation()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -73,18 +163,19 @@ export function Layout() {
 
   return (
     <div className="min-h-full lg:flex">
-      <aside className="hidden w-60 flex-col border-e border-stone-200 bg-white px-4 py-6 lg:flex dark:border-stone-800 dark:bg-stone-900">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-hidden border-e border-stone-200 bg-white px-4 py-6 lg:flex dark:border-stone-800 dark:bg-stone-900">
         <BrandMark />
         <div className="mt-3 px-2">
           <DemoBusinessBadge />
         </div>
-        <div className="mt-8 flex flex-1 flex-col">
+        <div className="mt-8 flex min-h-0 flex-1 flex-col overflow-y-auto">
           <NavLinks />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pt-3">
           <LanguageSwitcher />
           <ThemeSwitcher />
         </div>
+        <AccountMenu />
       </aside>
 
       <div className="flex-1">
@@ -122,11 +213,14 @@ export function Layout() {
               <div className="mb-4">
                 <DemoBusinessBadge />
               </div>
-              <NavLinks onNavigate={() => setIsDrawerOpen(false)} />
-              <div className="flex items-center gap-2">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <NavLinks onNavigate={() => setIsDrawerOpen(false)} />
+              </div>
+              <div className="flex shrink-0 items-center gap-2 pt-3">
                 <LanguageSwitcher />
                 <ThemeSwitcher />
               </div>
+              <AccountMenu onNavigate={() => setIsDrawerOpen(false)} />
             </div>
           </div>
         )}

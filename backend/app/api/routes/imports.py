@@ -1,4 +1,5 @@
 import hashlib
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from app.services.ingestion.csv_import import (
     find_batch_by_file_hash,
     parse_csv,
 )
+from app.services.ingestion.csv_preview_security import sign_csv_preview, verify_csv_preview
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -28,9 +30,15 @@ async def preview_csv(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> CsvPreviewResponse:
-    raw_bytes = await file.read()
-    if len(raw_bytes) > settings.csv_max_file_size_bytes:
-        raise HTTPException(status_code=413, detail="CSV file is too large")
+    raw_buffer = bytearray()
+    while True:
+        chunk = await file.read(min(64 * 1024, settings.csv_max_file_size_bytes + 1))
+        if not chunk:
+            break
+        raw_buffer.extend(chunk)
+        if len(raw_buffer) > settings.csv_max_file_size_bytes:
+            raise HTTPException(status_code=413, detail="CSV file is too large")
+    raw_bytes = bytes(raw_buffer)
 
     file_hash = hashlib.sha256(raw_bytes).hexdigest()
 
@@ -41,12 +49,20 @@ async def preview_csv(
 
     existing_batch = find_batch_by_file_hash(db, file_hash)
 
+    preview_rows = [CsvPreviewRow(**row.__dict__) for row in valid_rows]
+    expires_at = int(time.time()) + settings.csv_preview_ttl_seconds
+    filename = file.filename.replace("\\", "/").rsplit("/", 1)[-1] if file.filename else None
+    filename = "".join(character for character in filename if character.isprintable())[:255] if filename else None
     return CsvPreviewResponse(
         file_hash=file_hash,
-        filename=file.filename,
-        valid_rows=[CsvPreviewRow(**row.__dict__) for row in valid_rows],
+        filename=filename,
+        valid_rows=preview_rows,
         errors=[CsvRowError(row_number=e.row_number, message=e.message) for e in errors],
         is_repeat_file=existing_batch is not None,
+        preview_signature=sign_csv_preview(
+            settings, db.info["business_id"], file_hash, filename, preview_rows, expires_at
+        ),
+        preview_expires_at=expires_at,
     )
 
 
@@ -54,7 +70,18 @@ async def preview_csv(
 def confirm_csv(
     payload: CsvConfirmRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> CsvConfirmResponse:
+    if not verify_csv_preview(
+        settings,
+        db.info["business_id"],
+        payload.file_hash,
+        payload.filename,
+        payload.valid_rows,
+        payload.preview_expires_at,
+        payload.preview_signature,
+    ):
+        raise HTTPException(status_code=422, detail="CSV preview confirmation is invalid or was modified")
     rows = [
         ParsedCsvRow(
             row_number=row.row_number,

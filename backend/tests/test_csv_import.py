@@ -88,7 +88,7 @@ class TestCsvImportRoutes:
 
         response = client.post(
             "/api/imports/csv/confirm",
-            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
         )
 
         assert response.status_code == 201
@@ -108,6 +108,8 @@ class TestCsvImportRoutes:
             "file_hash": preview["file_hash"],
             "filename": "statement.csv",
             "valid_rows": preview["valid_rows"],
+            "preview_signature": preview["preview_signature"],
+            "preview_expires_at": preview["preview_expires_at"],
         }
 
         first = client.post("/api/imports/csv/confirm", json=confirm_payload)
@@ -145,6 +147,8 @@ class TestCsvImportRoutes:
                 "file_hash": first_preview["file_hash"],
                 "filename": "statement.csv",
                 "valid_rows": first_preview["valid_rows"],
+                "preview_signature": first_preview["preview_signature"],
+                "preview_expires_at": first_preview["preview_expires_at"],
             },
         )
 
@@ -163,7 +167,7 @@ class TestCsvImportRoutes:
         ).json()
         client.post(
             "/api/imports/csv/confirm",
-            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
         )
 
         sales = db_session.query(Sale).filter(Sale.source_provider == "csv").all()
@@ -181,7 +185,7 @@ class TestCsvImportRoutes:
         ).json()
         client.post(
             "/api/imports/csv/confirm",
-            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"]},
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
         )
 
         sale = db_session.query(Sale).filter(Sale.source_provider == "csv", Sale.gross_amount == Decimal("184.90")).one()
@@ -189,3 +193,109 @@ class TestCsvImportRoutes:
         assert sale.vat_amount == Decimal("28.21")
         assert sale.vat_rate == Decimal("0.18")
         assert sale.net_amount == Decimal("156.69")
+
+
+class TestConfirmDoesNotTrustClientSuppliedRows:
+    """`/csv/confirm` takes `valid_rows` straight from the request body — a
+    tampered client could otherwise resubmit a `/csv/preview` response with
+    edited fields, bypassing every check `_parse_row` enforces at preview
+    time. These lock in that `CsvPreviewRow`'s own field validators (not just
+    preview-time parsing) are what actually protect `/csv/confirm`."""
+
+    def _preview_row(self, client) -> dict:
+        preview = client.post(
+            "/api/imports/csv/preview",
+            files={"file": ("statement.csv", io.BytesIO(VALID_CSV.encode("utf-8")), "text/csv")},
+        ).json()
+        return preview
+
+    def test_negative_amount_is_rejected(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["amount"] = "-50.00"
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_non_iso_currency_is_rejected(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["currency"] = "NOT-A-CURRENCY"
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_forged_external_id_is_rejected(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["external_id"] = "csv:some-other-file-hash:1"
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_blank_customer_name_is_rejected(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["customer"] = "   "
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_far_future_date_is_rejected(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["sale_date"] = "2999-01-01"
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_row_count_over_confirm_ceiling_is_rejected(self, client):
+        preview = self._preview_row(client)
+        base_row = preview["valid_rows"][0]
+        rows = []
+        for i in range(2001):
+            row = dict(base_row)
+            row["row_number"] = i + 1
+            row["external_id"] = f"csv:{preview['file_hash']}:{i + 1}"
+            rows.append(row)
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": rows, "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_valid_but_modified_amount_is_rejected_by_preview_signature(self, client):
+        preview = self._preview_row(client)
+        row = dict(preview["valid_rows"][0])
+        row["amount"] = "999.00"
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": [row], "preview_signature": preview["preview_signature"], "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_invalid_preview_signature_is_rejected(self, client):
+        preview = self._preview_row(client)
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": "0" * 64, "preview_expires_at": preview["preview_expires_at"]},
+        )
+        assert response.status_code == 422
+
+    def test_expired_preview_signature_is_rejected(self, client):
+        preview = self._preview_row(client)
+        response = client.post(
+            "/api/imports/csv/confirm",
+            json={"file_hash": preview["file_hash"], "filename": "statement.csv", "valid_rows": preview["valid_rows"], "preview_signature": preview["preview_signature"], "preview_expires_at": 1},
+        )
+        assert response.status_code == 422

@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     # (mock extraction, default CORS origins) with no error at all.
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
+    auth_required: bool = True
+
     app_name: str = "Sydney Transaction Management API"
     # Gates the in-product demo simulator's destructive reset action (see
     # app/api/routes/demo.py) — "development" (the honest default, since
@@ -25,6 +27,7 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{BACKEND_DIR / 'receiptly.db'}"
     uploads_dir: str = str(BACKEND_DIR / "uploads")
     max_upload_size_bytes: int = 10 * 1024 * 1024  # 10 MB
+    max_upload_pixels: int = 25_000_000
     allowed_image_content_types: set[str] = {"image/jpeg", "image/png", "image/webp"}
     cors_allowed_origins: list[str] = ["http://localhost:5173"]
     default_currency: str = "ILS"
@@ -133,12 +136,24 @@ class Settings(BaseSettings):
     # app/services/ingestion/webhook_provider.py). No secret ships in source;
     # this must be set locally to run the demo script against a live server.
     webhook_signing_secret: str | None = None
+    # Master key used to derive a different webhook secret for every business
+    # connection. Development may fall back to the legacy webhook key;
+    # production requires this dedicated key.
+    connection_signing_secret: str | None = None
     webhook_timestamp_tolerance_seconds: float = 300.0
     webhook_max_body_bytes: int = 64 * 1024  # 64 KB
 
     # CSV bank/credit-card statement import.
     csv_max_file_size_bytes: int = 2 * 1024 * 1024  # 2 MB
     csv_max_rows: int = 2000
+    # Signs the exact rows returned by CSV preview. Production must provide a
+    # dedicated random value; development uses an ephemeral process key.
+    csv_preview_signing_secret: str | None = None
+    csv_preview_ttl_seconds: int = 15 * 60
+
+    # Reject unexpected Host headers before routing. Production must replace
+    # these local development values with its public API hostname(s).
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
 
 
 class StorageConfigurationError(RuntimeError):
@@ -164,6 +179,46 @@ def validate_storage_settings(settings: Settings) -> None:
         raise StorageConfigurationError(
             "STORAGE_PROVIDER=supabase requires the following environment "
             f"variable(s) to be set: {', '.join(missing)}."
+        )
+
+
+class InsecureProductionConfigurationError(RuntimeError):
+    """Raised at startup when APP_ENVIRONMENT=production carries a
+    development-only default that would be actively dangerous in
+    production (auth disabled, no Supabase credentials to actually verify a
+    session against, or a CORS allowlist still pointing at localhost).
+    Deliberately fails fast — a production deployment should never start
+    with these left at their honest-for-local-dev defaults."""
+
+
+def validate_auth_settings(settings: Settings) -> None:
+    if settings.app_environment != "production":
+        return
+    problems: list[str] = []
+    if not settings.auth_required:
+        problems.append("AUTH_REQUIRED must be true in production")
+    if not settings.supabase_url or not settings.supabase_secret_key:
+        problems.append("SUPABASE_URL and SUPABASE_SECRET_KEY must be set in production (auth cannot verify sessions without them)")
+    elif not settings.supabase_url.startswith("https://"):
+        problems.append("SUPABASE_URL must use https:// in production")
+    if not settings.csv_preview_signing_secret or len(settings.csv_preview_signing_secret) < 32:
+        problems.append("CSV_PREVIEW_SIGNING_SECRET must contain at least 32 characters in production")
+    if not settings.connection_signing_secret or len(settings.connection_signing_secret) < 32:
+        problems.append("CONNECTION_SIGNING_SECRET must contain at least 32 characters in production")
+    localhost_origins = [
+        origin for origin in settings.cors_allowed_origins if "localhost" in origin or "127.0.0.1" in origin
+    ]
+    if localhost_origins:
+        problems.append(f"CORS_ALLOWED_ORIGINS must not include localhost origins in production (found: {localhost_origins})")
+    if any(not origin.startswith("https://") for origin in settings.cors_allowed_origins):
+        problems.append("CORS_ALLOWED_ORIGINS must use https:// origins in production")
+    if not settings.allowed_hosts or "*" in settings.allowed_hosts:
+        problems.append("ALLOWED_HOSTS must be an explicit production host allowlist")
+    if any(host in {"localhost", "127.0.0.1", "testserver"} for host in settings.allowed_hosts):
+        problems.append("ALLOWED_HOSTS must not include development hosts in production")
+    if problems:
+        raise InsecureProductionConfigurationError(
+            "Refusing to start with APP_ENVIRONMENT=production and insecure configuration: " + "; ".join(problems)
         )
 
 
