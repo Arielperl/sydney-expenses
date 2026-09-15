@@ -2,7 +2,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "sales": "Sales",
-    "exceptions": "Exception Center",
+    "exceptions": "Needs Attention",
     "imports": "Data Import",
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",
@@ -365,7 +365,7 @@
     "confirmRefund": "Confirm refund"
   },
   "exceptions": {
-    "title": "Exception Center",
+    "title": "Needs Attention",
     "subtitle": "Sales that need your attention",
     "sections": {
       "pendingDocuments": "Successful sales awaiting a document",

@@ -2,7 +2,7 @@
   "nav": {
     "dashboard": "לוח בקרה",
     "sales": "מכירות",
-    "exceptions": "מרכז חריגים",
+    "exceptions": "דורש טיפול",
     "imports": "ייבוא נתונים",
     "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי",
@@ -365,7 +365,7 @@
     "confirmRefund": "אישור הזיכוי"
   },
   "exceptions": {
-    "title": "מרכז חריגים",
+    "title": "דורש טיפול",
     "subtitle": "מכירות שדורשות את תשומת לבכם",
     "sections": {
       "pendingDocuments": "מכירות מוצלחות הממתינות למסמך",

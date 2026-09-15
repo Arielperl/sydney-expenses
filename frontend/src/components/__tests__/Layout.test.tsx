@@ -33,7 +33,7 @@ describe('Layout', () => {
     const nav = screen.getByRole('navigation', { name: 'ניווט ראשי' })
     expect(within(nav).getAllByRole('link')).toHaveLength(5)
     expect(within(nav).getByRole('link', { name: /מכירות/ })).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: /מרכז חריגים/ })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: /דורש טיפול/ })).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: /הדגמה/ })).not.toBeInTheDocument()
   })
 

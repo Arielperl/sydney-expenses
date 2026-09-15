@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, ChevronUp, Home, LayoutDashboard, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
+import { Bot, ChevronUp, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -12,7 +12,7 @@ import { ThemeSwitcher } from './ThemeSwitcher'
 const NAV_ITEMS = [
   { to: '/app', key: 'dashboard', end: true, icon: LayoutDashboard },
   { to: '/sales', key: 'sales', end: false, icon: ShoppingCart },
-  { to: '/exceptions', key: 'exceptions', end: false, icon: AlertTriangle },
+  { to: '/exceptions', key: 'exceptions', end: false, icon: ListTodo },
   { to: '/imports', key: 'imports', end: false, icon: PlugZap },
   { to: '/assistant', key: 'assistant', end: false, icon: Bot },
 ] as const
