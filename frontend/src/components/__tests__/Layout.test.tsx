@@ -1,22 +1,33 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { Layout } from '../Layout'
 import { ThemeProvider } from '../../contexts/ThemeContext'
+import { makeSale } from '../../test/msw/handlers'
+import { server } from '../../test/msw/server'
 import { render, screen, within } from '../../test/test-utils'
 
+const EXCEPTIONS_URL = 'http://localhost:8000/api/exceptions'
+
 function renderLayout() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<div>Dashboard content</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </ThemeProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<div>Dashboard content</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>,
   )
 }
 
@@ -35,6 +46,22 @@ describe('Layout', () => {
     expect(within(nav).getByRole('link', { name: /מכירות/ })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: /דורש טיפול/ })).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: /הדגמה/ })).not.toBeInTheDocument()
+  })
+
+  it('shows the number of unique sales that need attention', async () => {
+    const saleOne = makeSale({ id: 'sale-1' })
+    const saleTwo = makeSale({ id: 'sale-2' })
+    const saleThree = makeSale({ id: 'sale-3' })
+    server.use(http.get(EXCEPTIONS_URL, () => HttpResponse.json({
+      pending_documents: [saleOne, saleTwo],
+      document_failures: [saleOne],
+      refunds_needing_attention: [saleThree],
+      incomplete_details: [],
+    })))
+
+    renderLayout()
+
+    expect(await screen.findByRole('link', { name: 'דורש טיפול, 3 פריטים' })).toBeInTheDocument()
   })
 
   it('opens the mobile drawer and closes it on Escape', async () => {

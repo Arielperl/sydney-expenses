@@ -3,6 +3,7 @@
     "dashboard": "לוח בקרה",
     "sales": "מכירות",
     "exceptions": "דורש טיפול",
+    "attentionCount": "דורש טיפול, {{count}} פריטים",
     "imports": "ייבוא נתונים",
     "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי",

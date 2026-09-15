@@ -97,6 +97,7 @@ export function SaleDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['sale-events', id] })
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
       setIsEditOpen(false)
     },
   })
@@ -108,6 +109,7 @@ export function SaleDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['sale-events', id] })
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
       setIsRefundOpen(false)
       setRefundInput('')
     },

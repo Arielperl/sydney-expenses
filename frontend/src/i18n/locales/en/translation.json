@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "sales": "Sales",
     "exceptions": "Needs Attention",
+    "attentionCount": "Needs attention, {{count}} items",
     "imports": "Data Import",
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",

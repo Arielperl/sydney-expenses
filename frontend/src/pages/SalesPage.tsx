@@ -106,6 +106,7 @@ export function SalesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
       setEditingSale(null)
     },
   })
@@ -115,6 +116,7 @@ export function SalesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
       setDeletingSale(null)
     },
   })

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -24,6 +24,7 @@ export function ImportDocumentPage() {
   const [searchParams] = useSearchParams()
   const saleId = searchParams.get('saleId')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   const { data: sale, isLoading: isLoadingSale } = useQuery({
     queryKey: ['sale', saleId],
@@ -33,6 +34,12 @@ export function ImportDocumentPage() {
 
   const importMutation = useMutation({
     mutationFn: (file: File) => importHistoricalDocument(saleId!, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sale', saleId] })
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
+    },
   })
 
   const { data: capabilities } = useQuery({

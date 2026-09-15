@@ -31,6 +31,7 @@ export function AddSalePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['exception-center'] })
       setShowSuccess(true)
       setTimeout(() => navigate('/sales'), 900)
     },

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { Bot, ChevronUp, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +6,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import logoUrl from '../assets/investment-logo.svg'
 import { useAuth } from '../contexts/AuthContext'
+import { getExceptionCenter } from '../services/exceptionService'
 import { BusinessBadge } from './BusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { ThemeSwitcher } from './ThemeSwitcher'
@@ -19,15 +21,27 @@ const NAV_ITEMS = [
 
 function navLinkClasses(isActive: boolean): string {
   return [
-    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+    'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
     isActive
-      ? 'bg-brand-600 text-white'
+      ? 'active bg-brand-600 text-white'
       : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100',
   ].join(' ')
 }
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation()
+  const { data: attentionCount = 0 } = useQuery({
+    queryKey: ['exception-center'],
+    queryFn: getExceptionCenter,
+    select: (data) => new Set([
+      ...data.pending_documents,
+      ...data.document_failures,
+      ...data.refunds_needing_attention,
+      ...data.incomplete_details,
+    ].map((sale) => sale.id)).size,
+    refetchInterval: 60_000,
+  })
+
   return (
     <nav aria-label={t('nav.mainNavigation')} className="flex flex-1 flex-col gap-1">
       {NAV_ITEMS.map((item) => (
@@ -36,10 +50,21 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           to={item.to}
           end={item.end}
           onClick={onNavigate}
+          aria-label={item.key === 'exceptions' && attentionCount > 0
+            ? t('nav.attentionCount', { count: attentionCount })
+            : undefined}
           className={({ isActive }) => navLinkClasses(isActive)}
         >
           <item.icon className="h-5 w-5" aria-hidden="true" />
-          {t(`nav.${item.key}`)}
+          <span className="min-w-0 flex-1">{t(`nav.${item.key}`)}</span>
+          {item.key === 'exceptions' && attentionCount > 0 && (
+            <span
+              className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-100 px-1.5 text-xs font-bold leading-none text-amber-800 group-[.active]:bg-white/20 group-[.active]:text-white dark:bg-amber-500/20 dark:text-amber-300"
+              aria-hidden="true"
+            >
+              {attentionCount > 99 ? '99+' : attentionCount}
+            </span>
+          )}
         </NavLink>
       ))}
     </nav>

@@ -70,6 +70,12 @@ export const handlers = [
   http.get(`${API_BASE}/connections`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/assistant/conversations`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/dashboard/stats`, () => HttpResponse.json(emptyDashboardStats)),
+  http.get(`${API_BASE}/exceptions`, () => HttpResponse.json({
+    pending_documents: [],
+    document_failures: [],
+    refunds_needing_attention: [],
+    incomplete_details: [],
+  })),
   http.get(`${API_BASE}/system/capabilities`, () =>
     HttpResponse.json({
       receipt_extraction_provider: 'mock',
