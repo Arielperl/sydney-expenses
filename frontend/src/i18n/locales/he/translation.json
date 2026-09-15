@@ -30,7 +30,8 @@
     "conversations": "השיחות שלי",
     "noConversations": "עדיין אין שיחות שמורות",
     "deleteConversation": "מחיקת שיחה",
-    "deleteConfirm": "למחוק את השיחה הזאת? לא ניתן לשחזר אותה.",
+    "deleteConfirm": "האם למחוק את השיחה הזאת? לא ניתן לבטל את הפעולה.",
+    "deleteConversationConfirmButton": "מחיקת השיחה",
     "deleteError": "לא הצלחנו למחוק את השיחה. נסו שוב.",
     "loadingConversation": "טוען את השיחה..."
   },

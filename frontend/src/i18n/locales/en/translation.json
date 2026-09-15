@@ -30,7 +30,8 @@
     "conversations": "My conversations",
     "noConversations": "No saved conversations yet",
     "deleteConversation": "Delete conversation",
-    "deleteConfirm": "Delete this conversation? It cannot be restored.",
+    "deleteConfirm": "Delete this conversation? This action cannot be undone.",
+    "deleteConversationConfirmButton": "Delete this conversation",
     "deleteError": "We couldn't delete the conversation. Please try again.",
     "loadingConversation": "Loading conversation..."
   },

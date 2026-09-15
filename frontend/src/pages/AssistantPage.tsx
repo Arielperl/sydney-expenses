@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import {
   deleteAssistantConversation,
   getAssistantConversation,
@@ -20,6 +21,7 @@ export function AssistantPage() {
   const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[] | null>(null)
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   const conversationsQuery = useQuery({
@@ -61,19 +63,33 @@ export function AssistantPage() {
     setError(null)
   }
 
-  async function removeConversation(id: string) {
-    if (!window.confirm(t('assistant.deleteConfirm'))) return
+  function requestDeleteConversation(id: string) {
+    deleteMutation.reset()
+    setDeletingConversationId(id)
+  }
+
+  function closeDeleteDialog() {
+    if (deleteMutation.isPending) return
+    setDeletingConversationId(null)
+  }
+
+  async function confirmDeleteConversation() {
+    if (!deletingConversationId || deleteMutation.isPending) return
+    const id = deletingConversationId
     try {
       await deleteMutation.mutateAsync(id)
       queryClient.removeQueries({ queryKey: ['assistant-conversation', id] })
       const remaining = (conversationsQuery.data ?? []).filter((conversation) => conversation.id !== id)
       queryClient.setQueryData(['assistant-conversations'], remaining)
       if (activeConversationId === id) {
-        setConversationId(remaining[0]?.id ?? null)
-        setOptimisticMessages(null)
+        setConversationId(null)
+        setOptimisticMessages([])
+        setInput('')
+        setError(null)
       }
+      setDeletingConversationId(null)
     } catch {
-      setError(t('assistant.deleteError'))
+      // Keep the dialog open — ConfirmDialog shows deleteMutation's error and lets the user retry or cancel.
     }
   }
 
@@ -147,7 +163,13 @@ export function AssistantPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeConversation(conversation.id)}
+                  onClick={(event) => {
+                    // Focus the trigger explicitly — clicking a button doesn't
+                    // reliably focus it in every browser, and ConfirmDialog
+                    // restores focus to whatever had it when it opened.
+                    event.currentTarget.focus()
+                    requestDeleteConversation(conversation.id)
+                  }}
                   aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
                   className="m-1 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 dark:hover:bg-stone-700"
                 >
@@ -243,6 +265,18 @@ export function AssistantPage() {
           </form>
         </section>
       </div>
+
+      {deletingConversationId && (
+        <ConfirmDialog
+          title={t('assistant.deleteConversation')}
+          description={t('assistant.deleteConfirm')}
+          confirmLabel={t('assistant.deleteConversationConfirmButton')}
+          isLoading={deleteMutation.isPending}
+          error={deleteMutation.isError ? t('assistant.deleteError') : null}
+          onClose={closeDeleteDialog}
+          onConfirm={confirmDeleteConversation}
+        />
+      )}
     </div>
   )
 }
