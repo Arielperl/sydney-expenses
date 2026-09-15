@@ -311,27 +311,56 @@ describe('AssistantPage', () => {
 
       const renameButton = await screen.findByRole('button', { name: 'שינוי שם השיחה: שיחה ראשונה' })
       const deleteButton = screen.getByRole('button', { name: 'מחיקת שיחה: שיחה ראשונה' })
-      const row = renameButton.parentElement
+      // Both action buttons share an immediate shrink-0 wrapper, itself a
+      // sibling of the title button inside the row (".group").
+      const actionGroup = renameButton.parentElement
+      const row = renameButton.closest<HTMLElement>('.group')
+      expect(actionGroup).not.toBeNull()
       expect(row).not.toBeNull()
-      const buttonsInRow = Array.from(row!.querySelectorAll<HTMLElement>('button'))
-      const renameIndex = buttonsInRow.indexOf(renameButton)
-      const deleteIndex = buttonsInRow.indexOf(deleteButton)
-      // Title button (index 0), then pencil, then trash — under dir="rtl" the
-      // first DOM child renders rightmost, so this DOM order puts the pencil
+      expect(actionGroup).toBe(deleteButton.parentElement)
+      const buttonsInGroup = Array.from(actionGroup!.querySelectorAll<HTMLElement>('button'))
+      // Pencil directly before trash — under dir="rtl" the first DOM child of
+      // a flex row renders rightmost, so this DOM order puts the pencil
       // visually immediately to the right of the trash icon.
-      expect(renameIndex).toBeGreaterThan(0)
-      expect(deleteIndex).toBe(renameIndex + 1)
+      expect(buttonsInGroup.indexOf(renameButton)).toBe(0)
+      expect(buttonsInGroup.indexOf(deleteButton)).toBe(1)
+      // And the action group as a whole comes after the title button in the row.
+      const rowChildren = Array.from(row!.children)
+      expect(rowChildren.indexOf(actionGroup!)).toBe(rowChildren.length - 1)
     })
 
-    it('keeps a long conversation title CSS-truncatable (full text in the DOM, truncate class applied)', async () => {
+    it('lets the title wrap onto up to two lines instead of forcing a single truncated line', async () => {
+      mockConversations([conversationOne])
+      renderWithProviders(<AssistantPage />)
+
+      const titleSpan = await screen.findByText('שיחה ראשונה')
+      expect(titleSpan).toHaveClass('line-clamp-2')
+      expect(titleSpan).not.toHaveClass('truncate')
+    })
+
+    it('clamps a still-too-long title with line-clamp-2, while keeping the full text in the DOM and as a native tooltip', async () => {
       mockConversations([conversationLong])
       renderWithProviders(<AssistantPage />)
 
       const titleSpan = await screen.findByText(longTitle)
-      expect(titleSpan).toHaveClass('truncate')
-      // Both action icons still render at full size next to a very long title.
-      expect(screen.getByRole('button', { name: `שינוי שם השיחה: ${longTitle}` })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: `מחיקת שיחה: ${longTitle}` })).toBeInTheDocument()
+      expect(titleSpan).toHaveClass('line-clamp-2')
+      const titleButton = screen.getByRole('button', { name: longTitle })
+      // Native tooltip carries the full, unclamped title for when it's visually cut off.
+      expect(titleButton).toHaveAttribute('title', longTitle)
+      // Both action icons still render, fully visible, next to a very long title.
+      expect(screen.getByRole('button', { name: `שינוי שם השיחה: ${longTitle}` })).toBeVisible()
+      expect(screen.getByRole('button', { name: `מחיקת שיחה: ${longTitle}` })).toBeVisible()
+    })
+
+    it('keeps the action-icon group from shrinking, even with a long wrapping title', async () => {
+      mockConversations([conversationLong])
+      renderWithProviders(<AssistantPage />)
+
+      const renameButton = await screen.findByRole('button', { name: `שינוי שם השיחה: ${longTitle}` })
+      const actionGroup = renameButton.parentElement
+      expect(actionGroup).toHaveClass('shrink-0')
+      expect(renameButton).toHaveClass('shrink-0')
+      expect(screen.getByRole('button', { name: `מחיקת שיחה: ${longTitle}` })).toHaveClass('shrink-0')
     })
 
     it('opens the rename dialog prefilled with the current title, focused and selected', async () => {

@@ -161,7 +161,7 @@ export function AssistantPage() {
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('assistant.subtitle')}</p>
       </div>
 
-      <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col rounded-2xl border border-stone-200 bg-white p-3 shadow-sm dark:border-stone-800 dark:bg-stone-900">
           <button
             type="button"
@@ -178,7 +178,7 @@ export function AssistantPage() {
             {(conversationsQuery.data ?? []).map((conversation) => (
               <div
                 key={conversation.id}
-                className={`group flex min-w-[210px] items-center gap-1 rounded-xl lg:min-w-0 ${
+                className={`group flex min-w-[280px] items-start gap-1 rounded-xl lg:min-w-0 ${
                   activeConversationId === conversation.id
                     ? 'bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200'
                     : 'text-stone-600 hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-800'
@@ -186,46 +186,49 @@ export function AssistantPage() {
               >
                 <button
                   type="button"
+                  title={conversation.title}
                   onClick={() => {
                     setConversationId(conversation.id)
                     setOptimisticMessages(null)
                     setError(null)
                   }}
-                  className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-start text-sm"
+                  className="flex min-w-0 flex-1 items-start gap-2 px-2 py-2 text-start text-sm"
                 >
-                  <MessageSquare size={16} className="shrink-0" />
-                  <span className="truncate">{conversation.title}</span>
+                  <MessageSquare size={16} className="mt-0.5 shrink-0" />
+                  <span className="line-clamp-2 break-words">{conversation.title}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    // Focus the trigger explicitly — clicking a button doesn't
-                    // reliably focus it in every browser, and the dialog
-                    // restores focus to whatever had it when it opened.
-                    event.currentTarget.focus()
-                    requestRenameConversation(conversation.id, conversation.title)
-                  }}
-                  aria-label={`${t('assistant.renameConversation')}: ${conversation.title}`}
-                  title={t('assistant.renameConversation')}
-                  className="m-1 shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:hover:bg-stone-700"
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    // Focus the trigger explicitly — clicking a button doesn't
-                    // reliably focus it in every browser, and ConfirmDialog
-                    // restores focus to whatever had it when it opened.
-                    event.currentTarget.focus()
-                    requestDeleteConversation(conversation.id)
-                  }}
-                  aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
-                  title={t('assistant.deleteConversation')}
-                  className="m-1 shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-1 dark:hover:bg-stone-700"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex shrink-0 items-center gap-0.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      // Focus the trigger explicitly — clicking a button doesn't
+                      // reliably focus it in every browser, and the dialog
+                      // restores focus to whatever had it when it opened.
+                      event.currentTarget.focus()
+                      requestRenameConversation(conversation.id, conversation.title)
+                    }}
+                    aria-label={`${t('assistant.renameConversation')}: ${conversation.title}`}
+                    title={t('assistant.renameConversation')}
+                    className="shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:hover:bg-stone-700"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      // Focus the trigger explicitly — clicking a button doesn't
+                      // reliably focus it in every browser, and ConfirmDialog
+                      // restores focus to whatever had it when it opened.
+                      event.currentTarget.focus()
+                      requestDeleteConversation(conversation.id)
+                    }}
+                    aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
+                    title={t('assistant.deleteConversation')}
+                    className="shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-1 dark:hover:bg-stone-700"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             ))}
             {conversationsQuery.data?.length === 0 && (
