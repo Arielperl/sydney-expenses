@@ -53,6 +53,7 @@ describe('Layout', () => {
     const saleTwo = makeSale({ id: 'sale-2' })
     const saleThree = makeSale({ id: 'sale-3' })
     server.use(http.get(EXCEPTIONS_URL, () => HttpResponse.json({
+      attention_count: 3,
       pending_documents: [saleOne, saleTwo],
       document_failures: [saleOne],
       refunds_needing_attention: [saleThree],

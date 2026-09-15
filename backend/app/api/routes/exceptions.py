@@ -16,6 +16,7 @@ def get_exception_center(
 ) -> ExceptionCenterResponse:
     center = build_exception_center(db, limit=limit)
     return ExceptionCenterResponse(
+        attention_count=center.attention_count,
         pending_documents=[sale_to_read(s) for s in center.pending_documents],
         document_failures=[sale_to_read(s) for s in center.document_failures],
         refunds_needing_attention=[sale_to_read(s) for s in center.refunds_needing_attention],

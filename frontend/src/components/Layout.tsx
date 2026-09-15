@@ -33,12 +33,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { data: attentionCount = 0 } = useQuery({
     queryKey: ['exception-center'],
     queryFn: getExceptionCenter,
-    select: (data) => new Set([
-      ...data.pending_documents,
-      ...data.document_failures,
-      ...data.refunds_needing_attention,
-      ...data.incomplete_details,
-    ].map((sale) => sale.id)).size,
+    select: (data) => data.attention_count,
     refetchInterval: 60_000,
   })
 

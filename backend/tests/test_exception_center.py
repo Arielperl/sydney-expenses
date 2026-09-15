@@ -79,5 +79,27 @@ def test_exception_center_route(client):
 
     assert response.status_code == 200
     body = response.json()
+    assert body["attention_count"] == 1
     assert len(body["incomplete_details"]) == 1
     assert body["incomplete_details"][0]["customer_name"] == "No Contact"
+
+
+def test_attention_count_is_unique_and_not_limited(db_session):
+    both_pending_and_incomplete = _add_sale(
+        db_session,
+        customer_contact=None,
+        document_status=DocumentStatus.PENDING,
+    )
+    for index in range(25):
+        _add_sale(
+            db_session,
+            customer_name=f"Customer {index}",
+            document_status=DocumentStatus.PENDING,
+        )
+
+    center = build_exception_center(db_session, limit=20)
+
+    assert len(center.pending_documents) == 20
+    assert len(center.incomplete_details) == 1
+    assert center.incomplete_details[0].id == both_pending_and_incomplete.id
+    assert center.attention_count == 26

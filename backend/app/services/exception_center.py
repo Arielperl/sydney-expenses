@@ -6,7 +6,7 @@ only things that still need a human to look at them."""
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.sale import DocumentStatus, Sale, SaleStatus
@@ -16,6 +16,7 @@ DEFAULT_SECTION_LIMIT = 20
 
 @dataclass
 class ExceptionCenter:
+    attention_count: int
     pending_documents: list[Sale]
     document_failures: list[Sale]
     refunds_needing_attention: list[Sale]
@@ -36,8 +37,22 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
         Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
     )
     incomplete_details = _query(Sale.customer_contact.is_(None))
+    attention_count = db.scalar(
+        select(func.count(Sale.id)).where(
+            or_(
+                and_(
+                    Sale.status == SaleStatus.SUCCEEDED,
+                    Sale.document_status == DocumentStatus.PENDING,
+                ),
+                Sale.document_status == DocumentStatus.FAILED,
+                Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED]),
+                Sale.customer_contact.is_(None),
+            )
+        )
+    ) or 0
 
     return ExceptionCenter(
+        attention_count=attention_count,
         pending_documents=pending_documents,
         document_failures=document_failures,
         refunds_needing_attention=refunds_needing_attention,

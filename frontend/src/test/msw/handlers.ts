@@ -71,6 +71,7 @@ export const handlers = [
   http.get(`${API_BASE}/assistant/conversations`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/dashboard/stats`, () => HttpResponse.json(emptyDashboardStats)),
   http.get(`${API_BASE}/exceptions`, () => HttpResponse.json({
+    attention_count: 0,
     pending_documents: [],
     document_failures: [],
     refunds_needing_attention: [],

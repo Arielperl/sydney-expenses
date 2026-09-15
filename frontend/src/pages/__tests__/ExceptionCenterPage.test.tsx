@@ -10,6 +10,7 @@ const EXCEPTIONS_URL = 'http://localhost:8000/api/exceptions'
 
 function emptyExceptionCenter() {
   return {
+    attention_count: 0,
     pending_documents: [],
     document_failures: [],
     refunds_needing_attention: [],
