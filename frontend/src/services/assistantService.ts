@@ -1,9 +1,5 @@
 import { apiClient, toApiError } from './apiClient'
-import type {
-  AssistantConversation,
-  AssistantConversationDetail,
-  ChatResponse,
-} from '../types/assistant'
+import type { AssistantConversation, AssistantConversationDetail, ChatResponse } from '../types/assistant'
 
 export async function listAssistantConversations(): Promise<AssistantConversation[]> {
   try {
@@ -24,6 +20,14 @@ export async function getAssistantConversation(id: string): Promise<AssistantCon
 export async function deleteAssistantConversation(id: string): Promise<void> {
   try {
     await apiClient.delete(`/assistant/conversations/${id}`)
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+export async function renameAssistantConversation(id: string, title: string): Promise<AssistantConversation> {
+  try {
+    return (await apiClient.patch<AssistantConversation>(`/assistant/conversations/${id}`, { title })).data
   } catch (error) {
     throw toApiError(error)
   }

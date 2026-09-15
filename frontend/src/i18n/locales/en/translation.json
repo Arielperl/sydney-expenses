@@ -33,7 +33,13 @@
     "deleteConfirm": "Delete this conversation? This action cannot be undone.",
     "deleteConversationConfirmButton": "Delete this conversation",
     "deleteError": "We couldn't delete the conversation. Please try again.",
-    "loadingConversation": "Loading conversation..."
+    "loadingConversation": "Loading conversation...",
+    "renameConversation": "Rename conversation",
+    "renameDescription": "Update the name shown for this conversation.",
+    "saveNewTitle": "Save name",
+    "renameEmptyHint": "The title can't be empty.",
+    "renameTooLongHint": "The title can be at most {{max}} characters.",
+    "renameError": "We couldn't rename the conversation. Please try again."
   },
   "language": {
     "switcherLabel": "Language",

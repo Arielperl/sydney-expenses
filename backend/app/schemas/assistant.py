@@ -1,6 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Must match AssistantConversation.title's column width (String(80)).
+CONVERSATION_TITLE_MAX_LENGTH = 80
 
 
 class ChatRequest(BaseModel):
@@ -32,3 +35,21 @@ class AssistantMessageRead(BaseModel):
 
 class AssistantConversationDetail(AssistantConversationRead):
     messages: list[AssistantMessageRead]
+
+
+class AssistantConversationRename(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    # Generous raw ceiling — the real 1-80 rule is enforced on the trimmed
+    # value below, so a request sent mostly-whitespace doesn't need to be
+    # long to be rejected, and this only bounds worst-case payload size.
+    title: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("title")
+    @classmethod
+    def _trim_and_bound(cls, value: str) -> str:
+        trimmed = value.strip()
+        if not trimmed:
+            raise ValueError("Title cannot be empty or whitespace-only")
+        if len(trimmed) > CONVERSATION_TITLE_MAX_LENGTH:
+            raise ValueError(f"Title must be at most {CONVERSATION_TITLE_MAX_LENGTH} characters")
+        return trimmed

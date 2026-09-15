@@ -11,6 +11,7 @@ from app.models.assistant_conversation import AssistantConversation, AssistantMe
 from app.schemas.assistant import (
     AssistantConversationDetail,
     AssistantConversationRead,
+    AssistantConversationRename,
     ChatRequest,
     ChatResponse,
 )
@@ -86,6 +87,23 @@ def delete_conversation(
     db.delete(conversation)
     db.commit()
     return Response(status_code=204)
+
+
+@router.patch("/conversations/{conversation_id}", response_model=AssistantConversationRead)
+def rename_conversation(
+    conversation_id: str,
+    payload: AssistantConversationRename,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> AssistantConversation:
+    # A viewer's PATCH never reaches this handler — main.py's protect_workspace
+    # middleware already blocks any non-GET/HEAD request from a viewer except
+    # the explicitly-allowed /api/assistant/chat (see main.py).
+    conversation = _conversation_or_404(db, conversation_id, _user_id(request))
+    conversation.title = payload.title
+    db.commit()
+    db.refresh(conversation)
+    return conversation
 
 
 @router.post("/chat", response_model=ChatResponse)

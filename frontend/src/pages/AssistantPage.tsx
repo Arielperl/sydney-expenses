@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Plus, Trash2 } from 'lucide-react'
+import { MessageSquare, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { RenameConversationDialog } from '../components/RenameConversationDialog'
 import {
   deleteAssistantConversation,
   getAssistantConversation,
   listAssistantConversations,
+  renameAssistantConversation,
   sendChatMessage,
 } from '../services/assistantService'
-import type { ChatMessage } from '../types/assistant'
+import type { AssistantConversation, AssistantConversationDetail, ChatMessage } from '../types/assistant'
 
 export function AssistantPage() {
   const { t } = useTranslation()
@@ -22,6 +24,7 @@ export function AssistantPage() {
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null)
+  const [renamingConversation, setRenamingConversation] = useState<{ id: string; title: string } | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   const conversationsQuery = useQuery({
@@ -48,6 +51,9 @@ export function AssistantPage() {
       sendChatMessage(question, activeId),
   })
   const deleteMutation = useMutation({ mutationFn: deleteAssistantConversation })
+  const renameMutation = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => renameAssistantConversation(id, title),
+  })
 
   const exampleQuestions = [
     t('assistant.exampleQuestion1'),
@@ -90,6 +96,35 @@ export function AssistantPage() {
       setDeletingConversationId(null)
     } catch {
       // Keep the dialog open — ConfirmDialog shows deleteMutation's error and lets the user retry or cancel.
+    }
+  }
+
+  function requestRenameConversation(id: string, title: string) {
+    renameMutation.reset()
+    setRenamingConversation({ id, title })
+  }
+
+  function closeRenameDialog() {
+    if (renameMutation.isPending) return
+    setRenamingConversation(null)
+  }
+
+  async function saveRenamedConversation(newTitle: string) {
+    if (!renamingConversation || renameMutation.isPending) return
+    const { id } = renamingConversation
+    try {
+      const updated = await renameMutation.mutateAsync({ id, title: newTitle })
+      queryClient.setQueryData<AssistantConversation[]>(['assistant-conversations'], (existing) =>
+        (existing ?? []).map((conversation) =>
+          conversation.id === id ? { ...conversation, title: updated.title, updated_at: updated.updated_at } : conversation,
+        ),
+      )
+      queryClient.setQueryData<AssistantConversationDetail | undefined>(['assistant-conversation', id], (existing) =>
+        existing ? { ...existing, title: updated.title, updated_at: updated.updated_at } : existing,
+      )
+      setRenamingConversation(null)
+    } catch {
+      // Keep the dialog open — RenameConversationDialog shows renameMutation's error and lets the user retry or cancel.
     }
   }
 
@@ -165,13 +200,29 @@ export function AssistantPage() {
                   type="button"
                   onClick={(event) => {
                     // Focus the trigger explicitly — clicking a button doesn't
+                    // reliably focus it in every browser, and the dialog
+                    // restores focus to whatever had it when it opened.
+                    event.currentTarget.focus()
+                    requestRenameConversation(conversation.id, conversation.title)
+                  }}
+                  aria-label={`${t('assistant.renameConversation')}: ${conversation.title}`}
+                  title={t('assistant.renameConversation')}
+                  className="m-1 shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:hover:bg-stone-700"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    // Focus the trigger explicitly — clicking a button doesn't
                     // reliably focus it in every browser, and ConfirmDialog
                     // restores focus to whatever had it when it opened.
                     event.currentTarget.focus()
                     requestDeleteConversation(conversation.id)
                   }}
                   aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
-                  className="m-1 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 dark:hover:bg-stone-700"
+                  title={t('assistant.deleteConversation')}
+                  className="m-1 shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-white hover:text-danger-600 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-1 dark:hover:bg-stone-700"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -275,6 +326,16 @@ export function AssistantPage() {
           error={deleteMutation.isError ? t('assistant.deleteError') : null}
           onClose={closeDeleteDialog}
           onConfirm={confirmDeleteConversation}
+        />
+      )}
+
+      {renamingConversation && (
+        <RenameConversationDialog
+          currentTitle={renamingConversation.title}
+          isLoading={renameMutation.isPending}
+          error={renameMutation.isError ? t('assistant.renameError') : null}
+          onClose={closeRenameDialog}
+          onSave={saveRenamedConversation}
         />
       )}
     </div>

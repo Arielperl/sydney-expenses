@@ -33,7 +33,13 @@
     "deleteConfirm": "האם למחוק את השיחה הזאת? לא ניתן לבטל את הפעולה.",
     "deleteConversationConfirmButton": "מחיקת השיחה",
     "deleteError": "לא הצלחנו למחוק את השיחה. נסו שוב.",
-    "loadingConversation": "טוען את השיחה..."
+    "loadingConversation": "טוען את השיחה...",
+    "renameConversation": "שינוי שם השיחה",
+    "renameDescription": "עדכנו את השם שיוצג עבור השיחה הזו.",
+    "saveNewTitle": "שמירת השם",
+    "renameEmptyHint": "השם לא יכול להיות ריק.",
+    "renameTooLongHint": "השם יכול לכלול עד {{max}} תווים.",
+    "renameError": "לא הצלחנו לשנות את שם השיחה. נסו שוב."
   },
   "language": {
     "switcherLabel": "שפה",

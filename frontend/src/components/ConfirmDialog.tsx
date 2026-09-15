@@ -2,8 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 import { useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 
 export function ConfirmDialog({
   title,
@@ -27,45 +26,13 @@ export function ConfirmDialog({
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDivElement>(null)
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
-  const previouslyFocused = useRef<HTMLElement | null>(null)
   const titleId = useId()
   const descriptionId = useId()
 
+  useDialogA11y({ dialogRef, isLoading, onClose })
   useEffect(() => {
-    previouslyFocused.current = document.activeElement as HTMLElement | null
     cancelButtonRef.current?.focus()
-    return () => {
-      previouslyFocused.current?.focus?.()
-    }
-    // Runs once on mount/unmount only — capturing and restoring focus should
-    // not re-trigger when isLoading or other props change mid-dialog.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        if (isLoading) return
-        event.preventDefault()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab' || !dialogRef.current) return
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isLoading, onClose])
 
   function handleClose() {
     if (isLoading) return
