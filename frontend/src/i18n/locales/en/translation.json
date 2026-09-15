@@ -411,6 +411,7 @@
       "heading": "Grow connection",
       "description": "Connect your Grow account so sales are recorded here automatically the moment a customer pays.",
       "howTo": "Add a connection below, copy its unique webhook URL, and paste it into your Grow account's webhook settings for that terminal.",
+      "verificationNote": "Grow does not provide a webhook test environment, so this connection can only be verified by a real transaction — it stays \"waiting for first transaction\" until then, and is never described as active before that happens.",
       "refundsNote": "Grow does not currently send refund or cancellation updates through this connection — record those manually on the sale.",
       "csvFallbackNote": "If a transaction is ever missed, use CSV import below to add it after the fact.",
       "emptyState": "No Grow connections yet. Add one below to get started.",

@@ -343,7 +343,10 @@ export function GrowConnectionPanel() {
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t('imports.grow.description')}</p>
       <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{t('imports.grow.howTo')}</p>
 
-      <div className="mt-3 rounded-lg border border-amber-400/40 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+      <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
+        {t('imports.grow.verificationNote')}
+      </div>
+      <div className="mt-2 rounded-lg border border-amber-400/40 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
         {t('imports.grow.refundsNote')}
       </div>
       <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">

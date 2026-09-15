@@ -235,4 +235,12 @@ describe('GrowConnectionPanel', () => {
     )
     expect(screen.getByText(/ייבוא CSV/)).toBeInTheDocument()
   })
+
+  it('always shows that verification requires a real transaction, since Grow has no test environment', async () => {
+    mockSession('owner')
+    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByText(/אין סביבת בדיקה/)).toBeInTheDocument())
+  })
 })
