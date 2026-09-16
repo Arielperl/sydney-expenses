@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from app.models.sale import DocumentStatus, Sale, SaleStatus
 from app.services.assistant.tools import (
+    analyze_sales,
+    compare_sales_periods,
     count_sales_in_period,
     get_gross_revenue,
     get_pending_documents_summary,
@@ -13,6 +15,7 @@ from app.services.assistant.tools import (
     get_top_services,
     get_total_revenue,
     get_vat_collected,
+    query_sales,
 )
 
 
@@ -289,3 +292,131 @@ def test_get_refunds_summary_separates_currencies(db_session):
     assert result["count"] == 2
     by_currency = {row["currency"]: row["total_refunded"] for row in result["refunds_by_currency"]}
     assert by_currency == {"ILS": "100.00", "USD": "20.00"}
+
+
+# --- general analytics ----------------------------------------------------
+
+
+def test_query_sales_returns_the_largest_individual_sale_not_top_service(db_session):
+    _add_sale(db_session, customer_name="Small", service_name="Repeated", gross_amount=Decimal("800.00"))
+    _add_sale(db_session, customer_name="Also Small", service_name="Repeated", gross_amount=Decimal("900.00"))
+    _add_sale(db_session, customer_name="Largest", service_name="One-off", gross_amount=Decimal("1500.00"))
+
+    result = query_sales(db_session, sort_by="gross_amount", sort_order="desc", limit=1)
+
+    assert result["sales_by_currency"][0]["sales"][0]["customer_name"] == "Largest"
+    assert result["sales_by_currency"][0]["sales"][0]["gross_amount"] == "1500.00"
+
+
+def test_query_sales_can_rank_by_actual_net_after_partial_refund(db_session):
+    _add_sale(db_session, customer_name="Gross Winner", gross_amount=Decimal("1500.00"), net_amount=Decimal("1200.00"))
+    _add_sale(
+        db_session,
+        customer_name="Refunded",
+        gross_amount=Decimal("2000.00"),
+        net_amount=Decimal("1800.00"),
+        status=SaleStatus.PARTIALLY_REFUNDED,
+        refunded_amount=Decimal("1000.00"),
+    )
+
+    result = query_sales(db_session, sort_by="net_revenue", sort_order="desc", limit=1)
+
+    assert result["sales_by_currency"][0]["sales"][0]["customer_name"] == "Gross Winner"
+    assert result["sales_by_currency"][0]["sales"][0]["net_revenue"] == "1200.00"
+
+
+def test_query_sales_never_ranks_different_currencies_against_each_other(db_session):
+    _add_sale(db_session, customer_name="Shekel", currency="ILS", gross_amount=Decimal("1500.00"))
+    _add_sale(db_session, customer_name="Dollar", currency="USD", gross_amount=Decimal("500.00"))
+
+    result = query_sales(db_session, sort_by="gross_amount", limit=1)
+
+    assert [(group["currency"], group["sales"][0]["customer_name"]) for group in result["sales_by_currency"]] == [
+        ("ILS", "Shekel"),
+        ("USD", "Dollar"),
+    ]
+
+
+def test_query_sales_supports_future_combinations_of_filters(db_session):
+    _add_sale(
+        db_session,
+        customer_name="Dana Cohen",
+        service_name="Consulting",
+        payment_method="cash",
+        gross_amount=Decimal("300.00"),
+        occurred_at=datetime(2026, 3, 10, 12),
+    )
+    _add_sale(
+        db_session,
+        customer_name="Dana Cohen",
+        service_name="Workshop",
+        payment_method="card",
+        gross_amount=Decimal("700.00"),
+        occurred_at=datetime(2026, 4, 10, 12),
+    )
+
+    result = query_sales(
+        db_session,
+        customer_query="dana",
+        service_query="consult",
+        payment_method="cash",
+        start_date="2026-03-01",
+        end_date="2026-03-31",
+        sort_by="gross_amount",
+    )
+
+    assert [row["gross_amount"] for row in result["sales_by_currency"][0]["sales"]] == ["300.00"]
+
+
+def test_analyze_sales_answers_top_customer_and_average_ticket(db_session):
+    _add_sale(db_session, customer_name="Dana", gross_amount=Decimal("100.00"), net_amount=Decimal("80.00"))
+    _add_sale(db_session, customer_name="Dana", gross_amount=Decimal("300.00"), net_amount=Decimal("240.00"))
+    _add_sale(db_session, customer_name="Ariel", gross_amount=Decimal("350.00"), net_amount=Decimal("280.00"))
+
+    top_customer = analyze_sales(db_session, metric="net_revenue", group_by="customer", limit=1)
+    average = analyze_sales(db_session, metric="average_gross_amount", group_by="none")
+
+    assert top_customer["results"] == [{"group": "Dana", "currency": "ILS", "value": "320.00", "count": 2}]
+    assert average["results"] == [{"group": "all", "currency": "ILS", "value": "250.00", "count": 3}]
+
+
+def test_analyze_sales_handles_novel_payment_method_and_day_questions(db_session):
+    _add_sale(db_session, payment_method="cash", occurred_at=datetime(2026, 3, 10, 9), net_amount=Decimal("100.00"))
+    _add_sale(db_session, payment_method="cash", occurred_at=datetime(2026, 3, 10, 13), net_amount=Decimal("50.00"))
+    _add_sale(db_session, payment_method="card", occurred_at=datetime(2026, 3, 11, 9), net_amount=Decimal("120.00"))
+
+    by_method = analyze_sales(db_session, metric="sale_count", group_by="payment_method")
+    by_day = analyze_sales(db_session, metric="net_revenue", group_by="day", limit=1)
+
+    assert by_method["results"] == [{"group": "cash", "value": 2}, {"group": "card", "value": 1}]
+    assert by_day["results"] == [{"group": "2026-03-10", "currency": "ILS", "value": "150.00", "count": 2}]
+
+
+def test_compare_sales_periods_calculates_change_in_backend(db_session):
+    _add_sale(db_session, net_amount=Decimal("100.00"), occurred_at=datetime(2026, 2, 10, 9))
+    _add_sale(db_session, net_amount=Decimal("150.00"), occurred_at=datetime(2026, 3, 10, 9))
+
+    result = compare_sales_periods(
+        db_session,
+        first_start_date="2026-02-01",
+        first_end_date="2026-02-28",
+        second_start_date="2026-03-01",
+        second_end_date="2026-03-31",
+    )
+
+    assert result["periods_by_currency"] == [
+        {"currency": "ILS", "first": "100.00", "second": "150.00", "change_percent": "50.00"}
+    ]
+
+
+def test_general_analytics_rejects_unbounded_or_unknown_arguments(db_session):
+    assert "error" in query_sales(db_session, sort_by="raw_sql")
+    assert "error" in query_sales(db_session, limit=1000)
+    assert "error" in analyze_sales(db_session, group_by="credit_card_number")
+    assert "error" in compare_sales_periods(
+        db_session,
+        first_start_date="bad-date",
+        first_end_date="2026-01-31",
+        second_start_date="2026-02-01",
+        second_end_date="2026-02-28",
+    )

@@ -7,6 +7,7 @@ from openai import APIConnectionError, APITimeoutError, AuthenticationError
 from app.core.config import get_settings
 from app.services.assistant.exceptions import AssistantConfigError, AssistantProviderError
 from app.services.assistant.orchestrator import answer_question
+from app.services.assistant.tools import TOOL_DEFINITIONS, TOOL_FUNCTIONS
 
 # Both APITimeoutError and APIConnectionError require a real httpx.Request
 # object (not None) — matches the exact pattern already used in
@@ -96,6 +97,21 @@ def test_system_prompt_tells_the_model_the_real_current_date(db_session):
     system_message = client.chat.completions.last_messages[0]
     assert system_message["role"] == "system"
     assert "2026-09-10" in system_message["content"]
+
+
+def test_system_prompt_routes_individual_and_grouped_analytics_differently(db_session):
+    client = _FakeOpenAIClient([_FakeMessage(content="ok")])
+    answer_question(_settings_with_openai(), db_session, "hi", [], client=client)
+    prompt = client.chat.completions.last_messages[0]["content"]
+    assert "המכירה הכי גבוהה" in prompt
+    assert "query_sales" in prompt
+    assert "analyze_sales" in prompt
+    assert "Do not substitute get_top_services for an individual-sale question" in prompt
+
+
+def test_every_declared_tool_has_a_dispatch_function():
+    declared = {item["function"]["name"] for item in TOOL_DEFINITIONS}
+    assert declared == set(TOOL_FUNCTIONS)
 
 
 def test_runs_a_tool_and_uses_its_result(db_session):

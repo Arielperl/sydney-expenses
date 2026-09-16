@@ -36,6 +36,7 @@ orchestrator's tool-calling loop dispatches through, so a tool can never be
 invoked under a name or shape the model wasn't actually given.
 """
 
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -99,6 +100,345 @@ def _sum_by_currency(sales: list[Sale], value_fn, *, amount_key: str) -> list[di
         {"currency": currency, amount_key: _round_money(totals[currency]), "count": counts[currency]}
         for currency in sorted(totals)
     ]
+
+
+_ANALYTICS_STATUS_GROUPS = {
+    "successful": {SaleStatus.SUCCEEDED, SaleStatus.PARTIALLY_REFUNDED},
+    "pending": {SaleStatus.PENDING},
+    "failed": {SaleStatus.FAILED},
+    "refunded": {SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED},
+}
+
+_ROW_SORT_VALUE: dict[str, Callable[[Sale], Decimal | datetime]] = {
+    "occurred_at": lambda sale: sale.occurred_at,
+    "gross_amount": lambda sale: sale.gross_amount,
+    "net_revenue": lambda sale: sale.revenue_contribution(),
+    "vat_amount": lambda sale: sale.vat_amount or Decimal("0"),
+    "processing_fee": lambda sale: sale.processing_fee or Decimal("0"),
+    "refunded_amount": lambda sale: sale.refunded_amount or Decimal("0"),
+}
+
+
+def _analytics_sales(
+    db: Session,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    status: str = "successful",
+    customer_query: str | None = None,
+    service_query: str | None = None,
+    payment_method: str | None = None,
+    currency: str | None = None,
+) -> list[Sale]:
+    """Shared, bounded filter language for the assistant's general-purpose
+    analytics tools. It deliberately exposes domain filters rather than SQL:
+    the model can ask useful new questions without ever constructing a query,
+    naming a table, or escaping the request's business-scoped DB session."""
+    if status not in {*_ANALYTICS_STATUS_GROUPS, "all"}:
+        raise ValueError(f"invalid status: {status!r}")
+
+    sales = _filtered_sales(db, start_date, end_date, only_succeeded=False)
+    if status != "all":
+        allowed_statuses = _ANALYTICS_STATUS_GROUPS[status]
+        sales = [sale for sale in sales if sale.status in allowed_statuses]
+
+    if customer_query:
+        needle = customer_query.strip().casefold()
+        sales = [sale for sale in sales if needle in sale.customer_name.casefold()]
+    if service_query:
+        needle = service_query.strip().casefold()
+        sales = [sale for sale in sales if needle in sale.service_name.casefold()]
+    if payment_method:
+        wanted = payment_method.strip().casefold()
+        sales = [sale for sale in sales if (sale.payment_method or "").casefold() == wanted]
+    if currency:
+        wanted_currency = currency.strip().upper()
+        sales = [sale for sale in sales if sale.currency.upper() == wanted_currency]
+    return sales
+
+
+def _sale_row(sale: Sale) -> dict:
+    return {
+        "sale_id": sale.id,
+        "customer_name": sale.customer_name,
+        "service_name": sale.service_name,
+        "occurred_at": sale.occurred_at.isoformat(),
+        "status": sale.status.value,
+        "payment_method": sale.payment_method,
+        "currency": sale.currency,
+        "gross_amount": _round_money(sale.gross_amount),
+        "net_revenue": _round_money(sale.revenue_contribution()),
+        "vat_amount": _round_money(sale.vat_amount or Decimal("0")),
+        "processing_fee": _round_money(sale.processing_fee or Decimal("0")),
+        "refunded_amount": _round_money(sale.refunded_amount or Decimal("0")),
+    }
+
+
+def query_sales(
+    db: Session,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    status: str = "successful",
+    customer_query: str | None = None,
+    service_query: str | None = None,
+    payment_method: str | None = None,
+    currency: str | None = None,
+    sort_by: str = "occurred_at",
+    sort_order: str = "desc",
+    limit: int = 10,
+) -> dict:
+    """Search and rank individual sales using a constrained query language.
+
+    Results are partitioned by currency before ranking. This matters even for
+    a seemingly simple question such as "largest sale": 1,500 ILS and 1,500
+    USD cannot honestly compete for one global first place without an exchange
+    rate, which this product intentionally does not guess.
+    """
+    if sort_by not in _ROW_SORT_VALUE:
+        return {"error": f"invalid sort_by: {sort_by!r}"}
+    if sort_order not in {"asc", "desc"}:
+        return {"error": f"invalid sort_order: {sort_order!r}"}
+    if not isinstance(limit, int) or not 1 <= limit <= 20:
+        return {"error": "limit must be an integer between 1 and 20"}
+    try:
+        sales = _analytics_sales(
+            db,
+            start_date=start_date,
+            end_date=end_date,
+            status=status,
+            customer_query=customer_query,
+            service_query=service_query,
+            payment_method=payment_method,
+            currency=currency,
+        )
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+    grouped: dict[str, list[Sale]] = {}
+    for sale in sales:
+        grouped.setdefault(sale.currency, []).append(sale)
+
+    reverse = sort_order == "desc"
+    value_fn = _ROW_SORT_VALUE[sort_by]
+    return {
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+        "sales_by_currency": [
+            {
+                "currency": currency_code,
+                "sales": [
+                    _sale_row(sale)
+                    for sale in sorted(grouped[currency_code], key=value_fn, reverse=reverse)[:limit]
+                ],
+            }
+            for currency_code in sorted(grouped)
+        ],
+    }
+
+
+def _group_label(sale: Sale, group_by: str) -> str:
+    if group_by == "customer":
+        return sale.customer_name
+    if group_by == "service":
+        return sale.service_name
+    if group_by == "payment_method":
+        return sale.payment_method or "unknown"
+    if group_by == "status":
+        return sale.status.value
+    if group_by == "day":
+        return sale.occurred_at.date().isoformat()
+    if group_by == "week":
+        return _period_start(sale.occurred_at.date(), "week").isoformat()
+    if group_by == "month":
+        return _period_start(sale.occurred_at.date(), "month").isoformat()
+    return "all"
+
+
+def analyze_sales(
+    db: Session,
+    metric: str = "net_revenue",
+    group_by: str = "none",
+    start_date: str | None = None,
+    end_date: str | None = None,
+    status: str = "successful",
+    customer_query: str | None = None,
+    service_query: str | None = None,
+    payment_method: str | None = None,
+    currency: str | None = None,
+    limit: int = 10,
+) -> dict:
+    """Aggregate sales by a safe, finite set of business dimensions.
+
+    This is intentionally broad enough for questions the product team did not
+    predict (top customer, average ticket, strongest weekday, payment-method
+    mix) while remaining read-only and structurally incapable of arbitrary SQL.
+    """
+    valid_metrics = {
+        "net_revenue",
+        "gross_revenue",
+        "vat_collected",
+        "processing_fees",
+        "refunded_amount",
+        "average_net_revenue",
+        "average_gross_amount",
+        "sale_count",
+    }
+    valid_groups = {"none", "customer", "service", "payment_method", "status", "day", "week", "month"}
+    if metric not in valid_metrics:
+        return {"error": f"invalid metric: {metric!r}"}
+    if group_by not in valid_groups:
+        return {"error": f"invalid group_by: {group_by!r}"}
+    if not isinstance(limit, int) or not 1 <= limit <= 50:
+        return {"error": "limit must be an integer between 1 and 50"}
+    effective_status = status
+    if metric == "refunded_amount" and status == "successful":
+        # A user asking for refunded money normally means all refunded and
+        # partially-refunded sales. Requiring the model to remember an extra
+        # status argument would make an otherwise valid question silently omit
+        # full refunds.
+        effective_status = "refunded"
+    elif group_by == "status" and status == "successful":
+        # A status breakdown is only meaningful across statuses unless the
+        # caller deliberately supplied another explicit subset.
+        effective_status = "all"
+
+    try:
+        sales = _analytics_sales(
+            db,
+            start_date=start_date,
+            end_date=end_date,
+            status=effective_status,
+            customer_query=customer_query,
+            service_query=service_query,
+            payment_method=payment_method,
+            currency=currency,
+        )
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+    if metric == "sale_count":
+        counts: dict[str, int] = {}
+        for sale in sales:
+            label = _group_label(sale, group_by)
+            counts[label] = counts.get(label, 0) + 1
+        rows = [{"group": label, "value": value} for label, value in counts.items()]
+        rows.sort(key=lambda row: (-row["value"], row["group"]))
+        return {"metric": metric, "group_by": group_by, "results": rows[:limit]}
+
+    value_functions: dict[str, Callable[[Sale], Decimal]] = {
+        "net_revenue": lambda sale: sale.revenue_contribution(),
+        "gross_revenue": lambda sale: sale.gross_amount,
+        "vat_collected": lambda sale: sale.vat_amount or Decimal("0"),
+        "processing_fees": lambda sale: sale.processing_fee or Decimal("0"),
+        "refunded_amount": lambda sale: sale.refunded_amount or Decimal("0"),
+        "average_net_revenue": lambda sale: sale.revenue_contribution(),
+        "average_gross_amount": lambda sale: sale.gross_amount,
+    }
+    totals: dict[tuple[str, str], Decimal] = {}
+    counts: dict[tuple[str, str], int] = {}
+    value_fn = value_functions[metric]
+    for sale in sales:
+        key = (_group_label(sale, group_by), sale.currency)
+        totals[key] = totals.get(key, Decimal("0")) + value_fn(sale)
+        counts[key] = counts.get(key, 0) + 1
+
+    is_average = metric.startswith("average_")
+    rows = []
+    for (label, currency_code), total in totals.items():
+        count = counts[(label, currency_code)]
+        value = total / count if is_average else total
+        rows.append({"group": label, "currency": currency_code, "value": _round_money(value), "count": count})
+
+    by_currency: dict[str, list[dict]] = {}
+    for row in rows:
+        by_currency.setdefault(row["currency"], []).append(row)
+    limited: list[dict] = []
+    for currency_code in sorted(by_currency):
+        ranked = sorted(by_currency[currency_code], key=lambda row: (-Decimal(row["value"]), row["group"]))
+        limited.extend(ranked[:limit])
+    return {"metric": metric, "group_by": group_by, "results": limited}
+
+
+def compare_sales_periods(
+    db: Session,
+    first_start_date: str,
+    first_end_date: str,
+    second_start_date: str,
+    second_end_date: str,
+    metric: str = "net_revenue",
+    status: str = "successful",
+    customer_query: str | None = None,
+    service_query: str | None = None,
+    payment_method: str | None = None,
+    currency: str | None = None,
+) -> dict:
+    """Compare the same metric across two explicit inclusive date ranges.
+    Percent change is computed here rather than by the language model, keeping
+    arithmetic deterministic and making a zero baseline explicit."""
+    metric_value: dict[str, Callable[[Sale], Decimal]] = {
+        "net_revenue": lambda sale: sale.revenue_contribution(),
+        "gross_revenue": lambda sale: sale.gross_amount,
+        "vat_collected": lambda sale: sale.vat_amount or Decimal("0"),
+        "processing_fees": lambda sale: sale.processing_fee or Decimal("0"),
+        "refunded_amount": lambda sale: sale.refunded_amount or Decimal("0"),
+    }
+    if metric not in {*metric_value, "sale_count"}:
+        return {"error": f"invalid metric: {metric!r}"}
+
+    def period_sales(start_date: str, end_date: str) -> list[Sale]:
+        effective_status = "refunded" if metric == "refunded_amount" and status == "successful" else status
+        return _analytics_sales(
+            db,
+            start_date=start_date,
+            end_date=end_date,
+            status=effective_status,
+            customer_query=customer_query,
+            service_query=service_query,
+            payment_method=payment_method,
+            currency=currency,
+        )
+
+    try:
+        first = period_sales(first_start_date, first_end_date)
+        second = period_sales(second_start_date, second_end_date)
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+    if metric == "sale_count":
+        first_value = Decimal(len(first))
+        second_value = Decimal(len(second))
+        change = None if first_value == 0 else _round_money((second_value - first_value) / first_value * 100)
+        return {
+            "metric": metric,
+            "first": len(first),
+            "second": len(second),
+            "change_percent": change,
+        }
+
+    value_fn = metric_value[metric]
+    first_totals = {row["currency"]: Decimal(row["value"]) for row in _analytics_totals(first, value_fn)}
+    second_totals = {row["currency"]: Decimal(row["value"]) for row in _analytics_totals(second, value_fn)}
+    rows = []
+    for currency_code in sorted(set(first_totals) | set(second_totals)):
+        first_value = first_totals.get(currency_code, Decimal("0"))
+        second_value = second_totals.get(currency_code, Decimal("0"))
+        change = None if first_value == 0 else _round_money((second_value - first_value) / first_value * 100)
+        rows.append(
+            {
+                "currency": currency_code,
+                "first": _round_money(first_value),
+                "second": _round_money(second_value),
+                "change_percent": change,
+            }
+        )
+    return {"metric": metric, "periods_by_currency": rows}
+
+
+def _analytics_totals(sales: list[Sale], value_fn: Callable[[Sale], Decimal]) -> list[dict]:
+    totals: dict[str, Decimal] = {}
+    for sale in sales:
+        totals[sale.currency] = totals.get(sale.currency, Decimal("0")) + value_fn(sale)
+    return [{"currency": code, "value": _round_money(totals[code])} for code in sorted(totals)]
 
 
 def get_total_revenue(db: Session, start_date: str | None = None, end_date: str | None = None) -> dict:
@@ -327,11 +667,36 @@ TOOL_FUNCTIONS = {
     "count_sales_in_period": count_sales_in_period,
     "get_pending_documents_summary": get_pending_documents_summary,
     "get_refunds_summary": get_refunds_summary,
+    "query_sales": query_sales,
+    "analyze_sales": analyze_sales,
+    "compare_sales_periods": compare_sales_periods,
 }
 
 _DATE_RANGE_PROPERTIES = {
     "start_date": {"type": "string", "description": "ISO date YYYY-MM-DD, inclusive lower bound. Omit for no lower bound."},
     "end_date": {"type": "string", "description": "ISO date YYYY-MM-DD, inclusive upper bound. Omit for no upper bound."},
+}
+
+_ANALYTICS_FILTER_PROPERTIES = {
+    **_DATE_RANGE_PROPERTIES,
+    "status": {
+        "type": "string",
+        "enum": ["successful", "pending", "failed", "refunded", "all"],
+        "description": (
+            "Sale lifecycle filter. Defaults to successful, which includes succeeded and partially-refunded "
+            "sales but excludes fully-refunded, failed, and pending sales."
+        ),
+    },
+    "customer_query": {"type": "string", "description": "Case-insensitive partial customer-name filter."},
+    "service_query": {"type": "string", "description": "Case-insensitive partial service/product-name filter."},
+    "payment_method": {
+        "type": "string",
+        "description": "Exact payment-method filter, such as card, cash, or other, when the user asks for one.",
+    },
+    "currency": {
+        "type": "string",
+        "description": "ISO currency filter such as ILS, USD, or EUR. Omit to return separate results per currency.",
+    },
 }
 
 TOOL_DEFINITIONS = [
@@ -347,6 +712,141 @@ TOOL_DEFINITIONS = [
                 "never assume or guess a currency."
             ),
             "parameters": {"type": "object", "properties": _DATE_RANGE_PROPERTIES, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_sales",
+            "description": (
+                "Search, filter, and rank INDIVIDUAL sale transactions. Use this for questions such as 'what was "
+                "my largest/highest/smallest sale?', 'which single transaction made the most money?', 'show the "
+                "three biggest cash sales', 'when did customer X buy?', or any question that needs actual sale "
+                "rows rather than an aggregate. For 'largest sale/transaction/payment' default to "
+                "sort_by=gross_amount, sort_order=desc, limit=1; use net_revenue only when the user explicitly "
+                "asks what the business kept/netted. Results are ranked separately per currency and include the "
+                "customer, service, date, gross, net, VAT, fees, refunds, and status."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    **_ANALYTICS_FILTER_PROPERTIES,
+                    "sort_by": {
+                        "type": "string",
+                        "enum": [
+                            "occurred_at",
+                            "gross_amount",
+                            "net_revenue",
+                            "vat_amount",
+                            "processing_fee",
+                            "refunded_amount",
+                        ],
+                        "description": "Field to rank individual sales by. Defaults to occurred_at.",
+                    },
+                    "sort_order": {
+                        "type": "string",
+                        "enum": ["asc", "desc"],
+                        "description": "Ascending or descending rank. Defaults to desc.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20,
+                        "description": "Maximum sale rows to return per currency. Defaults to 10.",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_sales",
+            "description": (
+                "General read-only sales analytics for both expected and novel questions. Aggregate a metric and "
+                "optionally rank it by customer, service, payment method, status, day, week, or month. Use for top "
+                "customers, average transaction value, payment-method mix, strongest day/week/month, revenue by "
+                "customer/service, VAT or fees breakdowns, and sale counts by category. Monetary results are "
+                "always separated by currency. This analyzes groups; use query_sales when the user asks about an "
+                "individual transaction."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    **_ANALYTICS_FILTER_PROPERTIES,
+                    "metric": {
+                        "type": "string",
+                        "enum": [
+                            "net_revenue",
+                            "gross_revenue",
+                            "vat_collected",
+                            "processing_fees",
+                            "refunded_amount",
+                            "average_net_revenue",
+                            "average_gross_amount",
+                            "sale_count",
+                        ],
+                        "description": "Value to calculate. Defaults to net_revenue.",
+                    },
+                    "group_by": {
+                        "type": "string",
+                        "enum": ["none", "customer", "service", "payment_method", "status", "day", "week", "month"],
+                        "description": "Dimension to aggregate and rank by. Defaults to none for one total per currency.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50,
+                        "description": "Maximum groups per currency (or total for sale_count). Defaults to 10.",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_sales_periods",
+            "description": (
+                "Compare net/gross revenue, VAT, fees, refunds, or sale count between two explicit inclusive date "
+                "ranges. Use for questions like 'did I improve this month?', 'compare this week with last week', "
+                "or 'how much did card revenue change?'. Resolve relative periods using today's date from the "
+                "system message. The tool computes the percentage change deterministically; a null percentage "
+                "means the first period was zero, so no percentage can honestly be calculated."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "first_start_date": {"type": "string", "description": "First period start, YYYY-MM-DD inclusive."},
+                    "first_end_date": {"type": "string", "description": "First period end, YYYY-MM-DD inclusive."},
+                    "second_start_date": {"type": "string", "description": "Second period start, YYYY-MM-DD inclusive."},
+                    "second_end_date": {"type": "string", "description": "Second period end, YYYY-MM-DD inclusive."},
+                    "metric": {
+                        "type": "string",
+                        "enum": [
+                            "net_revenue",
+                            "gross_revenue",
+                            "vat_collected",
+                            "processing_fees",
+                            "refunded_amount",
+                            "sale_count",
+                        ],
+                        "description": "Metric to compare. Defaults to net_revenue.",
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["successful", "pending", "failed", "refunded", "all"],
+                        "description": "Optional lifecycle filter. Defaults to successful; refunded_amount defaults to refunded.",
+                    },
+                    "customer_query": {"type": "string", "description": "Optional partial customer-name filter."},
+                    "service_query": {"type": "string", "description": "Optional partial service/product filter."},
+                    "payment_method": {"type": "string", "description": "Optional exact payment-method filter."},
+                    "currency": {"type": "string", "description": "Optional ISO currency filter."},
+                },
+                "required": ["first_start_date", "first_end_date", "second_start_date", "second_end_date"],
+            },
         },
     },
     {
