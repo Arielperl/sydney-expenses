@@ -30,6 +30,10 @@ DEFAULT_SECTION_LIMIT = 20
 @dataclass
 class ExceptionCenter:
     attention_count: int
+    pending_documents_count: int
+    document_failures_count: int
+    refunds_needing_attention_count: int
+    incomplete_details_count: int
     pending_documents: list[Sale]
     document_failures: list[Sale]
     refunds_needing_attention: list[Sale]
@@ -60,6 +64,19 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
         Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
     )
     incomplete_details = _query(Sale.customer_contact.is_(None))
+
+    def _count(*conditions) -> int:
+        return db.scalar(select(func.count(Sale.id)).where(*conditions)) or 0
+
+    pending_documents_count = _count(
+        Sale.status == SaleStatus.SUCCEEDED,
+        Sale.document_status == DocumentStatus.PENDING,
+    )
+    document_failures_count = _count(document_needs_attention)
+    refunds_needing_attention_count = _count(
+        Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
+    )
+    incomplete_details_count = _count(Sale.customer_contact.is_(None))
     attention_count = db.scalar(
         select(func.count(Sale.id)).where(
             or_(
@@ -76,6 +93,10 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
 
     return ExceptionCenter(
         attention_count=attention_count,
+        pending_documents_count=pending_documents_count,
+        document_failures_count=document_failures_count,
+        refunds_needing_attention_count=refunds_needing_attention_count,
+        incomplete_details_count=incomplete_details_count,
         pending_documents=pending_documents,
         document_failures=document_failures,
         refunds_needing_attention=refunds_needing_attention,

@@ -80,6 +80,8 @@ def test_exception_center_route(client):
     assert response.status_code == 200
     body = response.json()
     assert body["attention_count"] == 1
+    assert body["pending_documents_count"] == 0
+    assert body["incomplete_details_count"] == 1
     assert len(body["incomplete_details"]) == 1
     assert body["incomplete_details"][0]["customer_name"] == "No Contact"
 
@@ -103,3 +105,5 @@ def test_attention_count_is_unique_and_not_limited(db_session):
     assert len(center.incomplete_details) == 1
     assert center.incomplete_details[0].id == both_pending_and_incomplete.id
     assert center.attention_count == 26
+    assert center.pending_documents_count == 26
+    assert center.incomplete_details_count == 1

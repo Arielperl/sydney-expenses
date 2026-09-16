@@ -32,7 +32,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation()
   const { data: attentionCount = 0 } = useQuery({
     queryKey: ['exception-center'],
-    queryFn: getExceptionCenter,
+    queryFn: () => getExceptionCenter(),
     select: (data) => data.attention_count,
     refetchInterval: 60_000,
   })

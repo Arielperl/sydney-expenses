@@ -5,6 +5,10 @@ from app.schemas.sale import SaleRead
 
 class ExceptionCenterResponse(BaseModel):
     attention_count: int
+    pending_documents_count: int
+    document_failures_count: int
+    refunds_needing_attention_count: int
+    incomplete_details_count: int
     pending_documents: list[SaleRead]
     document_failures: list[SaleRead]
     refunds_needing_attention: list[SaleRead]

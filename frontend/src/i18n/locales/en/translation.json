@@ -382,6 +382,8 @@
     "emptyDocumentFailures": "No documents need review — including generation failures and automatic documents that never arrived within a reasonable time",
     "emptyRefunds": "No refunds needing attention",
     "emptyIncompleteDetails": "No sales are missing customer details",
+    "showingCount": "Showing {{shown}} of {{total}}",
+    "loadMore": "Show more",
     "importDocument": "Import document",
     "editInSales": "Edit in Sales"
   },

@@ -382,6 +382,8 @@
     "emptyDocumentFailures": "אין מסמכים שדורשים בדיקה — כולל כשלי הפקה ומסמכים אוטומטיים שלא הגיעו זמן סביר",
     "emptyRefunds": "אין זיכויים הדורשים תשומת לב",
     "emptyIncompleteDetails": "לכל המכירות יש פרטי לקוח מלאים",
+    "showingCount": "מוצגות {{shown}} מתוך {{total}}",
+    "loadMore": "הצגת עוד",
     "importDocument": "ייבוא מסמך",
     "editInSales": "עריכה במכירות"
   },

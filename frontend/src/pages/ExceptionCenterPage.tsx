@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -39,25 +39,51 @@ function SaleSection({
   title,
   emptyLabel,
   sales,
+  total,
+  onLoadMore,
+  isLoadingMore,
   action,
 }: {
   id: string
   title: string
   emptyLabel: string
   sales: Sale[]
+  total: number
+  onLoadMore: () => void
+  isLoadingMore: boolean
   action?: (sale: Sale) => ReactNode
 }) {
+  const { t } = useTranslation()
   return (
     <section id={id} className="scroll-mt-6">
-      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+        {total > 0 && (
+          <span className="text-xs text-stone-500 dark:text-stone-400">
+            {t('exceptions.showingCount', { shown: sales.length, total })}
+          </span>
+        )}
+      </div>
       {sales.length === 0 ? (
         <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{emptyLabel}</p>
       ) : (
-        <ul className="mt-3 divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-white dark:divide-stone-800 dark:border-stone-800 dark:bg-stone-900">
-          {sales.map((sale) => (
-            <SaleRow key={sale.id} sale={sale} action={action?.(sale)} />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-3 divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-white dark:divide-stone-800 dark:border-stone-800 dark:bg-stone-900">
+            {sales.map((sale) => (
+              <SaleRow key={sale.id} sale={sale} action={action?.(sale)} />
+            ))}
+          </ul>
+          {sales.length < total && (
+            <button
+              type="button"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="mt-3 rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+            >
+              {isLoadingMore ? t('common.loading') : t('exceptions.loadMore')}
+            </button>
+          )}
+        </>
       )}
     </section>
   )
@@ -66,10 +92,14 @@ function SaleSection({
 export function ExceptionCenterPage() {
   const { t } = useTranslation()
   const location = useLocation()
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['exception-center'],
-    queryFn: getExceptionCenter,
+  const [limit, setLimit] = useState(20)
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
+    queryKey: ['exception-center', limit],
+    queryFn: () => getExceptionCenter(limit),
+    placeholderData: (previousData) => previousData,
   })
+
+  const loadMore = () => setLimit((current) => Math.min(current + 20, 500))
 
   // React Router doesn't scroll to a `#hash` on its own client-side
   // navigations (only real browser navigation does that) — this is what
@@ -115,6 +145,9 @@ export function ExceptionCenterPage() {
         title={t('exceptions.sections.pendingDocuments')}
         emptyLabel={t('exceptions.emptyPendingDocuments')}
         sales={data.pending_documents}
+        total={data.pending_documents_count}
+        onLoadMore={loadMore}
+        isLoadingMore={isFetching}
         action={importLink}
       />
 
@@ -123,6 +156,9 @@ export function ExceptionCenterPage() {
         title={t('exceptions.sections.documentFailures')}
         emptyLabel={t('exceptions.emptyDocumentFailures')}
         sales={data.document_failures}
+        total={data.document_failures_count}
+        onLoadMore={loadMore}
+        isLoadingMore={isFetching}
         action={importLink}
       />
 
@@ -131,6 +167,9 @@ export function ExceptionCenterPage() {
         title={t('exceptions.sections.refundsNeedingAttention')}
         emptyLabel={t('exceptions.emptyRefunds')}
         sales={data.refunds_needing_attention}
+        total={data.refunds_needing_attention_count}
+        onLoadMore={loadMore}
+        isLoadingMore={isFetching}
       />
 
       <SaleSection
@@ -138,6 +177,9 @@ export function ExceptionCenterPage() {
         title={t('exceptions.sections.incompleteDetails')}
         emptyLabel={t('exceptions.emptyIncompleteDetails')}
         sales={data.incomplete_details}
+        total={data.incomplete_details_count}
+        onLoadMore={loadMore}
+        isLoadingMore={isFetching}
         action={editLink}
       />
     </div>
