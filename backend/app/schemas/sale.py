@@ -153,6 +153,7 @@ class SaleRead(BaseModel):
     document_status: DocumentStatus
     document_number: str | None = None
     document_url: str | None = None
+    document_type: str | None = None
     raw_description: str | None = None
     created_at: datetime
     updated_at: datetime

@@ -172,6 +172,16 @@ class Settings(BaseSettings):
     # when this is misconfigured.
     grow_webhook_allowed_ips: list[str] = []
 
+    # How long a sale is allowed to sit at document_status=waiting_automatic
+    # (or a provider-document event at pending_match) before the Exception
+    # Center treats it as needing attention instead of a normal, still-
+    # arriving delivery. 24h comfortably covers Grow's slowest realistic
+    # invoice-webhook delay while still surfacing a genuine miss within one
+    # business day. Deterministic and query-time (see
+    # app/services/exception_center.py) — never an in-memory timer or
+    # background job, since the backend runs on Vercel serverless.
+    document_match_grace_period_hours: int = 24
+
     # Cardcom account-level ("LowProfile") webhook ingestion — a completely
     # separate provider from Grow, with its own IP allowlist (Cardcom's own
     # published ranges, see docs/cardcom in README) and its own credential

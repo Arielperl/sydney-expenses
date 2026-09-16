@@ -113,7 +113,7 @@
     "allClear": "All clear — no sales are waiting on anything",
     "attention": {
       "pendingDocuments": "{{count}} sales awaiting a document",
-      "documentFailures": "{{count}} document generation failures",
+      "documentFailures": "{{count}} documents needing review",
       "failedPayments": "{{count}} failed payments",
       "refunds": "{{count}} refunds needing attention",
       "incompleteDetails": "{{count}} sales missing customer details"
@@ -287,6 +287,7 @@
   },
   "documentStatus": {
     "pending": "Document pending",
+    "waiting_automatic": "Waiting for provider document",
     "issued": "Document issued",
     "failed": "Document failed",
     "not_required": "Not required"
@@ -354,6 +355,9 @@
     "customerDocument": "Customer document",
     "documentStatus": "Document status",
     "documentNumber": "Document number",
+    "documentType": "Document type",
+    "documentWaitingAutomaticHint": "The provider (Grow / Cardcom) is expected to supply this document automatically. If it never arrives, you can attach one manually.",
+    "attachDocumentManually": "Attach document manually",
     "timeline": "Timeline",
     "noHistoryAvailable": "No earlier history is available for this sale.",
     "timelineHonestyNote": "This timeline shows only events actually recorded by the system — a sale created before this history existed may show fewer events than a newer one.",
@@ -370,12 +374,12 @@
     "subtitle": "Sales that need your attention",
     "sections": {
       "pendingDocuments": "Successful sales awaiting a document",
-      "documentFailures": "Document generation failures",
+      "documentFailures": "Documents needing review",
       "refundsNeedingAttention": "Refunds needing attention",
       "incompleteDetails": "Incomplete customer or service details"
     },
     "emptyPendingDocuments": "Every successful sale has a document",
-    "emptyDocumentFailures": "No document generation failures",
+    "emptyDocumentFailures": "No documents need review — including generation failures and automatic documents that never arrived within a reasonable time",
     "emptyRefunds": "No refunds needing attention",
     "emptyIncompleteDetails": "No sales are missing customer details",
     "importDocument": "Import document",
@@ -410,8 +414,8 @@
     "grow": {
       "heading": "Grow connection",
       "description": "Connect your Grow account so sales are recorded here automatically the moment a customer pays.",
-      "howTo": "Add a connection below, copy its unique webhook URL, and paste it into your Grow account's webhook settings for that terminal.",
-      "verificationNote": "Grow does not provide a webhook test environment, so this connection can only be verified by a real transaction — it stays \"waiting for first transaction\" until then, and is never described as active before that happens.",
+      "howTo": "Add a connection below, copy its unique webhook URL, and ask Grow support to enable both the relevant transaction webhook and \"Invoice creation\" for it — using that exact same URL for both. Without \"Invoice creation,\" sales are still recorded automatically, but the customer document won't be attached automatically.",
+      "verificationNote": "Grow does not provide a webhook test environment, so this connection can only be verified by a real transaction — it stays \"waiting for first transaction\" until then, and is never described as active before that happens. Automatic document linking (Invoice creation) is only considered active once a real invoice webhook has actually been received.",
       "refundsNote": "Grow does not currently send refund or cancellation updates through this connection — record those manually on the sale.",
       "csvFallbackNote": "If a transaction is ever missed, use CSV import below to add it after the fact.",
       "emptyState": "No Grow connections yet. Add one below to get started.",

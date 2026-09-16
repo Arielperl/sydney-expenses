@@ -74,9 +74,22 @@ class TaxTreatment(str, enum.Enum):
 
 class DocumentStatus(str, enum.Enum):
     """Tracks the receipt/tax document issued *to the customer* for this
-    sale — an outgoing document, never one received from a supplier."""
+    sale — an outgoing document, never one received from a supplier.
+
+    `WAITING_AUTOMATIC` (added for provider-document sync — Grow's separate
+    "Invoice creation" webhook, Cardcom's GetLpResult `DocumentInfo`) is
+    deliberately distinct from `PENDING`: both mean "no document yet," but
+    `PENDING` is a sale with no automatic document path at all (manual/CSV/
+    no provider integration), while `WAITING_AUTOMATIC` is a sale whose
+    provider is expected to supply a document and simply hasn't yet — the
+    Exception Center must never treat a fresh `WAITING_AUTOMATIC` sale as
+    needing attention the way it does `PENDING`/`FAILED` (see
+    app/services/exception_center.py's grace-period rule). `NOT_REQUIRED`
+    is for a sale no document is ever expected for (e.g. a declined/failed
+    transaction) — never used for a sale that IS expected to get one."""
 
     PENDING = "pending"
+    WAITING_AUTOMATIC = "waiting_automatic"
     ISSUED = "issued"
     FAILED = "failed"
     NOT_REQUIRED = "not_required"
@@ -142,7 +155,10 @@ class Sale(BusinessOwned, Base):
         Enum(DocumentStatus, native_enum=False), nullable=False, default=DocumentStatus.PENDING
     )
     document_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    document_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    document_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    # The provider's own document type label (e.g. Cardcom's "TaxInvoiceAndReceipt").
+    # Grow's invoice webhook never sends a type, so this stays null for Grow.
+    document_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     raw_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     import_batch_id: Mapped[str | None] = mapped_column(

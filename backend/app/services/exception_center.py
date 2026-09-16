@@ -1,14 +1,27 @@
 """The exception center: the primary place a business owner's attention
 should go, replacing the old expense-to-receipt reconciliation inbox. Sales
 never need "matching" anymore — a sale's document is either generated
-automatically at creation time or imported explicitly — so these are the
-only things that still need a human to look at them."""
+automatically (our own DocumentProvider, or a real payment/invoicing
+provider like Grow/Cardcom) or imported explicitly — so these are the only
+things that still need a human to look at them.
+
+A sale waiting on an automatic provider document (`document_status=
+waiting_automatic`) is deliberately NOT surfaced the moment it's created —
+that's the normal, expected state for every fresh Grow/Cardcom sale until
+the provider's own document arrives, and treating it as an exception would
+turn ordinary automatic operation into daily manual work. It only becomes
+an exception once it's sat unmatched for longer than
+`settings.document_match_grace_period_hours` — a deterministic, query-time
+cutoff (never an in-memory timer or background job, since the backend runs
+on Vercel serverless)."""
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.sale import DocumentStatus, Sale, SaleStatus
 
 DEFAULT_SECTION_LIMIT = 20
@@ -28,11 +41,21 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
         stmt = select(Sale).where(*conditions).order_by(Sale.occurred_at.desc()).limit(limit)
         return list(db.scalars(stmt).all())
 
+    grace_cutoff = datetime.utcnow() - timedelta(hours=get_settings().document_match_grace_period_hours)
+    # A genuine document problem: our own generic issuance failed, OR a
+    # provider-document sale has sat waiting past the grace period — but
+    # never a fresh waiting_automatic sale still within it (see module
+    # docstring).
+    document_needs_attention = or_(
+        Sale.document_status == DocumentStatus.FAILED,
+        and_(Sale.document_status == DocumentStatus.WAITING_AUTOMATIC, Sale.occurred_at < grace_cutoff),
+    )
+
     pending_documents = _query(
         Sale.status == SaleStatus.SUCCEEDED,
         Sale.document_status == DocumentStatus.PENDING,
     )
-    document_failures = _query(Sale.document_status == DocumentStatus.FAILED)
+    document_failures = _query(document_needs_attention)
     refunds_needing_attention = _query(
         Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
     )
@@ -44,7 +67,7 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
                     Sale.status == SaleStatus.SUCCEEDED,
                     Sale.document_status == DocumentStatus.PENDING,
                 ),
-                Sale.document_status == DocumentStatus.FAILED,
+                document_needs_attention,
                 Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED]),
                 Sale.customer_contact.is_(None),
             )

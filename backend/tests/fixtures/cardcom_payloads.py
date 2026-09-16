@@ -104,3 +104,54 @@ CARDCOM_GET_LP_RESULT_CALL_FAILED = {
     "ResponseCode": 2,
     "Description": "LowProfileId not found",
 }
+
+# Same documented shape as CARDCOM_GET_LP_RESULT_SUCCESS, with the
+# documented `DocumentInfo` object added — copied verbatim (trimmed) from
+# the same Cardcom example response. `DocumentUrl` is included as `None`
+# deliberately: Cardcom's own docs mark that field "לא עובד" (doesn't
+# work), so this adapter never reads it either way.
+CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO = {
+    "ResponseCode": 0,
+    "Description": "העסקה בוצעה בהצלחה",
+    "TerminalNumber": 1000,
+    "LowProfileId": "8c92820a-2f6f-4120-a699-ab1969b2f78b",
+    "TranzactionId": 209413394,
+    "Operation": "ChargeAndCreateToken",
+    "DocumentInfo": {
+        "ResponseCode": 0,
+        "Description": "העסקה בוצעה בהצלחה",
+        "DocumentType": "TaxInvoiceAndReceipt",
+        "DocumentNumber": 593032,
+        "AccountId": 0,
+        "DocumentUrl": None,
+    },
+    "TranzactionInfo": {
+        "ResponseCode": 0,
+        "Description": "העסקה בוצעה בהצלחה",
+        "TranzactionId": 209413394,
+        "TerminalNumber": 1000,
+        "Amount": 10.5,
+        "CoinId": 1,
+        "CreateDate": "2025-05-06T10:48:21",
+        "CardOwnerName": "Card Owner",
+        "CardOwnerEmail": "testsite@test.co.il",
+        "Brand": "Visa",
+        "DealType": "Debit",
+        "IsRefund": False,
+        "DocumentNumber": 593032,
+        "DocumentType": "TaxInvoiceAndReceipt",
+        "DocumentUrl": None,
+    },
+}
+
+# A charging operation whose GetLpResult call itself succeeded
+# (ResponseCode 0) but whose transaction details aren't resolvable yet —
+# TranzactionInfo is entirely absent. Genuinely not yet verifiable (not a
+# confirmed decline) — see parse_lowprofile_result's docstring.
+CARDCOM_GET_LP_RESULT_NO_TRANZACTION_INFO = {
+    "ResponseCode": 0,
+    "Description": "העסקה בוצעה בהצלחה",
+    "TerminalNumber": 1000,
+    "LowProfileId": "not-yet-resolved-lp-id",
+    "Operation": "ChargeOnly",
+}

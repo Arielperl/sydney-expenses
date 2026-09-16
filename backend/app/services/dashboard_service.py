@@ -69,9 +69,10 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.domain.business_time import business_today
 from app.domain.demo_business import DEMO_REPORTING_CURRENCY
 from app.models.sale import DocumentStatus, Sale, SaleStatus
@@ -388,8 +389,16 @@ def build_dashboard_stats(
             Sale.status == SaleStatus.SUCCEEDED, Sale.document_status == DocumentStatus.PENDING
         )
     ) or 0
+    # Mirrors app/services/exception_center.py's grace-period rule exactly,
+    # so this card's count never disagrees with the actual Exception Center.
+    document_grace_cutoff = datetime.utcnow() - timedelta(hours=get_settings().document_match_grace_period_hours)
     document_failures_count = db.scalar(
-        select(func.count(Sale.id)).where(Sale.document_status == DocumentStatus.FAILED)
+        select(func.count(Sale.id)).where(
+            or_(
+                Sale.document_status == DocumentStatus.FAILED,
+                and_(Sale.document_status == DocumentStatus.WAITING_AUTOMATIC, Sale.occurred_at < document_grace_cutoff),
+            )
+        )
     ) or 0
     failed_payments_count = db.scalar(
         select(func.count(Sale.id)).where(Sale.status == SaleStatus.FAILED)

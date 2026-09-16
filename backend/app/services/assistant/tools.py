@@ -39,9 +39,10 @@ invoked under a name or shape the model wasn't actually given.
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.sale import DocumentStatus, Sale, SaleStatus
 
 _MONEY_PLACES = Decimal("0.01")
@@ -260,12 +261,22 @@ def count_sales_in_period(db: Session, start_date: str | None = None, end_date: 
 def get_pending_documents_summary(db: Session) -> dict:
     """Sales that succeeded but whose customer receipt/invoice is still
     pending or failed to generate. Each row and the summary total carry
-    their own currency."""
+    their own currency.
+
+    A sale still waiting on an automatic provider document
+    (`waiting_automatic`, e.g. a fresh Grow/Cardcom sale) is only included
+    once it's past the same grace period the Exception Center uses — see
+    app/services/exception_center.py — so the assistant's answer never
+    disagrees with what the owner sees there."""
+    grace_cutoff = datetime.utcnow() - timedelta(hours=get_settings().document_match_grace_period_hours)
     sales = list(
         db.scalars(
             select(Sale).where(
                 Sale.status == SaleStatus.SUCCEEDED,
-                Sale.document_status.in_([DocumentStatus.PENDING, DocumentStatus.FAILED]),
+                or_(
+                    Sale.document_status.in_([DocumentStatus.PENDING, DocumentStatus.FAILED]),
+                    and_(Sale.document_status == DocumentStatus.WAITING_AUTOMATIC, Sale.occurred_at < grace_cutoff),
+                ),
             )
         ).all()
     )

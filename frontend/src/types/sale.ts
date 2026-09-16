@@ -34,7 +34,13 @@ export type SaleSource = (typeof SALE_SOURCES)[number]
 export const SALE_STATUSES = ['succeeded', 'pending', 'failed', 'refunded', 'partially_refunded'] as const
 export type SaleStatus = (typeof SALE_STATUSES)[number]
 
-export const DOCUMENT_STATUSES = ['pending', 'issued', 'failed', 'not_required'] as const
+// `waiting_automatic` is distinct from `pending`: both mean "no document
+// yet," but `pending` is a sale with no automatic document path at all
+// (manual/CSV/no provider integration), while `waiting_automatic` is a
+// sale whose payment provider (Grow/Cardcom) is expected to supply a
+// document automatically and simply hasn't yet — see backend
+// app/models/sale.py's DocumentStatus docstring.
+export const DOCUMENT_STATUSES = ['pending', 'waiting_automatic', 'issued', 'failed', 'not_required'] as const
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number]
 
 export interface Sale {
@@ -64,6 +70,10 @@ export interface Sale {
   document_status: DocumentStatus
   document_number: string | null
   document_url: string | null
+  // The provider's own document type label (e.g. Cardcom's
+  // "TaxInvoiceAndReceipt"). Always null for Grow — its invoice webhook
+  // never sends a type — and for any manually attached document.
+  document_type: string | null
   raw_description: string | null
   created_at: string
   updated_at: string

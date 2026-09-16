@@ -111,3 +111,13 @@ GROW_PAYMENT_LINKS_EXCLUDED_FORMAT = {
         "transactionId": "1234567",
     },
 }
+
+# Grow's separate "Invoice creation" webhook — verbatim shape from
+# https://developers.grow.business/docs/webhooks ("Invoice Webhook
+# Format"). Uses the same transactionCode as GROW_REGULAR_PAYMENT above so
+# tests can exercise correlation between the two deliveries.
+GROW_INVOICE_EVENT = {
+    "transactionCode": "ABCD1234",
+    "invoiceNumber": "20",
+    "invoiceUrl": "https://secure.meshulam.co.il",
+}

@@ -57,6 +57,7 @@ export function makeSale(overrides: Partial<Sale> = {}): Sale {
     document_status: 'not_required',
     document_number: null,
     document_url: null,
+    document_type: null,
     raw_description: null,
     created_at: '2026-08-20T10:00:00',
     updated_at: '2026-08-20T10:00:00',

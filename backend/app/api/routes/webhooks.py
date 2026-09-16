@@ -15,6 +15,8 @@ from app.core.config import Settings, get_settings
 from app.database import SessionLocal, get_db
 from app.models.cardcom_credential import CardcomCredential
 from app.models.integration_connection import IntegrationConnection
+from app.models.provider_document_event import ProviderDocumentEvent, ProviderDocumentStatus
+from app.models.sale import Sale
 from app.models.webhook_event import WebhookEventFailureCategory
 from app.schemas.webhooks import WebhookIngestResponse
 from app.services.credential_encryption import CredentialDecryptionError, CredentialEncryptionNotConfigured, decrypt_credentials
@@ -27,11 +29,16 @@ from app.services.ingestion.cardcom_provider import (
     extract_low_profile_id,
     parse_lowprofile_result,
 )
-from app.services.ingestion.grow_provider import GrowPayloadError, parse_grow_event
+from app.services.ingestion.grow_provider import (
+    GrowPayloadError,
+    is_grow_invoice_payload,
+    parse_grow_event,
+    parse_grow_invoice_event,
+)
 from app.services.ingestion.webhook_provider import WebhookPayloadError, parse_webhook_event
 from app.services.ingestion.webhook_security import is_timestamp_fresh, verify_signature
 from app.services.connection_secrets import ConnectionSigningNotConfigured, derive_connection_secret
-from app.services.sale_service import ingest_payment_event
+from app.services.sale_service import ingest_payment_event, link_provider_document, try_match_pending_provider_document
 from app.services.webhook_events import (
     mark_processing_failed,
     mark_processed,
@@ -285,6 +292,13 @@ async def _ingest_grow_event(
     if not isinstance(payload, dict):
         raise HTTPException(status_code=422, detail="Request body must be a JSON object")
 
+    # Grow sends both the payment webhook and its separate "Invoice
+    # creation" webhook to the same connection URL — discriminate by
+    # validated shape (see is_grow_invoice_payload) and never try to parse
+    # one as the other.
+    if is_grow_invoice_payload(payload):
+        return _ingest_grow_invoice_event(response, payload, connection_id=connection_id, business_id=business_id)
+
     # Best-effort id for the durable-receipt row, read defensively — a
     # malformed payload may not even have this field, and that's fine: the
     # row is still recorded, just without an id to log/display.
@@ -329,6 +343,12 @@ async def _ingest_grow_event(
             response.status_code = 202
             return WebhookIngestResponse(created=False, sale_id=None, event_id=webhook_event.id)
 
+        if created:
+            # The invoice event for this same transaction may have already
+            # arrived (Grow does not guarantee ordering between the two
+            # webhooks) and been durably queued — link it now.
+            try_match_pending_provider_document(db, sale=sale, connection_id=connection_id)
+
         mark_processed(db, webhook_event, payment_event=payment_event, created=created, sale_id=sale.id)
         connection.last_event_at = datetime.utcnow()
         db.commit()
@@ -341,6 +361,83 @@ async def _ingest_grow_event(
         )
         response.status_code = 201 if created else 200
         return WebhookIngestResponse(created=created, sale_id=sale.id, event_id=webhook_event.id)
+
+
+def _ingest_grow_invoice_event(
+    response: Response, payload: dict, *, connection_id: str, business_id: str
+) -> WebhookIngestResponse:
+    """Grow's separate "Invoice creation" webhook — may arrive before or
+    after the payment webhook for the same transaction (see
+    _ingest_grow_event above), so both orderings are handled here:
+
+    - If the matching Sale already exists, the document is attached
+      immediately.
+    - If it doesn't yet, a `ProviderDocumentEvent` row durably queues it
+      (`pending_match`) — `try_match_pending_provider_document` consumes it
+      the moment the payment webhook later creates the Sale.
+
+    Idempotent by (connection_id, external_transaction_id) — a duplicate
+    delivery for a transaction already recorded here is recognized before
+    any write and never creates a second row or a second document-issued
+    event."""
+    with SessionLocal() as db:
+        db.info["business_id"] = business_id
+        connection = db.get(IntegrationConnection, connection_id)
+        if connection is None or not connection.enabled:
+            raise HTTPException(status_code=404, detail="Connection not found")
+
+        try:
+            invoice_event = parse_grow_invoice_event(payload)
+        except GrowPayloadError as exc:
+            provider_event_id = (
+                payload.get("transactionCode") if isinstance(payload.get("transactionCode"), str) else None
+            )
+            webhook_event = record_received(db, connection=connection, provider_event_id=provider_event_id)
+            mark_validation_failed(db, webhook_event, category=WebhookEventFailureCategory.VALIDATION, message=str(exc))
+            raise HTTPException(status_code=422, detail="Payload could not be processed") from exc
+
+        existing = db.scalar(
+            select(ProviderDocumentEvent).where(
+                ProviderDocumentEvent.connection_id == connection_id,
+                ProviderDocumentEvent.external_transaction_id == invoice_event.transaction_code,
+            )
+        )
+        if existing is not None:
+            logger.info("grow_invoice_duplicate connection_id=%s", connection_id)
+            response.status_code = 200
+            return WebhookIngestResponse(created=False, sale_id=existing.matched_sale_id)
+
+        # Scoped to this business (tenant-scoped session) and this exact
+        # connection — a Grow transactionCode can never match a sale from a
+        # different business or a different connection of the same provider.
+        sale = db.scalar(
+            select(Sale).where(
+                Sale.source_provider == f"grow:{connection_id}",
+                Sale.external_id == invoice_event.transaction_code,
+            )
+        )
+
+        doc_event = ProviderDocumentEvent(
+            connection_id=connection_id,
+            provider="grow",
+            external_transaction_id=invoice_event.transaction_code,
+            document_number=invoice_event.invoice_number,
+            document_url=invoice_event.invoice_url,
+        )
+        db.add(doc_event)
+        connection.last_event_at = datetime.utcnow()
+
+        if sale is not None:
+            link_provider_document(db, sale=sale, document_event=doc_event)
+            db.commit()
+            logger.info("grow_invoice_matched connection_id=%s", connection_id)
+            response.status_code = 200
+            return WebhookIngestResponse(created=False, sale_id=sale.id)
+
+        db.commit()
+        logger.info("grow_invoice_queued connection_id=%s", connection_id)
+        response.status_code = 202
+        return WebhookIngestResponse(created=False, sale_id=None)
 
 
 def _extract_cardcom_payload(raw_body: bytes, content_type: str) -> dict:

@@ -122,6 +122,14 @@ export function SaleDetailsPage() {
   const sale = saleQuery.data
   if (!sale) return null
 
+  // Grow's invoice URL is an external page on Grow's own domain (never
+  // fetched by us — see backend grow_provider.py) — a plain external link,
+  // never rendered as an <img>. Every other document_url (manual/mock
+  // attachment) is our own stored image, previewed inline via the modal
+  // below. Cardcom never sets document_url at all (its DocumentUrl is
+  // documented as unreliable), so it never reaches either branch.
+  const isExternalProviderDocument = Boolean(sale.source_provider?.startsWith('grow:'))
+
   const grossAmount = Number(sale.gross_amount)
   const vatAmount = sale.vat_amount != null ? Number(sale.vat_amount) : null
   const revenueBeforeVat = vatAmount != null ? grossAmount - vatAmount : null
@@ -261,17 +269,42 @@ export function SaleDetailsPage() {
       <Section title={t('saleDetails.customerDocument')}>
         <Field label={t('saleDetails.documentStatus')} value={<DocumentStatusBadge status={sale.document_status} />} />
         <Field label={t('saleDetails.documentNumber')} value={sale.document_number || t('saleDetails.notApplicable')} />
-        {sale.document_url && (
-          <div className="sm:col-span-2">
-            <button
-              type="button"
-              onClick={() => setIsDocumentOpen(true)}
+        <Field label={t('saleDetails.documentType')} value={sale.document_type || t('saleDetails.notApplicable')} />
+        {sale.document_status === 'waiting_automatic' && (
+          <p className="text-xs text-stone-500 dark:text-stone-400 sm:col-span-2">
+            {t('saleDetails.documentWaitingAutomaticHint')}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+          {sale.document_url && isExternalProviderDocument ? (
+            <a
+              href={sale.document_url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
             >
               {t('sales.viewDocument')}
-            </button>
-          </div>
-        )}
+            </a>
+          ) : (
+            sale.document_url && (
+              <button
+                type="button"
+                onClick={() => setIsDocumentOpen(true)}
+                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              >
+                {t('sales.viewDocument')}
+              </button>
+            )
+          )}
+          {sale.document_status !== 'issued' && sale.document_status !== 'not_required' && (
+            <Link
+              to={`/import-document?saleId=${sale.id}`}
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+            >
+              {t('saleDetails.attachDocumentManually')}
+            </Link>
+          )}
+        </div>
       </Section>
 
       <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">

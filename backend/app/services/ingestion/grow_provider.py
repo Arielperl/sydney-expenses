@@ -17,6 +17,12 @@ same account-level webhook shape until a real transaction from either proves
 otherwise — this is a documented assumption, not a verified fact (see
 README's Grow section).
 
+This adapter also handles Grow's separate "Invoice creation" webhook — a
+distinct delivery, on the same connection URL, for an automatically
+generated customer invoice/receipt. See `parse_grow_invoice_event` and
+`is_grow_invoice_payload` below, and app/api/routes/webhooks.py for how the
+two shapes are discriminated and routed.
+
 Decisions isolated to this adapter, each because Grow's account-level
 payload doesn't send the field at all:
 - **No `currency` field** → every Grow sale is recorded in ILS. Grow is an
@@ -55,10 +61,12 @@ PII/security, applied here, not left to the caller:
   transaction id).
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlparse
 
-from app.models.sale import SaleSource, SaleStatus, TaxTreatment
+from app.models.sale import DocumentStatus, SaleSource, SaleStatus, TaxTreatment
 from app.models.sale_event import SaleEventSource
 from app.schemas.validators import validate_transaction_datetime_reasonable
 from app.services.sale_service import PaymentEvent
@@ -202,4 +210,52 @@ def parse_grow_event(payload: dict) -> PaymentEvent:
         description=payment_desc,
         sale_source=SaleSource.WEBHOOK,
         event_source=SaleEventSource.WEBHOOK,
+        # Grow's invoice ("Invoice creation") webhook is a separate delivery
+        # that may arrive before or after this one — see
+        # parse_grow_invoice_event below and app/api/routes/webhooks.py.
+        # Every successful Grow payment starts out waiting for it.
+        document_status_hint=DocumentStatus.WAITING_AUTOMATIC,
+    )
+
+
+# Grow's separate "Invoice creation" webhook — a merchant/connection must
+# ask Grow support to enable it in addition to whichever transaction
+# webhook option they already use (see README's "Grow connection" section).
+# Confirmed shape, verbatim from Grow's own docs
+# (https://developers.grow.business/docs/webhooks, "Invoice Webhook
+# Format"):
+#   {"transactionCode": "ABCD1234", "invoiceNumber": "20", "invoiceUrl": "https://secure.meshulam.co.il"}
+# No document-type field is documented for this payload — never invented.
+MAX_INVOICE_URL_LENGTH = 2000
+
+
+@dataclass
+class GrowInvoiceEvent:
+    transaction_code: str
+    invoice_number: str
+    invoice_url: str
+
+
+def is_grow_invoice_payload(payload: dict) -> bool:
+    """Discriminates by validated shape, not just key presence: the
+    payment payload never has `invoiceNumber`/`invoiceUrl`, and the invoice
+    payload never has `paymentSum`/`paymentType` — checking for either
+    invoice-only key is enough to route correctly without ever trying to
+    parse one shape as the other."""
+    return isinstance(payload, dict) and ("invoiceNumber" in payload or "invoiceUrl" in payload)
+
+
+def parse_grow_invoice_event(payload: dict) -> GrowInvoiceEvent:
+    transaction_code = _clean_string(payload.get("transactionCode"), "transactionCode", 255)
+    invoice_number = _clean_string(payload.get("invoiceNumber"), "invoiceNumber", 100)
+    invoice_url_raw = _clean_string(payload.get("invoiceUrl"), "invoiceUrl", MAX_INVOICE_URL_LENGTH)
+
+    parsed = urlparse(invoice_url_raw)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise GrowPayloadError("'invoiceUrl' must be an HTTPS URL")
+
+    return GrowInvoiceEvent(
+        transaction_code=transaction_code,
+        invoice_number=invoice_number,
+        invoice_url=invoice_url_raw,
     )

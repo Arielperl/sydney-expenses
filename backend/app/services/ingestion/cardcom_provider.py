@@ -29,6 +29,15 @@ becomes a `Sale`, but with `status=failed` — visible in the Exception
 Center, never counted as revenue (`Sale.revenue_contribution()` already
 returns 0 for a failed sale) — never silently dropped.
 
+Document sync: a verified `succeeded` response's `DocumentInfo` (or, as a
+documented fallback, the duplicate fields on `TranzactionInfo`) is read for
+`DocumentNumber`/`DocumentType` only — see `_extract_document_info`.
+Missing document info on an otherwise-verified success is normal (Cardcom
+may still be generating it) and never blocks recording the sale; a
+declined transaction never gets a document at all. `DocumentUrl` is never
+read anywhere in this adapter: Cardcom's own documentation marks it broken
+("לא עובד") in both places it appears.
+
 PII/security:
 - Card fields (brand, last-4, issuer, acquirer, RRN, token) are read from
   Cardcom's response only to be discarded — never stored on the `Sale`,
@@ -48,7 +57,7 @@ from decimal import Decimal, InvalidOperation
 
 import httpx
 
-from app.models.sale import SaleSource, SaleStatus, TaxTreatment
+from app.models.sale import DocumentStatus, SaleSource, SaleStatus, TaxTreatment
 from app.models.sale_event import SaleEventSource
 from app.schemas.validators import validate_transaction_datetime_reasonable
 from app.services.sale_service import PaymentEvent
@@ -173,6 +182,33 @@ def _clean_optional(value) -> str | None:
     return value or None
 
 
+def _extract_document_info(result: dict) -> tuple[str | None, str | None]:
+    """Reads (document_number, document_type) from the authenticated
+    GetLpResult response only — per Cardcom's own documented response
+    shape, document details can appear in the dedicated `DocumentInfo`
+    object (preferred, and only trusted when its own `ResponseCode == 0`)
+    or duplicated on `TranzactionInfo`. Cardcom's own documentation marks
+    `DocumentUrl` (in both places) as broken ("לא עובד") — deliberately
+    never read here, never stored, never invented. Missing document info
+    entirely is normal, not an error — the caller treats it as
+    "still waiting," never as a parse failure."""
+    document_info = result.get("DocumentInfo")
+    if isinstance(document_info, dict) and document_info.get("ResponseCode") == 0:
+        number = document_info.get("DocumentNumber")
+        if number is not None:
+            doc_type = document_info.get("DocumentType")
+            return str(number), doc_type if isinstance(doc_type, str) else None
+
+    tranz_info = result.get("TranzactionInfo")
+    if isinstance(tranz_info, dict):
+        number = tranz_info.get("DocumentNumber")
+        if number is not None:
+            doc_type = tranz_info.get("DocumentType")
+            return str(number), doc_type if isinstance(doc_type, str) else None
+
+    return None, None
+
+
 def parse_lowprofile_result(result: dict) -> PaymentEvent:
     """Builds a `PaymentEvent` from an already-fetched, authoritative
     `GetLpResult` response. Raises `CardcomVerificationError` for a response
@@ -226,6 +262,19 @@ def parse_lowprofile_result(result: dict) -> PaymentEvent:
     vat_amount = calculate_vat(gross_amount, tax_treatment) if gross_amount > 0 else Decimal("0")
     net_amount = gross_amount - vat_amount
 
+    if status == SaleStatus.SUCCEEDED:
+        document_number, document_type = _extract_document_info(result)
+        # Missing DocumentInfo on a verified success is normal (document
+        # generation can finish after this response) — never a failure,
+        # never blocks recording the sale. See DocumentStatus's docstring.
+        document_status_hint = DocumentStatus.ISSUED if document_number else DocumentStatus.WAITING_AUTOMATIC
+    else:
+        # A declined transaction never gets a document — see module
+        # docstring: a decline still becomes a Sale (status=failed), but
+        # one no document is ever expected for.
+        document_number, document_type = None, None
+        document_status_hint = DocumentStatus.NOT_REQUIRED
+
     return PaymentEvent(
         event_id=external_id,
         provider="cardcom",
@@ -246,4 +295,10 @@ def parse_lowprofile_result(result: dict) -> PaymentEvent:
         description=None,
         sale_source=SaleSource.WEBHOOK,
         event_source=SaleEventSource.WEBHOOK,
+        document_status_hint=document_status_hint,
+        document_number=document_number,
+        document_type=document_type,
+        # Never set — Cardcom's own DocumentUrl is documented as broken; see
+        # _extract_document_info's docstring.
+        document_url=None,
     )

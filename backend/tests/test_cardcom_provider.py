@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.models.sale import SaleStatus
+from app.models.sale import DocumentStatus, SaleStatus
 from app.services.ingestion.cardcom_provider import (
     CardcomPayloadError,
     CardcomUnsupportedOperationError,
@@ -18,8 +18,10 @@ from app.services.ingestion.cardcom_provider import (
 from tests.fixtures.cardcom_payloads import (
     CARDCOM_GET_LP_RESULT_CALL_FAILED,
     CARDCOM_GET_LP_RESULT_DECLINED,
+    CARDCOM_GET_LP_RESULT_NO_TRANZACTION_INFO,
     CARDCOM_GET_LP_RESULT_SUCCESS,
     CARDCOM_GET_LP_RESULT_TOKEN_ONLY,
+    CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO,
     CARDCOM_RAW_WEBHOOK_FORM,
     CARDCOM_RAW_WEBHOOK_CODE_JSON,
     CARDCOM_RAW_WEBHOOK_JSON,
@@ -94,6 +96,49 @@ class TestParseLowProfileResult:
     def test_not_a_dict_is_rejected(self):
         with pytest.raises(CardcomVerificationError):
             parse_lowprofile_result("not a dict")  # type: ignore[arg-type]
+
+    def test_declined_transaction_without_tranzaction_info_is_still_retryable_not_a_failure(self):
+        # A charging operation whose GetLpResult call itself succeeded but
+        # whose transaction details aren't resolvable yet — genuinely not
+        # yet verifiable (retryable via reprocess), never treated as a
+        # confirmed decline.
+        with pytest.raises(CardcomVerificationError):
+            parse_lowprofile_result(CARDCOM_GET_LP_RESULT_NO_TRANZACTION_INFO)
+
+
+class TestDocumentSync:
+    """Cardcom's document info comes bundled in the same authenticated
+    GetLpResult response used for the payment itself — no separate
+    webhook, no ordering problem (unlike Grow's invoice webhook)."""
+
+    def test_verified_success_with_document_info_marks_the_sale_issued(self):
+        event = parse_lowprofile_result(CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO)
+        assert event.document_status_hint == DocumentStatus.ISSUED
+        assert event.document_number == "593032"
+        assert event.document_type == "TaxInvoiceAndReceipt"
+
+    def test_document_url_is_never_read_even_when_present(self):
+        # Cardcom's own docs mark DocumentUrl "לא עובד" (doesn't work) —
+        # never trusted, never invented, even though the fixture includes
+        # a (null) DocumentUrl field exactly as Cardcom's real response
+        # does.
+        event = parse_lowprofile_result(CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO)
+        assert event.document_url is None
+
+    def test_verified_success_without_document_info_waits_automatically(self):
+        # Missing DocumentInfo on an otherwise-verified success is normal
+        # (Cardcom may still be generating it) — never a parsing failure,
+        # never blocks recording the sale.
+        event = parse_lowprofile_result(CARDCOM_GET_LP_RESULT_SUCCESS)
+        assert event.status == SaleStatus.SUCCEEDED
+        assert event.document_status_hint == DocumentStatus.WAITING_AUTOMATIC
+        assert event.document_number is None
+
+    def test_declined_transaction_never_expects_a_document(self):
+        event = parse_lowprofile_result(CARDCOM_GET_LP_RESULT_DECLINED)
+        assert event.status == SaleStatus.FAILED
+        assert event.document_status_hint == DocumentStatus.NOT_REQUIRED
+        assert event.document_number is None
 
 
 class TestNeverStoresCardDataOrCredentials:

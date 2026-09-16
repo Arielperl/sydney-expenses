@@ -24,7 +24,7 @@ describe('ExceptionCenterPage', () => {
     renderWithProviders(<ExceptionCenterPage />)
 
     await waitFor(() => expect(screen.getByText('לכל מכירה מוצלחת יש מסמך')).toBeInTheDocument())
-    expect(screen.getByText('אין כשלים בהפקת מסמכים')).toBeInTheDocument()
+    expect(screen.getByText('אין מסמכים שדורשים בדיקה — כולל כשלי הפקה ומסמכים אוטומטיים שלא הגיעו זמן סביר')).toBeInTheDocument()
     expect(screen.getByText('אין זיכויים הדורשים תשומת לב')).toBeInTheDocument()
     expect(screen.getByText('לכל המכירות יש פרטי לקוח מלאים')).toBeInTheDocument()
   })

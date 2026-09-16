@@ -13,13 +13,14 @@ from app.core.config import get_settings
 from app.database import SessionLocal
 from app.models.business import Business, BusinessMember
 from app.models.cardcom_credential import CardcomCredential
-from app.models.sale import Sale, SaleStatus
+from app.models.sale import DocumentStatus, Sale, SaleStatus
 from app.services.ingestion.cardcom_provider import CardcomVerificationError
 from tests.fixtures.cardcom_payloads import (
     CARDCOM_GET_LP_RESULT_CALL_FAILED,
     CARDCOM_GET_LP_RESULT_DECLINED,
     CARDCOM_GET_LP_RESULT_SUCCESS,
     CARDCOM_GET_LP_RESULT_TOKEN_ONLY,
+    CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO,
     CARDCOM_RAW_WEBHOOK_FORM,
     CARDCOM_RAW_WEBHOOK_CODE_JSON,
     CARDCOM_RAW_WEBHOOK_JSON,
@@ -189,6 +190,44 @@ class TestCardcomWebhookIngestion:
             assert sale.source_provider == f"cardcom:{connection['id']}"
             assert sale.external_id == "209413394"
             assert sale.revenue_contribution() > 0
+            # No DocumentInfo in this fixture — waits automatically, never
+            # blocks the sale from being recorded.
+            assert sale.document_status == DocumentStatus.WAITING_AUTOMATIC
+            assert sale.document_number is None
+
+    def test_successful_transaction_with_document_info_marks_the_document_issued(
+        self, client, secured_businesses, monkeypatch
+    ):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_cardcom_connection(client).json()
+        _mock_verification(monkeypatch, CARDCOM_GET_LP_RESULT_WITH_DOCUMENT_INFO)
+
+        response = _post_cardcom_event(client, connection["webhook_path"])
+        assert response.status_code == 201
+        sale_id = response.json()["sale_id"]
+
+        with SessionLocal() as db:
+            sale = db.get(Sale, sale_id)
+            assert sale.document_status == DocumentStatus.ISSUED
+            assert sale.document_number == "593032"
+            assert sale.document_type == "TaxInvoiceAndReceipt"
+            # Cardcom's own docs mark DocumentUrl broken — never stored.
+            assert sale.document_url is None
+
+    def test_declined_transaction_never_expects_a_document(self, client, secured_businesses, monkeypatch):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_cardcom_connection(client).json()
+        _mock_verification(monkeypatch, CARDCOM_GET_LP_RESULT_DECLINED)
+
+        response = _post_cardcom_event(client, connection["webhook_path"])
+        assert response.status_code == 201
+        sale_id = response.json()["sale_id"]
+
+        with SessionLocal() as db:
+            sale = db.get(Sale, sale_id)
+            assert sale.status == SaleStatus.FAILED
+            assert sale.document_status == DocumentStatus.NOT_REQUIRED
+            assert sale.revenue_contribution() == 0
 
     def test_form_encoded_delivery_is_also_accepted(self, client, secured_businesses, monkeypatch):
         client.cookies.set("sydney_access", "owner-a")

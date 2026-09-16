@@ -4,6 +4,7 @@ allowlisting, durable inbox persistence, idempotency, unsupported payloads,
 URL rotation, and safe reprocessing."""
 
 import json
+from datetime import datetime
 
 import pytest
 
@@ -12,9 +13,16 @@ from app.core.config import get_settings
 from app.database import SessionLocal
 from app.models.business import Business, BusinessMember
 from app.models.integration_connection import IntegrationConnection
-from app.models.sale import Sale
+from app.models.provider_document_event import ProviderDocumentEvent, ProviderDocumentStatus
+from app.models.sale import DocumentStatus, Sale
+from app.models.sale_event import SaleEvent, SaleEventType
 from app.models.webhook_event import WebhookEvent, WebhookEventStatus
-from tests.fixtures.grow_payloads import GROW_INSTALLMENTS_PAYMENT, GROW_RECURRING_PAYMENT_UNSUPPORTED, GROW_REGULAR_PAYMENT
+from tests.fixtures.grow_payloads import (
+    GROW_INSTALLMENTS_PAYMENT,
+    GROW_INVOICE_EVENT,
+    GROW_RECURRING_PAYMENT_UNSUPPORTED,
+    GROW_REGULAR_PAYMENT,
+)
 
 GROW_IP = "3.123.194.128"  # a real address from Grow's published allowlist
 
@@ -425,3 +433,187 @@ class TestDurableInboxAndReprocessing:
         assert client.post(
             f"/api/connections/{connection['id']}/events/any-id/reprocess", headers={"origin": "http://localhost:5174"}
         ).status_code == 403
+
+
+class TestInvoiceDocumentSync:
+    """Grow's separate "Invoice creation" webhook — may arrive before or
+    after the payment webhook for the same transaction. See
+    app/api/routes/webhooks.py's _ingest_grow_invoice_event and
+    app/services/sale_service.py's try_match_pending_provider_document."""
+
+    def test_payment_then_invoice_links_the_document(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+
+        payment = _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
+        assert payment.status_code == 201
+        sale_id = payment.json()["sale_id"]
+        with SessionLocal() as db:
+            sale = db.get(Sale, sale_id)
+            assert sale.document_status == DocumentStatus.WAITING_AUTOMATIC
+
+        invoice = _post_grow_event(client, connection["webhook_path"], GROW_INVOICE_EVENT)
+        assert invoice.status_code == 200
+        assert invoice.json()["sale_id"] == sale_id
+
+        with SessionLocal() as db:
+            sale = db.get(Sale, sale_id)
+            assert sale.document_status == DocumentStatus.ISSUED
+            assert sale.document_number == "20"
+            assert sale.document_url == "https://secure.meshulam.co.il"
+            events = db.query(ProviderDocumentEvent).filter(
+                ProviderDocumentEvent.external_transaction_id == "ABCD1234"
+            ).all()
+            assert len(events) == 1
+            assert events[0].status == ProviderDocumentStatus.MATCHED
+            assert events[0].matched_sale_id == sale_id
+
+    def test_invoice_then_payment_links_the_document_once_the_sale_exists(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+
+        invoice = _post_grow_event(client, connection["webhook_path"], GROW_INVOICE_EVENT)
+        assert invoice.status_code == 202
+        assert invoice.json()["sale_id"] is None
+        with SessionLocal() as db:
+            pending = db.query(ProviderDocumentEvent).filter(
+                ProviderDocumentEvent.external_transaction_id == "ABCD1234"
+            ).one()
+            assert pending.status == ProviderDocumentStatus.PENDING_MATCH
+
+        payment = _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
+        assert payment.status_code == 201
+        sale_id = payment.json()["sale_id"]
+
+        with SessionLocal() as db:
+            sale = db.get(Sale, sale_id)
+            assert sale.document_status == DocumentStatus.ISSUED
+            assert sale.document_number == "20"
+            assert sale.document_url == "https://secure.meshulam.co.il"
+            pending = db.query(ProviderDocumentEvent).filter(
+                ProviderDocumentEvent.external_transaction_id == "ABCD1234"
+            ).one()
+            assert pending.status == ProviderDocumentStatus.MATCHED
+            assert pending.matched_sale_id == sale_id
+
+    def test_no_sale_is_created_from_an_invoice_webhook_alone(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+
+        response = _post_grow_event(client, connection["webhook_path"], GROW_INVOICE_EVENT)
+        assert response.status_code == 202
+        with SessionLocal() as db:
+            assert db.query(Sale).count() == 0
+
+    def test_duplicate_invoice_webhook_does_not_create_a_second_row_or_event(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+
+        _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
+        first = _post_grow_event(client, connection["webhook_path"], GROW_INVOICE_EVENT)
+        assert first.status_code == 200
+        second = _post_grow_event(client, connection["webhook_path"], GROW_INVOICE_EVENT)
+        assert second.status_code == 200
+
+        with SessionLocal() as db:
+            events = db.query(ProviderDocumentEvent).filter(
+                ProviderDocumentEvent.external_transaction_id == "ABCD1234"
+            ).all()
+            assert len(events) == 1
+            sale = db.query(Sale).filter(Sale.external_id == "ABCD1234").one()
+            saved_events = db.query(SaleEvent).filter(
+                SaleEvent.sale_id == sale.id, SaleEvent.event_type == SaleEventType.DOCUMENT_ISSUED
+            ).all()
+            assert len(saved_events) == 1
+
+    def test_invoice_cannot_be_matched_to_another_businesss_sale(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection_a = _create_grow_connection(client).json()
+        _post_grow_event(client, connection_a["webhook_path"], GROW_REGULAR_PAYMENT)
+
+        client.cookies.set("sydney_access", "owner-b")
+        connection_b = _create_grow_connection(client).json()
+        # Same transactionCode, but a different business's own connection —
+        # must queue as pending, never reach across to business-a's sale.
+        invoice = _post_grow_event(client, connection_b["webhook_path"], GROW_INVOICE_EVENT)
+        assert invoice.status_code == 202
+        assert invoice.json()["sale_id"] is None
+
+        with SessionLocal() as db:
+            db.info["business_id"] = "business-a"
+            sale = db.query(Sale).filter(Sale.external_id == "ABCD1234").one()
+            assert sale.document_status == DocumentStatus.WAITING_AUTOMATIC
+
+    def test_invoice_cannot_be_matched_to_another_connections_sale(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection_1 = _create_grow_connection(client, name="קופה 1").json()
+        connection_2 = _create_grow_connection(client, name="קופה 2").json()
+
+        _post_grow_event(client, connection_1["webhook_path"], GROW_REGULAR_PAYMENT)
+        # Same transactionCode, but a different connection of the SAME
+        # business — must not attach to connection_1's sale.
+        invoice = _post_grow_event(client, connection_2["webhook_path"], GROW_INVOICE_EVENT)
+        assert invoice.status_code == 202
+        assert invoice.json()["sale_id"] is None
+
+        with SessionLocal() as db:
+            sale = db.query(Sale).filter(Sale.external_id == "ABCD1234").one()
+            assert sale.document_status == DocumentStatus.WAITING_AUTOMATIC
+
+    def test_missing_invoice_url_is_rejected(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+        payload = {"transactionCode": "ABCD1234", "invoiceNumber": "20"}
+        response = _post_grow_event(client, connection["webhook_path"], payload)
+        assert response.status_code == 422
+        with SessionLocal() as db:
+            assert db.query(ProviderDocumentEvent).count() == 0
+
+    def test_non_https_invoice_url_is_rejected(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+        payload = {**GROW_INVOICE_EVENT, "invoiceUrl": "http://secure.meshulam.co.il"}
+        response = _post_grow_event(client, connection["webhook_path"], payload)
+        assert response.status_code == 422
+        with SessionLocal() as db:
+            assert db.query(ProviderDocumentEvent).count() == 0
+
+    def test_oversized_invoice_url_is_rejected(self, client, secured_businesses):
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+        payload = {**GROW_INVOICE_EVENT, "invoiceUrl": "https://secure.meshulam.co.il/" + ("a" * 3000)}
+        response = _post_grow_event(client, connection["webhook_path"], payload)
+        assert response.status_code == 422
+        with SessionLocal() as db:
+            assert db.query(ProviderDocumentEvent).count() == 0
+
+    def test_fresh_waiting_automatic_sale_is_not_in_the_exception_center(self, client, secured_businesses):
+        # A recent paymentDate — GROW_REGULAR_PAYMENT's fixed 2021 date is
+        # already (correctly) past any reasonable grace period, so this
+        # test needs its own recent one.
+        today = datetime.utcnow()
+        recent_payload = {**GROW_REGULAR_PAYMENT, "paymentDate": today.strftime("%-d/%-m/%y")}
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+        _post_grow_event(client, connection["webhook_path"], recent_payload)
+
+        response = client.get("/api/exceptions")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["attention_count"] == 0
+        assert body["document_failures"] == []
+        assert body["pending_documents"] == []
+
+    def test_waiting_automatic_sale_past_the_grace_period_is_surfaced(self, client, secured_businesses):
+        # GROW_REGULAR_PAYMENT's fixed 2021 paymentDate is already years
+        # past the grace period — no manipulation needed.
+        client.cookies.set("sydney_access", "owner-a")
+        connection = _create_grow_connection(client).json()
+        payment = _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
+        sale_id = payment.json()["sale_id"]
+
+        response = client.get("/api/exceptions")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["attention_count"] == 1
+        assert [s["id"] for s in body["document_failures"]] == [sale_id]
