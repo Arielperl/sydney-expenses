@@ -5,7 +5,7 @@ import { apiClient } from '../services/apiClient'
 import '../pages/PublicPages.css'
 import { CreateBusinessPage } from '../pages/CreateBusinessPage'
 
-type User = { id: string; email: string; name: string; has_workspace: boolean; business_name?: string; role?: string }
+type User = { id: string; email: string; name: string; has_workspace: boolean; business_name?: string; role?: string; system_role: 'user' | 'admin' }
 type AuthState = { user: User | null; loading: boolean; error: boolean; reload: () => Promise<void>; logout: () => Promise<void>; setUser: (user: User | null) => void }
 const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {

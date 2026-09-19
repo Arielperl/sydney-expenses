@@ -1,4 +1,4 @@
-from app.models.business import Business, BusinessMember
+from app.models.business import AppAccount, Business, BusinessMember, BusinessPaymentProvider
 from app.models.assistant_conversation import AssistantConversation, AssistantMessage
 from app.models.cardcom_credential import CardcomCredential
 from app.models.integration_connection import IntegrationConnection
@@ -11,6 +11,8 @@ from app.models.webhook_event import WebhookEvent, WebhookEventFailureCategory, 
 __all__ = [
     "Business",
     "BusinessMember",
+    "BusinessPaymentProvider",
+    "AppAccount",
     "AssistantConversation",
     "AssistantMessage",
     "CardcomCredential",

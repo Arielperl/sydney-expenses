@@ -7,12 +7,17 @@ export function CreateBusinessPage() {
   const { reload, logout } = useAuth()
   const [name, setName] = useState('')
   const [number, setNumber] = useState('')
+  const [providers, setProviders] = useState<Array<'grow' | 'cardcom'>>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   async function submit(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError('')
     try {
-      await apiClient.post('/businesses', { name: name.trim(), business_number: number.trim() || null })
+      await apiClient.post('/businesses', {
+        name: name.trim(),
+        business_number: number.trim() || null,
+        payment_providers: providers,
+      })
       await reload()
     } catch (e) {
       const status = (e as { response?: { status?: number } }).response?.status
@@ -26,6 +31,25 @@ export function CreateBusinessPage() {
       <label htmlFor="business-name">שם העסק</label><input id="business-name" required minLength={2} maxLength={100} value={name} onChange={e => setName(e.target.value)}/>
       <label htmlFor="business-number">מספר עוסק (אופציונלי)</label><input id="business-number" maxLength={30} value={number} onChange={e => setNumber(e.target.value)}/>
       <label htmlFor="business-country">מדינה</label><input id="business-country" value="ישראל" readOnly/>
+      <fieldset className="mt-5">
+        <legend className="text-sm font-medium">עם אילו חברות סליקה העסק עובד?</legend>
+        <p className="mt-1 text-xs text-stone-500">בחרו את כל החברות הרלוונטיות. לאחר יצירת העסק, הוספת חברה נוספת מתבצעת דרך התמיכה.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {([['grow', 'Grow'], ['cardcom', 'Cardcom']] as const).map(([value, label]) => (
+            <label key={value} className="flex cursor-pointer items-center gap-3 rounded-lg border border-stone-200 p-3 hover:border-emerald-400">
+              <input
+                type="checkbox"
+                checked={providers.includes(value)}
+                onChange={(event) => setProviders((current) => event.target.checked
+                  ? [...current, value]
+                  : current.filter((provider) => provider !== value))}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-stone-500">אם אינכם עובדים כרגע עם חברה נתמכת, אפשר להמשיך ללא בחירה ולהשתמש בייבוא CSV.</p>
+      </fieldset>
       <p className="auth-note">הגרסה הנוכחית מותאמת לישראל: מטבע תצוגה שקל ואזור זמן ירושלים. טיפול המע״מ נבחר לכל מכירה.</p>
       {error && <p className="auth-message error" role="alert">{error}</p>}
       <button className="public-button" disabled={busy}>{busy ? 'יוצרים את העסק…' : 'יצירת העסק וכניסה למערכת'}</button>

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.database import get_db
 from app.models.cardcom_credential import CardcomCredential
+from app.models.business import BusinessPaymentProvider
 from app.models.integration_connection import IntegrationConnection
 from app.models.webhook_event import WebhookEvent, WebhookEventFailureCategory, WebhookEventStatus
 from app.schemas.connections import (
@@ -107,6 +108,13 @@ def create_connection(
     _require_owner(request, settings)
     if not _visible_in_environment(payload.provider, settings):
         raise HTTPException(status_code=422, detail="ספק זה אינו זמין בסביבת הייצור")
+    if payload.provider in PRODUCTION_ALLOWED_PROVIDERS:
+        approved = db.get(BusinessPaymentProvider, (db.info["business_id"], payload.provider))
+        if approved is None:
+            raise HTTPException(
+                status_code=403,
+                detail="חברת הסליקה אינה מאושרת לעסק. יש לפנות לתמיכה כדי להוסיף אותה.",
+            )
 
     is_url_token_provider = payload.provider in URL_TOKEN_PROVIDERS
     connection = IntegrationConnection(

@@ -37,7 +37,7 @@ it('creates a private business and enters the workspace after the server confirm
  server.use(
   http.get(`${base}/session`, () => HttpResponse.json({ user: { ...user, has_workspace: created } })),
   http.post('http://localhost:8000/api/businesses', async ({ request }) => {
-   expect(await request.json()).toEqual({ name: 'החנות שלי', business_number: null })
+   expect(await request.json()).toEqual({ name: 'החנות שלי', business_number: null, payment_providers: [] })
    created = true
    return HttpResponse.json({ id: 'private-business', name: 'החנות שלי' }, { status: 201 })
   }),

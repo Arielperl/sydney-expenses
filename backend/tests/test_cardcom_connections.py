@@ -11,7 +11,7 @@ import pytest
 from app.api.routes import auth
 from app.core.config import get_settings
 from app.database import SessionLocal
-from app.models.business import Business, BusinessMember
+from app.models.business import Business, BusinessMember, BusinessPaymentProvider
 from app.models.cardcom_credential import CardcomCredential
 from app.models.sale import DocumentStatus, Sale, SaleStatus
 from app.services.ingestion.cardcom_provider import CardcomVerificationError
@@ -47,6 +47,8 @@ def secured_businesses(monkeypatch):
                 BusinessMember(business_id="business-a", user_id="manager-a", role="manager"),
                 BusinessMember(business_id="business-a", user_id="viewer-a", role="viewer"),
                 BusinessMember(business_id="business-b", user_id="owner-b", role="owner"),
+                BusinessPaymentProvider(business_id="business-a", provider="cardcom", added_by_user_id="owner-a"),
+                BusinessPaymentProvider(business_id="business-b", provider="cardcom", added_by_user_id="owner-b"),
             ]
         )
         db.commit()

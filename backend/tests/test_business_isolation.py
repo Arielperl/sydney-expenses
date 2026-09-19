@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import select, delete, func, insert, text
 from app.database import SessionLocal
-from app.models.business import Business, BusinessMember
+from app.models.business import Business, BusinessMember, BusinessPaymentProvider
 from app.models.sale import Sale
 from app.models.sale_event import SaleEvent
 from app.api.routes import auth
@@ -64,13 +64,16 @@ def test_onboarding_identity_and_duplicate_guard(client,businesses):
     headers={'origin':'http://localhost:5174'}
     assert client.get('/api/sales').status_code==403
     assert client.post('/api/businesses',json={'name':'New business','user_id':'user-a'},headers=headers).status_code==422
-    r=client.post('/api/businesses',json={'name':'New business'},headers=headers)
+    r=client.post('/api/businesses',json={'name':'New business','payment_providers':['grow','cardcom']},headers=headers)
     assert r.status_code==201
     assert client.get('/api/auth/session').json()['user']['has_workspace']
     assert client.get('/api/sales').json()==[]
     assert client.post('/api/businesses',json={'name':'Again'},headers=headers).status_code==409
     with SessionLocal() as db:
         assert db.get(Business,r.json()['id']).country_code=='IL'
+        assert set(db.scalars(select(BusinessPaymentProvider.provider).where(
+            BusinessPaymentProvider.business_id == r.json()['id']
+        )).all()) == {'grow', 'cardcom'}
 
 def test_same_external_id_allowed_in_different_businesses(businesses):
     for bid in ['a','b']:

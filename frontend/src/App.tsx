@@ -13,6 +13,7 @@ const ImportDocumentPage = lazy(() => import('./pages/ImportDocumentPage').then(
 const ImportsPage = lazy(() => import('./pages/ImportsPage').then(module => ({ default: module.ImportsPage })))
 const SaleDetailsPage = lazy(() => import('./pages/SaleDetailsPage').then(module => ({ default: module.SaleDetailsPage })))
 const SalesPage = lazy(() => import('./pages/SalesPage').then(module => ({ default: module.SalesPage })))
+const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({ default: module.AdminPage })))
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="exceptions" element={<ExceptionCenterPage />} />
           <Route path="imports" element={<ImportsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
+          <Route path="admin" element={<AdminPage />} />
 
           {/* Old expense-oriented routes, kept as redirects to avoid broken navigation/bookmarks. */}
           <Route path="expenses" element={<Navigate to="/sales" replace />} />

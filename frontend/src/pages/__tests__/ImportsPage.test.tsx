@@ -10,14 +10,16 @@ import { renderWithProviders, screen, waitFor } from '../../test/test-utils'
 const PREVIEW_URL = 'http://localhost:8000/api/imports/csv/preview'
 const CONFIRM_URL = 'http://localhost:8000/api/imports/csv/confirm'
 const SESSION_URL = 'http://localhost:8000/api/auth/session'
+const PROVIDERS_URL = 'http://localhost:8000/api/businesses/current/payment-providers'
 
-function renderImportsPage() {
+function renderImportsPage(providers: Array<'grow' | 'cardcom'> = ['grow', 'cardcom']) {
   server.use(
     http.get(SESSION_URL, () =>
       HttpResponse.json({
         user: { id: 'owner-1', email: 'owner@example.com', name: 'Owner', has_workspace: true, role: 'owner' },
       }),
     ),
+    http.get(PROVIDERS_URL, () => HttpResponse.json({ providers })),
   )
   return renderWithProviders(
     <AuthProvider>
@@ -58,6 +60,13 @@ const previewResponse = {
 }
 
 describe('ImportsPage', () => {
+  it('shows only the payment providers selected for the business', async () => {
+    renderImportsPage(['grow'])
+
+    expect(await screen.findByRole('heading', { name: 'חיבור Grow' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'חיבור Cardcom' })).not.toBeInTheDocument()
+  })
+
   it('previews a CSV file and shows the parsed rows', async () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json(previewResponse)))
     const user = userEvent.setup()

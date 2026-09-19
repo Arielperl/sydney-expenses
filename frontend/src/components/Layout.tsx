@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Bot, ChevronUp, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
+import { Bot, ChevronUp, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShieldCheck, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -30,6 +30,7 @@ function navLinkClasses(isActive: boolean): string {
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const { data: attentionCount = 0 } = useQuery({
     queryKey: ['exception-center'],
     queryFn: () => getExceptionCenter(),
@@ -62,6 +63,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           )}
         </NavLink>
       ))}
+      {user?.system_role === 'admin' && <NavLink to="/admin" onClick={onNavigate} className={({ isActive }) => navLinkClasses(isActive)}><ShieldCheck className="h-5 w-5"/><span className="min-w-0 flex-1">{t('nav.admin')}</span></NavLink>}
     </nav>
   )
 }

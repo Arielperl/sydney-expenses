@@ -54,16 +54,27 @@ async def auth_request(method: str, path: str, payload=None, token: str | None =
 
 def user_view(user):
     from app.database import SessionLocal
-    from app.models.business import BusinessMember, Business
+    from app.models.business import AppAccount, BusinessMember, Business
     from sqlalchemy import select
     email = (user.get("email") or "").lower()
     verified = bool(user.get("email_confirmed_at"))
     with SessionLocal() as db:
+        account = db.get(AppAccount, user["id"]) if verified else None
+        if verified:
+            display_name = user.get("user_metadata", {}).get("full_name", "")
+            if account is None:
+                account = AppAccount(user_id=user["id"], email=email, display_name=display_name)
+                db.add(account)
+            else:
+                account.email = email
+                account.display_name = display_name
+            db.commit()
         member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == user["id"])) if verified else None
         business = db.get(Business, member.business_id) if member else None
         return {"id": user["id"], "email": email, "name": user.get("user_metadata", {}).get("full_name", ""),
                 "email_verified": verified, "has_workspace": member is not None,
-                "business_name": business.name if business else None, "business_id": member.business_id if member else None, "role": member.role if member else None}
+                "business_name": business.name if business else None, "business_id": member.business_id if member else None,
+                "role": member.role if member else None, "system_role": account.system_role if account else "user"}
 
 def set_session(response: Response, data):
     settings = get_settings()
