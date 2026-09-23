@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 
 import { useAuth } from '../contexts/AuthContext'
-import { addBusinessProvider, deleteBusinessAsAdmin, listAdminBusinesses, type AdminBusiness } from '../services/adminService'
+import { addBusinessProvider, deleteBusinessAsAdmin, listAdminBusinesses, removeBusinessProvider, type AdminBusiness } from '../services/adminService'
 import type { PaymentProvider } from '../services/businessService'
 
 const PROVIDER_LABELS: Record<PaymentProvider, string> = { grow: 'Grow', cardcom: 'Cardcom' }
@@ -14,11 +14,19 @@ export function AdminPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<AdminBusiness | null>(null)
+  const [providerRemovalTarget, setProviderRemovalTarget] = useState<{ business: AdminBusiness; provider: PaymentProvider } | null>(null)
   const [confirmName, setConfirmName] = useState('')
   const { data = [], isLoading, isError } = useQuery({ queryKey: ['admin-businesses'], queryFn: listAdminBusinesses })
   const addProvider = useMutation({
     mutationFn: ({ businessId, provider }: { businessId: string; provider: PaymentProvider }) => addBusinessProvider(businessId, provider),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-businesses'] }),
+  })
+  const removeProvider = useMutation({
+    mutationFn: ({ businessId, provider }: { businessId: string; provider: PaymentProvider }) => removeBusinessProvider(businessId, provider),
+    onSuccess: () => {
+      setProviderRemovalTarget(null)
+      queryClient.invalidateQueries({ queryKey: ['admin-businesses'] })
+    },
   })
   const removeBusiness = useMutation({
     mutationFn: ({ businessId, name }: { businessId: string; name: string }) => deleteBusinessAsAdmin(businessId, name),
@@ -51,10 +59,11 @@ export function AdminPage() {
         </div>
         <div className="mt-5 grid grid-cols-3 gap-3 rounded-lg bg-stone-50 p-3 text-center text-sm dark:bg-stone-800"><div><b className="block text-lg">{business.sale_count}</b>מכירות</div><div><b className="block text-lg">{business.connection_count}</b>חיבורים</div><div><b className="block text-lg">{business.member_count}</b>חברים</div></div>
         <div className="mt-4 flex flex-wrap items-center gap-2"><span className="me-1 text-sm font-medium">חברות סליקה:</span>{(['grow','cardcom'] as PaymentProvider[]).map((provider) => business.payment_providers.includes(provider)
-          ? <span key={provider} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{PROVIDER_LABELS[provider]}</span>
+          ? <span key={provider} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 py-1 pe-1 ps-3 text-xs font-medium text-emerald-700"><span>{PROVIDER_LABELS[provider]}</span><button type="button" aria-label={`הסרת ${PROVIDER_LABELS[provider]} מהעסק ${business.name}`} onClick={() => setProviderRemovalTarget({ business, provider })} className="grid h-6 w-6 place-items-center rounded-full hover:bg-emerald-100 hover:text-red-600"><X className="h-3.5 w-3.5"/></button></span>
           : <button key={provider} type="button" disabled={addProvider.isPending} onClick={() => addProvider.mutate({ businessId: business.id, provider })} className="inline-flex items-center gap-1 rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs text-stone-600 hover:border-brand-500 hover:text-brand-700"><Plus className="h-3 w-3"/>הוספת {PROVIDER_LABELS[provider]}</button>)}</div>
       </article>)}
     </div>
+    {providerRemovalTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-stone-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="remove-provider-title"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-stone-900"><div className="flex items-start justify-between gap-4"><div><h2 id="remove-provider-title" className="text-lg font-semibold">הסרת {PROVIDER_LABELS[providerRemovalTarget.provider]}</h2><p className="mt-2 text-sm text-stone-500">החברה תוסר מהעסק {providerRemovalTarget.business.name} וכל החיבורים הקיימים שלה יושבתו מיד. היסטוריית המכירות והחיבורים תישמר.</p></div><button aria-label="סגירה" onClick={() => setProviderRemovalTarget(null)}><X className="h-5 w-5"/></button></div>{removeProvider.isError && <p role="alert" className="mt-3 text-sm text-red-600">לא ניתן להסיר כרגע את חברת הסליקה.</p>}<div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProviderRemovalTarget(null)} className="rounded-lg px-4 py-2 text-sm">ביטול</button><button type="button" disabled={removeProvider.isPending} onClick={() => removeProvider.mutate({ businessId: providerRemovalTarget.business.id, provider: providerRemovalTarget.provider })} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">{removeProvider.isPending ? 'מסיר…' : 'הסרת החברה'}</button></div></div></div>}
     {deleteTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-stone-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-business-title"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-stone-900"><div className="flex items-start justify-between gap-4"><div><h2 id="delete-business-title" className="text-lg font-semibold">מחיקה לצמיתות של {deleteTarget.name}</h2><p className="mt-2 text-sm text-stone-500">הפעולה תמחק את העסק ואת כל המכירות, החיבורים והיסטוריית הפעילות שלו. לא ניתן לבטל אותה.</p></div><button aria-label="סגירה" onClick={() => setDeleteTarget(null)}><X className="h-5 w-5"/></button></div><label className="mt-5 block text-sm font-medium">הקלידו את שם העסק לאישור<input autoFocus value={confirmName} onChange={(event) => setConfirmName(event.target.value)} className="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2"/></label>{removeBusiness.isError && <p className="mt-3 text-sm text-red-600">מחיקת העסק נכשלה. ודאו שזה אינו העסק הפעיל של חשבון האדמין.</p>}<div className="mt-6 flex justify-end gap-2"><button onClick={() => setDeleteTarget(null)} className="rounded-lg px-4 py-2 text-sm">ביטול</button><button disabled={confirmName !== deleteTarget.name || removeBusiness.isPending} onClick={() => removeBusiness.mutate({ businessId: deleteTarget.id, name: confirmName })} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">{removeBusiness.isPending ? 'מוחק…' : 'מחיקה לצמיתות'}</button></div></div></div>}
   </div>
 }

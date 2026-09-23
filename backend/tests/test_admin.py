@@ -4,6 +4,7 @@ from app.api.routes import auth
 from app.core.config import get_settings
 from app.database import SessionLocal
 from app.models.business import AppAccount, Business, BusinessMember, BusinessPaymentProvider
+from app.models.integration_connection import IntegrationConnection
 
 
 @pytest.fixture
@@ -74,6 +75,45 @@ def test_admin_can_add_provider_and_connection_gate_uses_it(client, admin_busine
     assert added.status_code == 201
     with SessionLocal() as db:
         assert db.get(BusinessPaymentProvider, ("customer-business", "grow")) is not None
+
+
+def test_admin_can_remove_provider_and_existing_connections_are_disabled(client, admin_businesses):
+    with SessionLocal() as db:
+        db.add(BusinessPaymentProvider(
+            business_id="customer-business",
+            provider="cardcom",
+            added_by_user_id="admin-user",
+        ))
+        db.add(IntegrationConnection(
+            id="cardcom-connection",
+            business_id="customer-business",
+            provider="cardcom",
+            name="Main terminal",
+            secret_salt="test-salt",
+            url_token="cardcom-url-token-long-enough",
+            enabled=True,
+        ))
+        db.commit()
+
+    client.cookies.set("sydney_access", "admin-user")
+    response = client.delete(
+        "/api/admin/businesses/customer-business/payment-providers/cardcom",
+        headers={"origin": "http://localhost:5174"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"provider": "cardcom", "removed": True, "disabled_connections": 1}
+    with SessionLocal() as db:
+        assert db.get(BusinessPaymentProvider, ("customer-business", "cardcom")) is None
+        assert db.get(IntegrationConnection, "cardcom-connection").enabled is False
+
+
+def test_non_admin_cannot_remove_provider(client, admin_businesses):
+    client.cookies.set("sydney_access", "customer-user")
+    response = client.delete(
+        "/api/admin/businesses/customer-business/payment-providers/grow",
+        headers={"origin": "http://localhost:5174"},
+    )
+    assert response.status_code == 403
 
 
 def test_admin_delete_requires_exact_name_and_protects_active_business(client, admin_businesses):

@@ -106,6 +106,41 @@ def add_payment_provider(
     return {"provider": provider, "created": True}
 
 
+@router.delete("/businesses/{business_id}/payment-providers/{provider}")
+def remove_payment_provider(
+    business_id: str,
+    provider: Literal["grow", "cardcom"],
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict:
+    _require_admin(request, db)
+    if db.get(Business, business_id) is None:
+        raise HTTPException(status_code=404, detail="העסק לא נמצא")
+    approved_provider = db.get(BusinessPaymentProvider, (business_id, provider))
+    if approved_provider is None:
+        return {"provider": provider, "removed": False, "disabled_connections": 0}
+
+    connections = db.scalars(
+        select(IntegrationConnection).where(
+            IntegrationConnection.business_id == business_id,
+            IntegrationConnection.provider == provider,
+        )
+    ).all()
+    disabled_connections = 0
+    for connection in connections:
+        if connection.enabled:
+            connection.enabled = False
+            disabled_connections += 1
+
+    db.delete(approved_provider)
+    db.commit()
+    return {
+        "provider": provider,
+        "removed": True,
+        "disabled_connections": disabled_connections,
+    }
+
+
 @router.delete("/businesses/{business_id}", status_code=204)
 def delete_business(
     business_id: str,

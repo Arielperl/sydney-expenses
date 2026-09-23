@@ -23,6 +23,11 @@ export async function addBusinessProvider(businessId: string, provider: PaymentP
   catch (error) { throw toApiError(error) }
 }
 
+export async function removeBusinessProvider(businessId: string, provider: PaymentProvider): Promise<void> {
+  try { await apiClient.delete(`/admin/businesses/${businessId}/payment-providers/${provider}`) }
+  catch (error) { throw toApiError(error) }
+}
+
 export async function deleteBusinessAsAdmin(businessId: string, confirmName: string): Promise<void> {
   try { await apiClient.delete(`/admin/businesses/${businessId}`, { data: { confirm_name: confirmName } }) }
   catch (error) { throw toApiError(error) }
