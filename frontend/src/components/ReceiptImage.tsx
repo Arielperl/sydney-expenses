@@ -13,7 +13,7 @@ export function ReceiptImage({ url, alt }: { url: string; alt: string }) {
 
   if (failed) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-stone-300 bg-stone-50 text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
+      <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
         {t('sales.documentImageUnavailable')}
       </div>
     )
@@ -24,7 +24,7 @@ export function ReceiptImage({ url, alt }: { url: string; alt: string }) {
       src={url}
       alt={alt}
       onError={() => setFailed(true)}
-      className="max-h-[70vh] w-full rounded-lg border border-stone-200 object-contain dark:border-stone-700"
+      className="max-h-[70vh] w-full rounded-lg border border-zinc-200 object-contain dark:border-zinc-700"
     />
   )
 }

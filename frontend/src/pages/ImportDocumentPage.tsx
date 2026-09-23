@@ -16,7 +16,7 @@ import { groupWarnings, type WarningGroup } from '../lib/warnings'
 const WARNING_GROUP_STYLES: Record<WarningGroup, string> = {
   recovered: 'border-sky-400/40 bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300',
   review: 'border-amber-400/40 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300',
-  attention: 'border-stone-300 bg-stone-50 text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400',
+  attention: 'border-zinc-300 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400',
 }
 
 export function ImportDocumentPage() {
@@ -71,25 +71,25 @@ export function ImportDocumentPage() {
     <div className="max-w-2xl space-y-6">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('importDocument.title')}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('importDocument.title')}</h1>
           <ExtractionModeBadge />
         </div>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('importDocument.subtitle')}</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('importDocument.subtitle')}</p>
       </div>
 
       {isLoadingSale && <LoadingState label={t('common.loading')} />}
 
       {sale && (
-        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-          <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{t('importDocument.targetSaleLabel')}</p>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t('importDocument.targetSaleLabel')}</p>
           <div className="mt-1 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate font-medium text-stone-900 dark:text-stone-100">{sale.customer_name}</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
+              <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{sale.customer_name}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 {formatDate(sale.occurred_at.slice(0, 10), i18n.language)} · {sale.service_name}
               </p>
             </div>
-            <p className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
+            <p className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
               {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
             </p>
           </div>
@@ -105,7 +105,7 @@ export function ImportDocumentPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <ReceiptDropzone onFileSelected={handleFileSelected} previewUrl={previewUrl} />
       </div>
 

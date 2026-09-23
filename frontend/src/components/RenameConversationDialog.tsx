@@ -55,7 +55,7 @@ export function RenameConversationDialog({
       <button
         type="button"
         aria-label={t('common.closeDialog')}
-        className="absolute inset-0 bg-stone-900/50"
+        className="absolute inset-0 bg-zinc-900/50"
         onClick={handleClose}
         tabIndex={-1}
       />
@@ -65,17 +65,17 @@ export function RenameConversationDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-stone-900"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"
       >
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-500/10">
             <Pencil size={18} className="text-brand-600 dark:text-brand-400" />
           </div>
           <div className="min-w-0 flex-1 pt-1">
-            <h2 id={titleId} className="text-lg font-semibold text-stone-900 dark:text-stone-100">
+            <h2 id={titleId} className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {t('assistant.renameConversation')}
             </h2>
-            <p id={descriptionId} className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+            <p id={descriptionId} className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               {t('assistant.renameDescription')}
             </p>
           </div>
@@ -99,11 +99,11 @@ export function RenameConversationDialog({
             disabled={isLoading}
             maxLength={CONVERSATION_TITLE_MAX_LENGTH + 20}
             onChange={(event) => setValue(event.target.value)}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:opacity-60 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           />
 
           {!isValid && trimmed.length === 0 && value.length > 0 && (
-            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{t('assistant.renameEmptyHint')}</p>
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('assistant.renameEmptyHint')}</p>
           )}
           {trimmed.length > CONVERSATION_TITLE_MAX_LENGTH && (
             <p className="mt-2 text-xs text-danger-600 dark:text-danger-400">
@@ -121,7 +121,7 @@ export function RenameConversationDialog({
               type="button"
               disabled={isLoading}
               onClick={handleClose}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </button>

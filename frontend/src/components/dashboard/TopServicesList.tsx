@@ -14,7 +14,7 @@ export function TopServicesList({ services, currency }: { services: TopService[]
 
   if (rows.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-stone-500 dark:text-stone-400">
+      <p className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
         {t('dashboard.topServicesEmpty')}
       </p>
     )
@@ -33,16 +33,16 @@ export function TopServicesList({ services, currency }: { services: TopService[]
               >
                 {index + 1}
               </span>
-              <span className="truncate text-sm font-medium text-stone-800 dark:text-stone-100">
+              <span className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
                 {service.service_name}
               </span>
             </div>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-stone-900 dark:text-stone-100">
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
               {formatCurrency(service.total, service.currency, i18n.language)}
             </span>
           </div>
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -51,11 +51,11 @@ export function TopServicesList({ services, currency }: { services: TopService[]
                 }}
               />
             </div>
-            <span className="shrink-0 text-xs tabular-nums text-stone-400 dark:text-stone-500">
+            <span className="shrink-0 text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
               {service.percentage_of_revenue.toFixed(0)}%
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+          <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
             {t('dashboard.topServicesSaleCount', { count: service.count })}
           </p>
         </li>

@@ -6,7 +6,7 @@ export function BusinessBadge() {
   const { user } = useAuth()
   const { t } = useTranslation()
   return (
-    <span className="inline-flex w-fit items-center rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+    <span className="inline-flex w-fit items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
       {user?.business_name || t('common.businessBadge')}
     </span>
   )

@@ -40,8 +40,8 @@ export function AddSalePage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('addSale.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('addSale.subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('addSale.title')}</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('addSale.subtitle')}</p>
       </div>
 
       {showSuccess && (
@@ -53,7 +53,7 @@ export function AddSalePage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <SaleForm
           onSubmit={(values) => {
             if (mutation.isPending) return

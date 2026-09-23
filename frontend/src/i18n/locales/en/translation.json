@@ -50,11 +50,7 @@
     "english": "English"
   },
   "theme": {
-    "switcherLabel": "Theme",
-    "changeTheme": "Change theme",
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System"
+    "changeTheme": "Change theme"
   },
   "common": {
     "appShortName": "Revenue Manager",

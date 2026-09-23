@@ -46,24 +46,24 @@ export function FinancialBreakdown({
   ]
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-stone-50/60 shadow-sm dark:border-stone-800 dark:bg-stone-900/40">
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-start"
       >
-        <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">{t('dashboard.breakdown.title')}</span>
-        <span className="text-stone-400 transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : undefined }} aria-hidden="true">
+        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{t('dashboard.breakdown.title')}</span>
+        <span className="text-zinc-400 transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : undefined }} aria-hidden="true">
           ▾
         </span>
       </button>
 
       {isOpen && (
-        <div className="overflow-x-auto border-t border-stone-200 px-4 py-3 dark:border-stone-800">
+        <div className="overflow-x-auto border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <table className="w-full min-w-[420px] text-sm">
             <thead>
-              <tr className="text-xs text-stone-400 dark:text-stone-500">
+              <tr className="text-xs text-zinc-400 dark:text-zinc-500">
                 <th scope="col" className="py-1 text-start font-medium">
                   {t('dashboard.breakdown.metric')}
                 </th>
@@ -74,15 +74,15 @@ export function FinancialBreakdown({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {rows.map((row) => (
                 <tr key={row.key}>
                   <td className="py-2 pe-4 align-top">
-                    <span className="font-medium text-stone-700 dark:text-stone-200">{row.label}</span>
-                    <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{row.hint}</p>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-200">{row.label}</span>
+                    <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{row.hint}</p>
                   </td>
                   {currencies.map((currency) => (
-                    <td key={currency} className="py-2 text-end align-top font-medium tabular-nums text-stone-900 dark:text-stone-100">
+                    <td key={currency} className="py-2 text-end align-top font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
                       {formatCurrency(amountFor(row.values, currency), currency, i18n.language)}
                     </td>
                   ))}
@@ -90,7 +90,7 @@ export function FinancialBreakdown({
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-xs text-stone-400 dark:text-stone-500">{t('dashboard.breakdown.notProfitNote')}</p>
+          <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">{t('dashboard.breakdown.notProfitNote')}</p>
         </div>
       )}
     </div>

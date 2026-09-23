@@ -22,8 +22,8 @@ export function SaleList({
   const navigate = useNavigate()
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
-      <table className="w-full min-w-[900px] table-fixed divide-y divide-stone-200 text-sm dark:divide-stone-800">
+    <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <table className="w-full min-w-[900px] table-fixed divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
         <colgroup>
           <col className="w-[24%]" />
           <col className="w-[16%]" />
@@ -32,45 +32,45 @@ export function SaleList({
           <col className="w-[12%]" />
           <col className="w-[18%]" />
         </colgroup>
-        <thead className="bg-stone-50 dark:bg-stone-800/50">
+        <thead className="bg-zinc-50 dark:bg-zinc-800/50">
           <tr>
-            <th scope="col" className="px-4 py-3 text-start font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-start font-medium text-zinc-500 dark:text-zinc-400">
               {t('sales.columnCustomer')}
             </th>
-            <th scope="col" className="px-4 py-3 text-start font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-start font-medium text-zinc-500 dark:text-zinc-400">
               {t('sales.columnService')}
             </th>
-            <th scope="col" className="px-4 py-3 text-start font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-start font-medium text-zinc-500 dark:text-zinc-400">
               {t('sales.columnStatus')}
             </th>
-            <th scope="col" className="px-4 py-3 text-start font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-start font-medium text-zinc-500 dark:text-zinc-400">
               {t('sales.columnDate')}
             </th>
-            <th scope="col" className="px-4 py-3 text-end font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-end font-medium text-zinc-500 dark:text-zinc-400">
               {t('sales.columnAmount')}
             </th>
-            <th scope="col" className="px-4 py-3 text-end font-medium text-stone-500 dark:text-stone-400">
+            <th scope="col" className="px-4 py-3 text-end font-medium text-zinc-500 dark:text-zinc-400">
               <span className="sr-only">{t('sales.columnActions')}</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {sales.map((sale) => (
             <tr
               key={sale.id}
               onClick={() => navigate(`/sales/${sale.id}`)}
-              className="cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50"
+              className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
             >
               <td className="px-4 py-3 text-start align-top">
                 <Link
                   to={`/sales/${sale.id}`}
                   onClick={(event) => event.stopPropagation()}
-                  className="truncate font-medium text-stone-900 hover:text-brand-600 hover:underline dark:text-stone-100 dark:hover:text-brand-400"
+                  className="truncate font-medium text-zinc-900 hover:text-brand-600 hover:underline dark:text-zinc-100 dark:hover:text-brand-400"
                 >
                   {sale.customer_name}
                 </Link>
                 {sale.customer_contact && (
-                  <p className="truncate text-xs text-stone-400 dark:text-stone-500">{sale.customer_contact}</p>
+                  <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">{sale.customer_contact}</p>
                 )}
               </td>
               <td className="px-4 py-3 text-start align-top">
@@ -80,17 +80,17 @@ export function SaleList({
                 <div className="flex flex-col items-start gap-1">
                   <SaleStatusBadge status={sale.status} />
                   <DocumentStatusBadge status={sale.document_status} />
-                  <span className="text-xs text-stone-400 dark:text-stone-500">
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
                     {t(`saleSource.${sale.source}`)}
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3 text-start align-top text-stone-600 dark:text-stone-400">
+              <td className="px-4 py-3 text-start align-top text-zinc-600 dark:text-zinc-400">
                 {formatDate(sale.occurred_at.slice(0, 10), i18n.language)}
               </td>
-              <td className="px-4 py-3 text-end align-top font-medium tabular-nums text-stone-900 dark:text-stone-100">
+              <td className="px-4 py-3 text-end align-top font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
                 {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
-                <p className="mt-0.5 text-xs font-normal text-stone-400 dark:text-stone-500">
+                <p className="mt-0.5 text-xs font-normal text-zinc-400 dark:text-zinc-500">
                   {sale.tax_treatment ? (
                     <>
                       <span>
@@ -106,7 +106,7 @@ export function SaleList({
                   )}
                 </p>
                 {sale.currency !== 'ILS' && (
-                  <p className="mt-0.5 text-xs font-normal text-stone-400 dark:text-stone-500">
+                  <p className="mt-0.5 text-xs font-normal text-zinc-400 dark:text-zinc-500">
                     {t('sales.foreignCurrencyIsraeliTax')}
                   </p>
                 )}
@@ -117,7 +117,7 @@ export function SaleList({
                     <button
                       type="button"
                       onClick={() => onViewDocument(sale)}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
+                      className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                       aria-label={t('sales.viewDocumentAction', { name: sale.customer_name })}
                     >
                       {t('sales.viewDocument')}
@@ -126,7 +126,7 @@ export function SaleList({
                   {(sale.document_status === 'pending' || sale.document_status === 'failed') && (
                     <Link
                       to={`/import-document?saleId=${sale.id}`}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
+                      className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                     >
                       {t('exceptions.importDocument')}
                     </Link>

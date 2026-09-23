@@ -27,7 +27,7 @@ function StatusBadge({ connection }: { connection: Connection }) {
   const { t } = useTranslation()
   if (!connection.enabled) {
     return (
-      <span className="inline-flex items-center rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+      <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
         {t('imports.grow.statusDisabled')}
       </span>
     )
@@ -61,20 +61,20 @@ function EventRow({ connectionId, event }: { connectionId: string; event: Webhoo
 
   const statusStyles: Record<WebhookEventRead['status'], string> = {
     processed: 'text-success-700 dark:text-success-400',
-    duplicate: 'text-stone-500 dark:text-stone-400',
+    duplicate: 'text-zinc-500 dark:text-zinc-400',
     received: 'text-amber-700 dark:text-amber-400',
     failed: 'text-danger-700 dark:text-danger-400',
     rejected: 'text-danger-700 dark:text-danger-400',
   }
 
   return (
-    <li className="flex flex-col gap-1 border-b border-stone-100 py-2 text-sm last:border-0 dark:border-stone-800">
+    <li className="flex flex-col gap-1 border-b border-zinc-100 py-2 text-sm last:border-0 dark:border-zinc-800">
       <div className="flex items-center justify-between gap-2">
         <span className={`font-medium ${statusStyles[event.status]}`}>{t(`imports.grow.eventStatus.${event.status}`)}</span>
-        <span className="text-xs text-stone-400 dark:text-stone-500">{formatDateTime(event.received_at, i18n.language)}</span>
+        <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatDateTime(event.received_at, i18n.language)}</span>
       </div>
       {event.failure_message && (
-        <p className="text-xs text-stone-500 dark:text-stone-400">{event.failure_message}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">{event.failure_message}</p>
       )}
       {event.can_reprocess && (
         <div>
@@ -100,18 +100,18 @@ function ConnectionActivity({ connectionId }: { connectionId: string }) {
     queryFn: () => listConnectionEvents(connectionId),
   })
 
-  if (isLoading) return <p className="mt-3 text-xs text-stone-400 dark:text-stone-500">{t('common.loading')}</p>
+  if (isLoading) return <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">{t('common.loading')}</p>
   if (!data) return null
 
   return (
-    <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3 dark:border-stone-800 dark:bg-stone-800/40">
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500 dark:text-stone-400">
+    <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/40">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
         <span>{t('imports.grow.countsProcessed', { count: data.counts.processed })}</span>
         <span>{t('imports.grow.countsDuplicate', { count: data.counts.duplicate })}</span>
         <span>{t('imports.grow.countsFailed', { count: data.counts.failed })}</span>
       </div>
       {data.events.length === 0 ? (
-        <p className="mt-2 text-xs text-stone-400 dark:text-stone-500">{t('imports.grow.noActivityYet')}</p>
+        <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">{t('imports.grow.noActivityYet')}</p>
       ) : (
         <ul className="mt-2">
           {data.events.map((event) => (
@@ -163,10 +163,10 @@ function ConnectionCard({ connection }: { connection: Connection }) {
   }
 
   return (
-    <div className="rounded-xl border border-stone-200 p-4 dark:border-stone-800">
+    <div className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-stone-900 dark:text-stone-100">{connection.name}</p>
+          <p className="font-medium text-zinc-900 dark:text-zinc-100">{connection.name}</p>
           <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
             Grow
           </span>
@@ -174,20 +174,20 @@ function ConnectionCard({ connection }: { connection: Connection }) {
         <StatusBadge connection={connection} />
       </div>
 
-      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
         {connection.last_event_at
           ? t('imports.grow.lastEventAt', { time: formatDateTime(connection.last_event_at, i18n.language) })
           : t('imports.grow.noEventsYet')}
       </p>
 
-      <div className="mt-3 flex items-center gap-2 rounded-lg bg-stone-50 p-2 dark:bg-stone-800/60">
-        <code dir="ltr" className="flex-1 truncate text-xs text-stone-700 dark:text-stone-300">
+      <div className="mt-3 flex items-center gap-2 rounded-lg bg-zinc-50 p-2 dark:bg-zinc-800/60">
+        <code dir="ltr" className="flex-1 truncate text-xs text-zinc-700 dark:text-zinc-300">
           {absoluteWebhookUrl(connection.webhook_path)}
         </code>
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 rounded-md border border-stone-300 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-700"
+          className="shrink-0 rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-700"
         >
           {copied ? t('imports.grow.copied') : t('imports.grow.copyUrl')}
         </button>
@@ -199,7 +199,7 @@ function ConnectionCard({ connection }: { connection: Connection }) {
             type="button"
             onClick={() => toggleEnabled.mutate()}
             disabled={toggleEnabled.isPending}
-            className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             {connection.enabled ? t('imports.grow.disable') : t('imports.grow.enable')}
           </button>
@@ -233,13 +233,13 @@ function ConnectionCard({ connection }: { connection: Connection }) {
 
       {confirmingRotate && (
         <Modal title={t('imports.grow.rotateUrlTitle')} onClose={() => setConfirmingRotate(false)}>
-          <p className="text-sm text-stone-600 dark:text-stone-400">{t('imports.grow.rotateUrlWarning')}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('imports.grow.rotateUrlWarning')}</p>
           {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-400">{actionError}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setConfirmingRotate(false)}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </button>
@@ -257,7 +257,7 @@ function ConnectionCard({ connection }: { connection: Connection }) {
 
       {confirmingDelete && (
         <Modal title={t('imports.grow.deleteTitle')} onClose={() => setConfirmingDelete(false)}>
-          <p className="text-sm text-stone-600 dark:text-stone-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {t('imports.grow.deleteWarning', { name: connection.name })}
           </p>
           {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-400">{actionError}</p>}
@@ -265,7 +265,7 @@ function ConnectionCard({ connection }: { connection: Connection }) {
             <button
               type="button"
               onClick={() => setConfirmingDelete(false)}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </button>
@@ -312,7 +312,7 @@ function CreateConnectionForm() {
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder={t('imports.grow.newConnectionPlaceholder')}
-        className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+        className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
       />
       <button
         type="submit"
@@ -338,28 +338,28 @@ export function GrowConnectionPanel() {
   const growConnections = (data ?? []).filter((connection) => connection.provider === 'grow')
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('imports.grow.heading')}</h2>
-      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t('imports.grow.description')}</p>
-      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{t('imports.grow.howTo')}</p>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.grow.heading')}</h2>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.description')}</p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.howTo')}</p>
 
-      <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
+      <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-400">
         {t('imports.grow.verificationNote')}
       </div>
       <div className="mt-2 rounded-lg border border-amber-400/40 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
         {t('imports.grow.refundsNote')}
       </div>
-      <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-400">
+      <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-400">
         {t('imports.grow.csvFallbackNote')}
       </div>
 
-      {isLoading && <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('common.loading')}</p>}
+      {isLoading && <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>}
       {isError && <p className="mt-4 text-sm text-danger-600 dark:text-danger-400">{t('errors.generic')}</p>}
 
       {!isLoading && !isError && (
         <div className="mt-4 space-y-3">
           {growConnections.length === 0 && (
-            <p className="text-sm text-stone-500 dark:text-stone-400">{t('imports.grow.emptyState')}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('imports.grow.emptyState')}</p>
           )}
           {growConnections.map((connection) => (
             <ConnectionCard key={connection.id} connection={connection} />
@@ -370,7 +370,7 @@ export function GrowConnectionPanel() {
       {isOwner ? (
         <CreateConnectionForm />
       ) : (
-        <p className="mt-4 text-xs text-stone-400 dark:text-stone-500">{t('imports.grow.ownerOnlyNote')}</p>
+        <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{t('imports.grow.ownerOnlyNote')}</p>
       )}
     </div>
   )

@@ -14,22 +14,27 @@ function renderSwitcher() {
 }
 
 describe('ThemeSwitcher', () => {
-  it('opens a menu with all three theme options', async () => {
+  it('toggles the dark class on the document when clicked', async () => {
     const user = userEvent.setup()
     renderSwitcher()
-    await user.click(screen.getByRole('button', { name: 'שינוי מצב תצוגה' }))
+    const toggle = screen.getByRole('button', { name: 'שינוי מצב תצוגה' })
 
-    expect(screen.getByRole('option', { name: /בהיר/ })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: /כהה/ })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: /לפי המערכת/ })).toBeInTheDocument()
+    await user.click(toggle)
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+
+    await user.click(toggle)
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
-  it('selecting dark mode applies the dark class to the document', async () => {
+  it('reflects the current theme via aria-pressed', async () => {
     const user = userEvent.setup()
     renderSwitcher()
-    await user.click(screen.getByRole('button', { name: 'שינוי מצב תצוגה' }))
-    await user.click(screen.getByTestId('theme-option-dark'))
+    const toggle = screen.getByRole('button', { name: 'שינוי מצב תצוגה' })
 
-    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 })

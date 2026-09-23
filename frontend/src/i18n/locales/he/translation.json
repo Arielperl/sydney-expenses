@@ -50,11 +50,7 @@
     "english": "אנגלית"
   },
   "theme": {
-    "switcherLabel": "מצב תצוגה",
-    "changeTheme": "שינוי מצב תצוגה",
-    "light": "בהיר",
-    "dark": "כהה",
-    "system": "לפי המערכת"
+    "changeTheme": "שינוי מצב תצוגה"
   },
   "common": {
     "appShortName": "מנהל הכנסות",

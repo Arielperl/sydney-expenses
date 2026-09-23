@@ -72,7 +72,7 @@ export function LanguageSwitcher() {
         aria-expanded={isOpen}
         aria-label={t('language.changeLanguage')}
         title={t('language.changeLanguage')}
-        className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 bg-white text-stone-600 shadow-sm transition-colors hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+        className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-600 shadow-sm transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       >
         <Globe className="h-4 w-4" aria-hidden="true" />
       </button>
@@ -81,7 +81,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t('language.switcherLabel')}
-          className="absolute start-0 bottom-full z-20 mb-2 w-40 overflow-hidden rounded-md border border-stone-200 bg-white py-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
+          className="absolute start-0 bottom-full z-20 mb-2 w-40 overflow-hidden rounded-md border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
           {SUPPORTED_LANGUAGES.map((language, index) => {
             const isSelected = currentLanguage === language
@@ -99,10 +99,10 @@ export function LanguageSwitcher() {
                 onClick={() => selectLanguage(language)}
                 onKeyDown={(event) => handleOptionKeyDown(event, index)}
                 className={[
-                  'flex w-full items-center justify-between gap-2 px-3 py-2 text-sm transition-colors focus:outline-none focus:bg-stone-100 dark:focus:bg-stone-800',
+                  'flex w-full items-center justify-between gap-2 px-3 py-2 text-sm transition-colors focus:outline-none focus:bg-zinc-100 dark:focus:bg-zinc-800',
                   isSelected
                     ? 'font-medium text-brand-700 dark:text-brand-400'
-                    : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800',
+                    : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800',
                 ].join(' ')}
               >
                 <span>{t(`language.${LABEL_KEY[language]}`)}</span>

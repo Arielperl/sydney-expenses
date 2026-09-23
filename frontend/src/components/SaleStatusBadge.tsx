@@ -6,7 +6,7 @@ const STATUS_STYLES: Record<SaleStatus, string> = {
   succeeded: 'bg-success-500/10 text-success-700 dark:text-success-400',
   pending: 'bg-accent-500/10 text-accent-600 dark:text-accent-400',
   failed: 'bg-danger-500/10 text-danger-700 dark:text-danger-400',
-  refunded: 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
+  refunded: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
   partially_refunded: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
 }
 

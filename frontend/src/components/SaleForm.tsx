@@ -151,10 +151,10 @@ export function SaleForm({
         <FormField label={t('form.vatAmount')} htmlFor="vat_amount_preview">
           <p
             id="vat_amount_preview"
-            className="flex h-10 items-center rounded-md border border-dashed border-stone-300 bg-stone-50 px-3 text-sm text-stone-600 dark:border-stone-700 dark:bg-stone-800/50 dark:text-stone-400"
+            className="flex h-10 items-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400"
           >
             {formatCurrency(vatPreview, currency || 'ILS', i18n.language)}
-            <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">{t('form.vatAmountPreviewHint')}</span>
+            <span className="ms-2 text-xs text-zinc-400 dark:text-zinc-500">{t('form.vatAmountPreviewHint')}</span>
           </p>
         </FormField>
 

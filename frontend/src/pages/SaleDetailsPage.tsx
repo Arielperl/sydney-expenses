@@ -31,17 +31,17 @@ function normalizeCurrency(value: string): TransactionCurrency {
 function Field({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm font-medium text-stone-900 dark:text-stone-100">{value}</dd>
-      {hint && <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{hint}</p>}
+      <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{value}</dd>
+      {hint && <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{hint}</p>}
     </div>
   )
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
       <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</dl>
     </div>
   )
@@ -54,12 +54,12 @@ const EVENT_TONE: Record<SaleEventType, string> = {
   payment_succeeded: 'bg-success-500',
   payment_pending: 'bg-accent-500',
   payment_failed: 'bg-danger-500',
-  document_issuance_attempted: 'bg-stone-400',
+  document_issuance_attempted: 'bg-zinc-400',
   document_issued: 'bg-success-500',
   document_issuance_failed: 'bg-danger-500',
   refund_partial: 'bg-amber-500',
   refund_full: 'bg-amber-500',
-  sale_details_edited: 'bg-stone-400',
+  sale_details_edited: 'bg-zinc-400',
 }
 
 export function SaleDetailsPage() {
@@ -163,11 +163,11 @@ export function SaleDetailsPage() {
           <Link to="/sales" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
             {t('saleDetails.backToSales')}
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold text-stone-900 dark:text-stone-100">{sale.customer_name}</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{sale.customer_name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <SaleStatusBadge status={sale.status} />
             <DocumentStatusBadge status={sale.document_status} />
-            <span className="text-xs text-stone-400 dark:text-stone-500">{t(`saleSource.${sale.source}`)}</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t(`saleSource.${sale.source}`)}</span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -175,7 +175,7 @@ export function SaleDetailsPage() {
             <button
               type="button"
               onClick={() => setIsRefundOpen(true)}
-              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+              className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
             >
               {t('saleDetails.recordRefund')}
             </button>
@@ -271,7 +271,7 @@ export function SaleDetailsPage() {
         <Field label={t('saleDetails.documentNumber')} value={sale.document_number || t('saleDetails.notApplicable')} />
         <Field label={t('saleDetails.documentType')} value={sale.document_type || t('saleDetails.notApplicable')} />
         {sale.document_status === 'waiting_automatic' && (
-          <p className="text-xs text-stone-500 dark:text-stone-400 sm:col-span-2">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
             {t('saleDetails.documentWaitingAutomaticHint')}
           </p>
         )}
@@ -281,7 +281,7 @@ export function SaleDetailsPage() {
               href={sale.document_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('sales.viewDocument')}
             </a>
@@ -290,7 +290,7 @@ export function SaleDetailsPage() {
               <button
                 type="button"
                 onClick={() => setIsDocumentOpen(true)}
-                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 {t('sales.viewDocument')}
               </button>
@@ -307,26 +307,26 @@ export function SaleDetailsPage() {
         </div>
       </Section>
 
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{t('saleDetails.timeline')}</h2>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t('saleDetails.timeline')}</h2>
         {eventsQuery.isLoading && <LoadingState label={t('common.loading')} />}
         {eventsQuery.isError && <ErrorState message={toApiError(eventsQuery.error).message} />}
         {eventsQuery.data && eventsQuery.data.length === 0 && (
-          <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">{t('saleDetails.noHistoryAvailable')}</p>
+          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{t('saleDetails.noHistoryAvailable')}</p>
         )}
         {eventsQuery.data && eventsQuery.data.length > 0 && (
           <ol className="mt-4 space-y-3">
             {eventsQuery.data.map((event) => (
               <li key={event.id} className="flex items-start gap-3">
                 <span
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${EVENT_TONE[event.event_type] ?? 'bg-stone-400'}`}
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${EVENT_TONE[event.event_type] ?? 'bg-zinc-400'}`}
                   aria-hidden="true"
                 />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {t(`saleEvent.${event.event_type}`)}
                   </p>
-                  <p className="text-xs text-stone-400 dark:text-stone-500">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
                     {formatDateTime(event.created_at, i18n.language)} · {t(`saleEventSource.${event.source}`)}
                   </p>
                 </div>
@@ -334,7 +334,7 @@ export function SaleDetailsPage() {
             ))}
           </ol>
         )}
-        <p className="mt-4 text-xs text-stone-400 dark:text-stone-500">{t('saleDetails.timelineHonestyNote')}</p>
+        <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{t('saleDetails.timelineHonestyNote')}</p>
       </div>
 
       {isEditOpen && (
@@ -352,7 +352,7 @@ export function SaleDetailsPage() {
 
       {isRefundOpen && (
         <Modal title={t('saleDetails.recordRefund')} onClose={() => setIsRefundOpen(false)}>
-          <p className="text-sm text-stone-600 dark:text-stone-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {t('saleDetails.refundableAmount', { amount: formatCurrency(refundableRemaining, sale.currency, i18n.language) })}
           </p>
           <FormField label={t('saleDetails.refundAmountLabel')} htmlFor="refund_amount" hint={t('saleDetails.refundAmountHint')}>
@@ -377,7 +377,7 @@ export function SaleDetailsPage() {
             <button
               type="button"
               onClick={() => setIsRefundOpen(false)}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </button>

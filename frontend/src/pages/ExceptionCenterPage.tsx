@@ -17,15 +17,15 @@ function SaleRow({ sale, action }: { sale: Sale; action?: ReactNode }) {
   return (
     <li className="flex items-center justify-between gap-4 px-4 py-3">
       <div className="min-w-0">
-        <p className="truncate font-medium text-stone-900 dark:text-stone-100">{sale.customer_name}</p>
-        <p className="text-xs text-stone-500 dark:text-stone-400">
+        <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{sale.customer_name}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {sale.service_name} · {formatDate(sale.occurred_at.slice(0, 10), i18n.language)}
         </p>
       </div>
       <div className="flex items-center gap-3">
         <SaleStatusBadge status={sale.status} />
         <DocumentStatusBadge status={sale.document_status} />
-        <span className="font-medium tabular-nums text-stone-900 dark:text-stone-100">
+        <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
           {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
         </span>
         {action}
@@ -57,18 +57,18 @@ function SaleSection({
   return (
     <section id={id} className="scroll-mt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
         {total > 0 && (
-          <span className="text-xs text-stone-500 dark:text-stone-400">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
             {t('exceptions.showingCount', { shown: sales.length, total })}
           </span>
         )}
       </div>
       {sales.length === 0 ? (
-        <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{emptyLabel}</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{emptyLabel}</p>
       ) : (
         <>
-          <ul className="mt-3 divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-white dark:divide-stone-800 dark:border-stone-800 dark:bg-stone-900">
+          <ul className="mt-3 divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
             {sales.map((sale) => (
               <SaleRow key={sale.id} sale={sale} action={action?.(sale)} />
             ))}
@@ -78,7 +78,7 @@ function SaleSection({
               type="button"
               onClick={onLoadMore}
               disabled={isLoadingMore}
-              className="mt-3 rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="mt-3 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-wait disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {isLoadingMore ? t('common.loading') : t('exceptions.loadMore')}
             </button>
@@ -118,7 +118,7 @@ export function ExceptionCenterPage() {
   const importLink = (sale: Sale) => (
     <Link
       to={`/import-document?saleId=${sale.id}`}
-      className="whitespace-nowrap rounded-md border border-stone-300 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+      className="whitespace-nowrap rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
     >
       {t('exceptions.importDocument')}
     </Link>
@@ -127,7 +127,7 @@ export function ExceptionCenterPage() {
   const editLink = () => (
     <Link
       to="/sales"
-      className="whitespace-nowrap rounded-md border border-stone-300 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+      className="whitespace-nowrap rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
     >
       {t('exceptions.editInSales')}
     </Link>
@@ -136,8 +136,8 @@ export function ExceptionCenterPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('exceptions.title')}</h1>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('exceptions.subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('exceptions.title')}</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.subtitle')}</p>
       </div>
 
       <SaleSection

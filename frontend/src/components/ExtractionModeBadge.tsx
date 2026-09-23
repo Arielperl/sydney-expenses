@@ -5,7 +5,7 @@ import { getSystemCapabilities } from '../services/systemService'
 import type { SystemCapabilities } from '../types/system'
 
 const BADGE_STYLES: Record<SystemCapabilities['receipt_extraction_mode'], { badge: string; dot: string }> = {
-  demo: { badge: 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300', dot: 'bg-stone-400' },
+  demo: { badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300', dot: 'bg-zinc-400' },
   local: { badge: 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400', dot: 'bg-brand-500' },
   ai: { badge: 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400', dot: 'bg-success-500' },
 }

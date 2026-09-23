@@ -61,9 +61,9 @@ export function CsvImportWizard() {
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
-      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('imports.csv.heading')}</h2>
-      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t('imports.csv.formatNote')}</p>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.csv.heading')}</h2>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.csv.formatNote')}</p>
 
       {(state === 'idle' || state === 'previewing') && (
         <div className="mt-4">
@@ -76,10 +76,10 @@ export function CsvImportWizard() {
               const file = event.target.files?.[0]
               if (file) void handleFileSelected(file)
             }}
-            className="block w-full text-sm text-stone-600 file:me-4 file:rounded-md file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700 dark:text-stone-300"
+            className="block w-full text-sm text-zinc-600 file:me-4 file:rounded-md file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700 dark:text-zinc-300"
           />
           {state === 'previewing' && (
-            <p role="status" className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+            <p role="status" className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
               {t('imports.csv.uploading')}
             </p>
           )}
@@ -94,8 +94,8 @@ export function CsvImportWizard() {
 
       {state === 'previewed' && preview && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{t('imports.csv.previewHeading')}</h3>
-          <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.csv.previewHeading')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {t('imports.csv.validRows', { count: preview.valid_rows.length })}
             {preview.errors.length > 0 && ` · ${t('imports.csv.errorRows', { count: preview.errors.length })}`}
           </p>
@@ -106,29 +106,29 @@ export function CsvImportWizard() {
           )}
 
           {preview.valid_rows.length > 0 && (
-            <div className="mt-3 overflow-x-auto rounded-lg border border-stone-200 dark:border-stone-800">
-              <table className="min-w-full divide-y divide-stone-200 text-sm dark:divide-stone-800">
-                <thead className="bg-stone-50 dark:bg-stone-800/50">
+            <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                <thead className="bg-zinc-50 dark:bg-zinc-800/50">
                   <tr>
-                    <th scope="col" className="px-3 py-2 text-start font-medium text-stone-500 dark:text-stone-400">
+                    <th scope="col" className="px-3 py-2 text-start font-medium text-zinc-500 dark:text-zinc-400">
                       {t('imports.csv.columnDate')}
                     </th>
-                    <th scope="col" className="px-3 py-2 text-start font-medium text-stone-500 dark:text-stone-400">
+                    <th scope="col" className="px-3 py-2 text-start font-medium text-zinc-500 dark:text-zinc-400">
                       {t('imports.csv.columnCustomer')}
                     </th>
-                    <th scope="col" className="px-3 py-2 text-end font-medium text-stone-500 dark:text-stone-400">
+                    <th scope="col" className="px-3 py-2 text-end font-medium text-zinc-500 dark:text-zinc-400">
                       {t('imports.csv.columnAmount')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {preview.valid_rows.map((row) => (
                     <tr key={row.row_number}>
-                      <td className="px-3 py-2 text-stone-600 dark:text-stone-400">
+                      <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">
                         {formatDate(row.sale_date, i18n.language)}
                       </td>
-                      <td className="px-3 py-2 text-stone-900 dark:text-stone-100">{row.customer}</td>
-                      <td className="px-3 py-2 text-end tabular-nums text-stone-900 dark:text-stone-100">
+                      <td className="px-3 py-2 text-zinc-900 dark:text-zinc-100">{row.customer}</td>
+                      <td className="px-3 py-2 text-end tabular-nums text-zinc-900 dark:text-zinc-100">
                         {formatCurrency(row.amount, row.currency, i18n.language)}
                       </td>
                     </tr>
@@ -140,7 +140,7 @@ export function CsvImportWizard() {
 
           {preview.errors.length > 0 && (
             <div className="mt-3 overflow-x-auto rounded-lg border border-danger-500/30">
-              <table className="min-w-full divide-y divide-stone-200 text-sm dark:divide-stone-800">
+              <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                 <thead className="bg-danger-50 dark:bg-danger-500/10">
                   <tr>
                     <th scope="col" className="px-3 py-2 text-start font-medium text-danger-700 dark:text-danger-400">
@@ -151,10 +151,10 @@ export function CsvImportWizard() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {preview.errors.map((rowError) => (
                     <tr key={rowError.row_number}>
-                      <td className="px-3 py-2 text-stone-600 dark:text-stone-400">{rowError.row_number}</td>
+                      <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{rowError.row_number}</td>
                       <td className="px-3 py-2 text-danger-700 dark:text-danger-400">{rowError.message}</td>
                     </tr>
                   ))}
@@ -167,7 +167,7 @@ export function CsvImportWizard() {
             <button
               type="button"
               onClick={handleReset}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('imports.csv.startOver')}
             </button>
@@ -184,7 +184,7 @@ export function CsvImportWizard() {
       )}
 
       {state === 'confirming' && (
-        <p role="status" className="mt-4 text-sm text-stone-500 dark:text-stone-400">
+        <p role="status" className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
           {t('imports.csv.confirming')}
         </p>
       )}
@@ -203,7 +203,7 @@ export function CsvImportWizard() {
           <button
             type="button"
             onClick={handleReset}
-            className="mt-3 rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+            className="mt-3 rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             {t('imports.csv.startOver')}
           </button>

@@ -28,9 +28,9 @@ export function RevenueTrendChart({
 
   if (!hasAnyRevenue) {
     return (
-      <div className="flex h-64 w-full flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 text-center dark:border-stone-800">
-        <p className="text-sm font-medium text-stone-500 dark:text-stone-400">{t('dashboard.trendEmptyTitle')}</p>
-        <p className="mt-1 max-w-xs text-xs text-stone-400 dark:text-stone-500">{t('dashboard.trendEmptyDescription')}</p>
+      <div className="flex h-64 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 text-center dark:border-zinc-800">
+        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t('dashboard.trendEmptyTitle')}</p>
+        <p className="mt-1 max-w-xs text-xs text-zinc-400 dark:text-zinc-500">{t('dashboard.trendEmptyDescription')}</p>
       </div>
     )
   }

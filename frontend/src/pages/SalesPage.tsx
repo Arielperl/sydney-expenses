@@ -125,18 +125,18 @@ export function SalesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t('sales.title')}</h1>
-          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t('sales.subtitle')}</p>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('sales.title')}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('sales.subtitle')}</p>
         </div>
         <Link
           to="/add-sale"
-          className="shrink-0 rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+          className="shrink-0 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
         >
           {t('sales.addSaleManually')}
         </Link>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap dark:border-zinc-800 dark:bg-zinc-900">
         <div className="min-w-0 sm:flex-[2_2_240px]">
           <label htmlFor="search" className="sr-only">
             {t('sales.searchLabel')}
@@ -226,7 +226,7 @@ export function SalesPage() {
 
       {deletingSale && (
         <Modal title={t('sales.deleteTitle')} onClose={() => setDeletingSale(null)}>
-          <p className="text-sm text-stone-600 dark:text-stone-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             <Trans
               i18nKey="sales.deleteConfirm"
               values={{ name: deletingSale.customer_name }}
@@ -242,7 +242,7 @@ export function SalesPage() {
             <button
               type="button"
               onClick={() => setDeletingSale(null)}
-              className="rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               {t('common.cancel')}
             </button>

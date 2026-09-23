@@ -7,7 +7,7 @@ function ComparisonBadge({ comparison }: { comparison: PeriodComparison | undefi
   const { t } = useTranslation()
   if (!comparison || comparison.percentage_change === null || comparison.amount_change === null) {
     return (
-      <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+      <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
         {t('dashboard.noComparisonBaseline')}
       </p>
     )
@@ -27,7 +27,7 @@ function ComparisonBadge({ comparison }: { comparison: PeriodComparison | undefi
           ? 'bg-success-500/10 text-success-700 dark:text-success-400'
           : isDecrease
             ? 'bg-danger-500/10 text-danger-700 dark:text-danger-400'
-            : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
+            : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
       ].join(' ')}
     >
       <span aria-hidden="true">{isIncrease ? '▲' : isDecrease ? '▼' : '–'}</span>
@@ -59,19 +59,19 @@ export function PrimaryMetricCard({
   const isMultiCurrency = amounts.length > 1
 
   return (
-    <div className="rounded-xl border-s-4 border-brand-600 bg-white p-6 shadow-sm dark:border-brand-500 dark:bg-stone-900 sm:p-8">
-      <p className="text-sm font-semibold text-stone-500 dark:text-stone-400">{label}</p>
+    <div className="rounded-xl border-s-4 border-brand-600 bg-white p-6 shadow-sm dark:border-brand-500 dark:bg-zinc-900 sm:p-8">
+      <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">{label}</p>
       <div className={isMultiCurrency ? 'mt-3 space-y-4' : undefined}>
         {rows.map((row) => (
           <div key={row.currency}>
             {isMultiCurrency && (
-              <p className="text-xs font-semibold tracking-wide text-stone-400 uppercase dark:text-stone-500">
+              <p className="text-xs font-semibold tracking-wide text-zinc-400 uppercase dark:text-zinc-500">
                 {row.currency}
               </p>
             )}
             <p
               className={[
-                'font-bold tracking-tight tabular-nums text-stone-900 dark:text-stone-100',
+                'font-bold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-100',
                 isMultiCurrency ? 'text-3xl' : 'mt-2 text-4xl sm:text-5xl',
               ].join(' ')}
             >
@@ -83,7 +83,7 @@ export function PrimaryMetricCard({
           </div>
         ))}
       </div>
-      <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{explanation}</p>
+      <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{explanation}</p>
     </div>
   )
 }

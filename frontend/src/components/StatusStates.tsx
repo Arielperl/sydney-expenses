@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 export function LoadingState({ label }: { label?: string }) {
   const { t } = useTranslation()
   return (
-    <div role="status" className="flex items-center justify-center gap-3 py-16 text-stone-500 dark:text-stone-400">
+    <div role="status" className="flex items-center justify-center gap-3 py-16 text-zinc-500 dark:text-zinc-400">
       <span
         aria-hidden="true"
-        className="h-5 w-5 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600 dark:border-stone-700"
+        className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-brand-600 dark:border-zinc-700"
       />
       <span>{label ?? t('common.loading')}</span>
     </div>
@@ -51,9 +51,9 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-16 text-center dark:border-stone-700 dark:bg-stone-900">
-      <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-sm text-stone-500 dark:text-stone-400">{description}</p>}
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
+      <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</p>
+      {description && <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )
