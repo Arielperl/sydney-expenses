@@ -62,7 +62,10 @@ describe('GrowConnectionPanel', () => {
     server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('עדיין אין חיבורי Grow. הוסיפו אחד למטה כדי להתחיל.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Grow עדיין לא מחובר. התחילו חיבור כדי לקבל מכירות אוטומטית.')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'התחלת חיבור' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'הוספת חיבור' })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'התחלת חיבור' }))
     expect(screen.getByRole('button', { name: 'הוספת חיבור' })).toBeInTheDocument()
   })
 
@@ -72,7 +75,7 @@ describe('GrowConnectionPanel', () => {
     renderPanel()
 
     await waitFor(() => expect(screen.getByText('ממתין לעסקה ראשונה')).toBeInTheDocument())
-    expect(screen.queryByText('פעיל')).not.toBeInTheDocument()
+    expect(screen.queryByText('מכירות נקלטו')).not.toBeInTheDocument()
   })
 
   it('shows an active state with the last event time once a real event arrived', async () => {
@@ -80,8 +83,8 @@ describe('GrowConnectionPanel', () => {
     server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([activeConnection])))
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('פעיל')).toBeInTheDocument())
-    expect(screen.getByText(/עסקה אחרונה/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('מכירות נקלטו')).toBeInTheDocument())
+    expect(screen.getByText(/עדכון אחרון/)).toBeInTheDocument()
   })
 
   it('lets the owner copy the webhook URL', async () => {
@@ -92,6 +95,7 @@ describe('GrowConnectionPanel', () => {
     const mockWriteText = stubClipboard()
 
     await waitFor(() => expect(screen.getByText('קופה ראשית')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
     await user.click(screen.getByRole('button', { name: 'העתקת כתובת Webhook' }))
 
     expect(mockWriteText).toHaveBeenCalledWith(expect.stringContaining('/api/webhooks/connections/tok_abc123'))
@@ -112,11 +116,14 @@ describe('GrowConnectionPanel', () => {
     renderPanel()
     const user = userEvent.setup()
 
-    await waitFor(() => expect(screen.getByPlaceholderText('שם החיבור, למשל קופה ראשית')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'התחלת חיבור' })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'התחלת חיבור' }))
     await user.type(screen.getByPlaceholderText('שם החיבור, למשל קופה ראשית'), 'קופה חדשה')
     await user.click(screen.getByRole('button', { name: 'הוספת חיבור' }))
 
     await waitFor(() => expect(screen.getByText('קופה חדשה')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'העתקת כתובת Webhook' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'הוספת חיבור' })).not.toBeInTheDocument()
   })
 
   it('hides management controls from a manager and shows the owner-only note', async () => {
@@ -147,6 +154,8 @@ describe('GrowConnectionPanel', () => {
     const user = userEvent.setup()
 
     await waitFor(() => expect(screen.getByText('קופה ראשית')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
+    await user.click(screen.getByText('ניהול מתקדם'))
     await user.click(screen.getByRole('button', { name: 'מחיקה' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText(/פעולה זו מוחקת לצמיתות/)).toBeInTheDocument()
@@ -200,6 +209,7 @@ describe('GrowConnectionPanel', () => {
     const user = userEvent.setup()
 
     await waitFor(() => expect(screen.getByText('קופה ראשית')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'פרטי החיבור' }))
     await user.click(screen.getByRole('button', { name: 'הצגת פעילות' }))
 
     await waitFor(() => expect(screen.getByText('RuntimeError during sale creation')).toBeInTheDocument())
@@ -223,24 +233,26 @@ describe('GrowConnectionPanel', () => {
     }
   })
 
-  it('always shows the manual refund/cancellation note and CSV fallback note', async () => {
+  it('keeps refund and CSV notes available without showing them by default', async () => {
     mockSession('owner')
-    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
+    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([waitingConnection])))
     renderPanel()
-
-    await waitFor(() =>
-      expect(
-        screen.getByText('Grow אינה שולחת כרגע עדכוני זיכוי או ביטול דרך חיבור זה — יש לרשום אותם ידנית על המכירה.'),
-      ).toBeInTheDocument(),
-    )
+    const user = userEvent.setup()
+    await waitFor(() => expect(screen.getByText('קופה ראשית')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
+    await user.click(screen.getByText('מידע נוסף על החיבור'))
+    expect(screen.getByText(/Grow אינה שולחת כרגע עדכוני זיכוי/)).toBeInTheDocument()
     expect(screen.getByText(/ייבוא CSV/)).toBeInTheDocument()
   })
 
-  it('always shows that verification requires a real transaction, since Grow has no test environment', async () => {
+  it('explains that verification requires a real transaction in the connection details', async () => {
     mockSession('owner')
-    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
+    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([waitingConnection])))
     renderPanel()
-
-    await waitFor(() => expect(screen.getByText(/אין סביבת בדיקה/)).toBeInTheDocument())
+    const user = userEvent.setup()
+    await waitFor(() => expect(screen.getByText('קופה ראשית')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
+    await user.click(screen.getByText('מידע נוסף על החיבור'))
+    expect(screen.getByText(/אין סביבת בדיקה/)).toBeInTheDocument()
   })
 })

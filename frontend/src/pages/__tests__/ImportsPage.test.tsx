@@ -67,10 +67,32 @@ describe('ImportsPage', () => {
     expect(screen.queryByRole('heading', { name: 'חיבור Cardcom' })).not.toBeInTheDocument()
   })
 
+  it('keeps the file import separate from the automatic connections', async () => {
+    const user = userEvent.setup()
+    renderImportsPage(['grow'])
+
+    expect(await screen.findByRole('heading', { name: 'חיבור Grow' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('בחירת קובץ CSV')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'ייבוא מכירות מקובץ' }))
+    expect(screen.getByLabelText('בחירת קובץ CSV')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'חיבור Grow' })).not.toBeInTheDocument()
+  })
+
+  it('supports keyboard navigation between the two sections', async () => {
+    const user = userEvent.setup()
+    renderImportsPage(['grow'])
+    const connections = screen.getByRole('tab', { name: 'חיבורים אוטומטיים' })
+    connections.focus()
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByRole('tab', { name: 'ייבוא מכירות מקובץ' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('בחירת קובץ CSV')).toBeInTheDocument()
+  })
+
   it('previews a CSV file and shows the parsed rows', async () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json(previewResponse)))
     const user = userEvent.setup()
     renderImportsPage()
+    await user.click(screen.getByRole('tab', { name: 'ייבוא מכירות מקובץ' }))
 
     await selectFile(user)
 
@@ -87,6 +109,7 @@ describe('ImportsPage', () => {
     )
     const user = userEvent.setup()
     renderImportsPage()
+    await user.click(screen.getByRole('tab', { name: 'ייבוא מכירות מקובץ' }))
 
     await selectFile(user)
     await waitFor(() => expect(screen.getByRole('button', { name: 'אישור הייבוא' })).toBeInTheDocument())
@@ -100,6 +123,7 @@ describe('ImportsPage', () => {
     server.use(http.post(PREVIEW_URL, () => HttpResponse.json({ detail: 'bad file' }, { status: 422 })))
     const user = userEvent.setup()
     renderImportsPage()
+    await user.click(screen.getByRole('tab', { name: 'ייבוא מכירות מקובץ' }))
 
     await selectFile(user)
 

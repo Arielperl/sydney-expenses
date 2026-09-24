@@ -63,7 +63,9 @@ describe('CardcomConnectionPanel', () => {
     server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('עדיין אין חיבורי Cardcom. הוסיפו אחד למטה כדי להתחיל.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Cardcom עדיין לא מחובר. התחילו חיבור כדי לקבל מכירות אוטומטית.')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'התחלת חיבור' })).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'התחלת חיבור' }))
     expect(screen.getByRole('button', { name: 'הוספת חיבור' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('מספר מסוף')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('שם API')).toBeInTheDocument()
@@ -76,7 +78,7 @@ describe('CardcomConnectionPanel', () => {
     renderPanel()
 
     await waitFor(() => expect(screen.getByText('ממתין לעסקה ראשונה')).toBeInTheDocument())
-    expect(screen.queryByText('פעיל')).not.toBeInTheDocument()
+    expect(screen.queryByText('מכירות נקלטו')).not.toBeInTheDocument()
   })
 
   it('shows an active state with the last event time and terminal number once a real event arrived', async () => {
@@ -84,8 +86,8 @@ describe('CardcomConnectionPanel', () => {
     server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([activeConnection])))
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('פעיל')).toBeInTheDocument())
-    expect(screen.getByText(/עסקה אחרונה/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('מכירות נקלטו')).toBeInTheDocument())
+    expect(screen.getByText(/עדכון אחרון/)).toBeInTheDocument()
     expect(screen.getByText('מסוף 1000')).toBeInTheDocument()
   })
 
@@ -97,6 +99,7 @@ describe('CardcomConnectionPanel', () => {
     const mockWriteText = stubClipboard()
 
     await waitFor(() => expect(screen.getByText('מסוף ראשי')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
     await user.click(screen.getByRole('button', { name: 'העתקת כתובת Webhook' }))
 
     expect(mockWriteText).toHaveBeenCalledWith(expect.stringContaining('/api/webhooks/connections/tok_abc123'))
@@ -119,7 +122,8 @@ describe('CardcomConnectionPanel', () => {
     renderPanel()
     const user = userEvent.setup()
 
-    await waitFor(() => expect(screen.getByPlaceholderText('שם החיבור, למשל מסוף ראשי')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'התחלת חיבור' })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'התחלת חיבור' }))
     await user.type(screen.getByPlaceholderText('שם החיבור, למשל מסוף ראשי'), 'מסוף חדש')
     await user.type(screen.getByPlaceholderText('מספר מסוף'), '2000')
     await user.type(screen.getByPlaceholderText('שם API'), 'CardTest1994')
@@ -127,6 +131,8 @@ describe('CardcomConnectionPanel', () => {
     await user.click(screen.getByRole('button', { name: 'הוספת חיבור' }))
 
     await waitFor(() => expect(screen.getByText('מסוף חדש')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'העתקת כתובת Webhook' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'הוספת חיבור' })).not.toBeInTheDocument()
     expect(capturedBody).toMatchObject({
       name: 'מסוף חדש',
       provider: 'cardcom',
@@ -144,7 +150,8 @@ describe('CardcomConnectionPanel', () => {
     renderPanel()
     const user = userEvent.setup()
 
-    await waitFor(() => expect(screen.getByPlaceholderText('שם החיבור, למשל מסוף ראשי')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'התחלת חיבור' })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'התחלת חיבור' }))
     await user.type(screen.getByPlaceholderText('שם החיבור, למשל מסוף ראשי'), 'מסוף חדש')
     expect(screen.getByRole('button', { name: 'הוספת חיבור' })).toBeDisabled()
   })
@@ -177,6 +184,8 @@ describe('CardcomConnectionPanel', () => {
     const user = userEvent.setup()
 
     await waitFor(() => expect(screen.getByText('מסוף ראשי')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
+    await user.click(screen.getByText('ניהול מתקדם'))
     await user.click(screen.getByRole('button', { name: 'מחיקה' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText(/פעולה זו מוחקת לצמיתות/)).toBeInTheDocument()
@@ -241,6 +250,7 @@ describe('CardcomConnectionPanel', () => {
     const user = userEvent.setup()
 
     await waitFor(() => expect(screen.getByText('מסוף ראשי')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'פרטי החיבור' }))
     await user.click(screen.getByRole('button', { name: 'הצגת פעילות' }))
 
     await waitFor(() => expect(screen.getByText('GetLpResult call failed')).toBeInTheDocument())
@@ -266,14 +276,15 @@ describe('CardcomConnectionPanel', () => {
     }
   })
 
-  it('always shows the decline-reporting note, the manual refund/cancellation note, and the CSV fallback note', async () => {
+  it('keeps decline, refund and CSV notes in the connection details', async () => {
     mockSession('owner')
-    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([])))
+    server.use(http.get(CONNECTIONS_URL, () => HttpResponse.json([waitingConnection])))
     renderPanel()
-
-    await waitFor(() =>
-      expect(screen.getByText(/Cardcom יכולה לדווח על תשלומים שנדחו/)).toBeInTheDocument(),
-    )
+    const user = userEvent.setup()
+    await waitFor(() => expect(screen.getByText('מסוף ראשי')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'המשך הגדרה' }))
+    await user.click(screen.getByText('מידע נוסף על החיבור'))
+    expect(screen.getByText(/Cardcom יכולה לדווח על תשלומים שנדחו/)).toBeInTheDocument()
     expect(screen.getByText(/זיכויים וביטולים אינם מתקבלים אוטומטית/)).toBeInTheDocument()
     expect(screen.getByText(/ייבוא CSV/)).toBeInTheDocument()
   })

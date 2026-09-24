@@ -43,7 +43,8 @@ describe('Layout', () => {
     renderLayout()
     const nav = screen.getByRole('navigation', { name: 'ניווט ראשי' })
     expect(within(nav).getAllByRole('link')).toHaveLength(5)
-    expect(within(nav).getByRole('link', { name: /מכירות/ })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: 'מכירות' })).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: 'חיבורי מכירות' })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: /דורש טיפול/ })).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: /הדגמה/ })).not.toBeInTheDocument()
   })
@@ -69,13 +70,13 @@ describe('Layout', () => {
     const user = userEvent.setup()
     renderLayout()
 
-    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'מכירות' })).toHaveLength(1)
 
     await user.click(screen.getByRole('button', { name: 'פתיחת תפריט' }))
-    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'מכירות' })).toHaveLength(2)
 
     await user.keyboard('{Escape}')
-    expect(screen.getAllByRole('link', { name: /מכירות/ })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'מכירות' })).toHaveLength(1)
   })
 })
 
