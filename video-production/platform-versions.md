@@ -22,7 +22,7 @@ Derive it from the 9:16 layout with the panel scaled to 86% width and headlines 
 |---|---|---|
 | 0.0–2.0 | 0.0–2.0 | Sales slam in with beeps |
 | 2.0–4.0 | 6.0–8.0 | "כמה באמת נכנס?" + the frozen gap |
-| 4.0–6.0 | 8.0–10.0 | The drop: sweep, "פחות התעסקות. יותר בהירות.", lockup |
+| 4.0–6.0 | 8.0–10.0 | The drop: sweep, "מנהל הכנסות לעסקים", lockup |
 | 6.0–8.0 | 11.0–13.0 | Sales land automatically (headline already on screen) |
 | 8.0–10.5 | 14.0–16.5 | The net figure updates with its breakdown |
 | 10.5–15.0 | 25.5–30.0 | Panels → end card, CTA, URL, sonic logo |

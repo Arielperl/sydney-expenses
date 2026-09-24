@@ -116,7 +116,7 @@ All three obey the non-negotiables: no voice, no dialogue, no lyrics, understand
 
 **Why it's the most effective.** Its core device — identical time, identical frame, different evening — makes the transformation unmistakable in a single viewing and with the sound off. It follows the full arc (hook → tension → recognition → discovery → transformation → confidence → action) with one idea only: *you don't have to chase your sales.*
 
-**Why it fits the brand.** Sydney's voice is calm and honest ("פחות התעסקות. יותר בהירות."). Concept A has no magic, no inflated numbers and no hype — just an evening that got shorter. Its closing line is the website's own hero line, so the film and the site speak with one voice.
+**Why it fits the brand.** Sydney's voice is calm and honest (the website's former eyebrow line). Concept A has no magic, no inflated numbers and no hype — just an evening that got shorter. Its closing line is the website's own hero line, so the film and the site speak with one voice.
 
 **Why it fits the audience.** Israeli small-business owners know the 23:40 counter personally. The owner is the hero; the product is the quiet guide that appears only when needed.
 

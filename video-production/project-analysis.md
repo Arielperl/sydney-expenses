@@ -17,8 +17,9 @@ Rule used throughout: **C** = confirmed in project files · **A** = creative ass
 
 A web app for **Israeli small businesses** that gathers every sale in one place — automatically from the payment provider (Grow, Cardcom), from a CSV export, or entered by hand — and turns it into a clear picture of what came in. It tracks whether each sale has its customer document (receipt/invoice), surfaces only the sales that genuinely need action, and has an AI assistant that answers questions about the business's own sales data.
 
-The site's own core promise (hero, `HomePage.tsx`):
-> **העסק מכר. אתם כבר בתמונה.** — "The business made a sale. You're already in the picture."
+The site's own core promise (hero, `HomePage.tsx`, updated 2026-09-25):
+> Eyebrow **מנהל הכנסות לעסקים** · headline **מכירות, הכנסות ומה שדורש טיפול. במקום אחד.** — "Sales, revenue and what needs attention. In one place."
+> Supporting text: **מרכזים עסקאות ממקורות מחוברים, עוקבים אחרי הנתונים הכספיים ורואים אילו מכירות צריכות פעולה.**
 
 ## 3. Product / service (C unless marked)
 

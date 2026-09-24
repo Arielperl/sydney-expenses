@@ -29,7 +29,7 @@ A deep-green world is graded in the source: no LUT, sRGB/Rec.709 output, 6% over
 
 | Element | 16:9 | 9:16 |
 |---|---|---|
-| Headline "העסק מכר. / אתם כבר בתמונה." | Center, top 300 → 240 px, 120 px | Center, top 640 → 570 px, 120 px |
+| Headline "מכירות, הכנסות / ומה שדורש טיפול. / במקום אחד." | Center, top 270 → 210 px, 96 px | Center, top 640 → 570 px, 100 px |
 | Lockup | y 610 | y 1000 |
 | CTA "פתיחת חשבון ←" | y 750 | y 1170 |
 | URL | y 860 (the 6 s cut omits it) | y 1290 |

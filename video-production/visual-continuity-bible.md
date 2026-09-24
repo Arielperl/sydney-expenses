@@ -25,10 +25,10 @@ v2 is pure motion design: there are **no characters, locations or AI footage**, 
 | Style | Font | Weight / size (16:9) | Use |
 |---|---|---|---|
 | Hero numbers | IBM Plex Sans, tabular | 600 / 190 px (scaled per depth) | Act A amounts |
-| Hero line | IBM Plex Sans Hebrew | 700 / 180 px | "העסק מכר." |
+| Hero line | IBM Plex Sans Hebrew | 700 / 180 px (9:16: 150 px, two lines) | "מכירות, הכנסות" |
 | Question | IBM Plex Sans Hebrew | 700 / 150 px | "כמה באמת נכנס?" |
 | Feature headline | IBM Plex Sans Hebrew | 700 / 84 px, line-height 1.08, tracking −1% | Right third |
-| End headline | IBM Plex Sans Hebrew | 700 / 120 px | Center |
+| End headline | IBM Plex Sans Hebrew | 700 / 96 px (9:16: 100 px), three lines | Center |
 | Support | IBM Plex Sans Hebrew | 400 / 30 px, 72% white | Under headlines |
 | UI | IBM Plex Sans Hebrew / Plex Sans (money) | As the product, ×1.16 | Panels |
 

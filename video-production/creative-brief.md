@@ -5,7 +5,7 @@ v2 decisions (2026-09-24): premium motion design (no people, no placeholders) ·
 
 | Item | Decision |
 |---|---|
-| **Single most important message** | Sales arrive and organize themselves — **פחות התעסקות. יותר בהירות.** |
+| **Single most important message** | Sales, revenue and what needs attention — **מכירות, הכנסות ומה שדורש טיפול. במקום אחד.** |
 | **Intended reaction** | "That's my mess" (0–8 s) → "whoa, that's clean" (the drop) → "I want that" → click |
 | **Emotional journey** | Energy → overload → release → control → confidence → action |
 | **Central idea (one sentence)** | Every sale is a beat; too many beats become noise; one mint sweep turns the noise into the product. |
@@ -20,4 +20,4 @@ v2 decisions (2026-09-24): premium motion design (no people, no placeholders) ·
 | **Typography** | IBM Plex Sans Hebrew 700 headlines with mask reveals; IBM Plex Sans tabular numbers |
 | **Music** | Melodic electronic, 120 BPM, E major; beeps become the melody; a riser → silence → drop |
 | **Sound design** | Tuned UI ticks and chimes, whooshes on whip pans, impacts on the big moments |
-| **CTA strategy** | One action, **פתיחת חשבון**, after the brand promise **העסק מכר. אתם כבר בתמונה.**, with the URL |
+| **CTA strategy** | One action, **פתיחת חשבון**, after the website headline **מכירות, הכנסות ומה שדורש טיפול. במקום אחד.**, with the URL |
