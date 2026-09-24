@@ -1,0 +1,5 @@
+# Rendered outputs are regenerable with tools/build.sh — keep binaries out of git.
+exports/**/*.mp4
+exports/**/*.mov
+assets/music/*.wav
+assets/sound-effects/*.wav
