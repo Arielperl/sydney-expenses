@@ -11,7 +11,7 @@ One final version per element. Global system: IBM Plex Sans Hebrew 700 for headl
 | 5 | **מנהל הכנסות** / **לעסקים** | Revenue manager / for businesses | 8.30 → 9.85 | 1.55 s (min 1.2) | The turn; names what the product is | Right third: right 110 px, top 340 px, width 680 | 700, 84 px; line 2 mint `#41D7B2` | White/mint on deep green | THE DROP at 8.00 | Website eyebrow (2026-09-25) |
 | 6 | Lockup: מנהל הכנסות / מבית SYDNEY | Revenue Manager / by SYDNEY | 9.10 → 9.85 | 0.75 s (a recognition flash; it returns at the end) | Brand enters as the guide | Under #5 | Tile 66 px + name 600 30 px + "מבית SYDNEY" 500 12 px, tracked 16% | Logo on the pale tile | — | Brand |
 | 7 | **מכירה חדשה.** / **עדכון אוטומטי.** | New sale. / Automatic update. | 10.10 → 13.70 | 3.6 s | Mechanism | Right third | 700, 84 px | White | Row ticks 10.5/11.5/12.5 | Website feature title |
-| 8 | חיבור ישיר ל-Grow ול-Cardcom | Direct connection to Grow and Cardcom | 10.60 → 13.70 | 3.1 s | Proof of the mechanism | Under #7 (+230 px) | 400, 30 px | White 72% | — | Website connections section |
+| 8 | *(removed 2026-09-25 at the client's request)* | — | — | — | — | — | — | — | — | — |
 | 9 | **התמונה המלאה,** / **במבט אחד.** | The full picture, / at a glance. | 14.30 → 17.70 | 3.4 s | Benefit of the figure | Right third | 700, 84 px | White | Chime at 15.80 | Website feature title |
 | 10 | **יודעים מה** / **דורש טיפול.** | You know what / needs attention. | 18.30 → 21.70 | 3.4 s | Control | Right third | 700, 84 px | White | Click 19.50 | Website feature title |
 | 11 | **שואלים את** / **הנתונים שלכם.** | Ask / your own data. | 22.30 → 24.75 | 2.45 s | The assistant | Right third | 700, 84 px | White | Answer chime 23.80 | Website feature title |

@@ -27,7 +27,7 @@ The film closes on the website's headline (updated 2026-09-25): **מכירות, 
 | B · The noise | 4.00–7.75 | 3–4 | Amounts go grey and jitter; receipts tumble; questions pop up (כמה עמלות? · איפה הקבלה? · מה עם המע״מ? · ומה עם ההחזרים?) over a riser, peaking on **כמה באמת נכנס?** |
 | Gap | 7.75–8.00 | — | Freeze, with digital silence. |
 | C · The drop | 8.00–10.00 | 5 | A mint line sweeps right → left and wipes the noise away. Four amounts fly into rows of the real **מכירות** list. **מנהל הכנסות לעסקים** + brand lockup. |
-| D · Automatic | 10.00–14.00 | 6–7 | New sales land on the beat (Grow/Cardcom highlighted). **מכירה חדשה. עדכון אוטומטי.** / חיבור ישיר ל-Grow ול-Cardcom |
+| D · Automatic | 10.00–14.00 | 6–7 | New sales land on the beat (Grow/Cardcom highlighted). **מכירה חדשה. עדכון אוטומטי.** |
 | E · The number | 14.00–18.00 | 8–9 | Whip pan → סיכום התקופה. The net figure eases ₪24,701.24 → ₪24,850.00, the breakdown cascades and the chart draws. **התמונה המלאה, במבט אחד.** |
 | F · Attention | 18.00–22.00 | 10–11 | Whip pan → דורש טיפול. A click on ייבוא מסמך → ✓ טופל → the count goes 2 → 1. **יודעים מה דורש טיפול.** |
 | G · Ask | 22.00–25.00 | 12–13½ | Whip pan → עוזר AI. "כמה הכנסתי החודש?" is typed and answered. **שואלים את הנתונים שלכם.** |
