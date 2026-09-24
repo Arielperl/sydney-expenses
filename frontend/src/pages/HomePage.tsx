@@ -101,9 +101,9 @@ export function HomePage() {
           <div className="hero-image" aria-hidden="true" />
           <div className="hero-inner">
             <div className="hero-copy">
-              <span className="eyebrow">פחות התעסקות. יותר בהירות.</span>
-              <h1>העסק מכר.<br />אתם כבר <span>בתמונה.</span></h1>
-              <p>כל המכירות, התקבולים והחריגים של העסק במקום אחד. כדי שתדעו מה נכנס, מה השתנה ומה הצעד הבא.</p>
+              <span className="eyebrow">מנהל הכנסות לעסקים</span>
+              <h1>מכירות, הכנסות<br />ומה שדורש טיפול.<br /><span>במקום אחד.</span></h1>
+              <p>מרכזים עסקאות ממקורות מחוברים, עוקבים אחרי הנתונים הכספיים ורואים אילו מכירות צריכות פעולה.</p>
               <div className="hero-actions">
                 <Link to="/signup" className="public-button on-dark">מתחילים לנהל הכנסות <ArrowLeft size={18} aria-hidden="true" /></Link>
                 <a className="public-button ghost" href="#preview">לראות איך זה עובד</a>
