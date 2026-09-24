@@ -61,15 +61,21 @@ try {
     const dir = resolve(args.stilldir || '.'); mkdirSync(dir, { recursive: true });
     for (let i = 0; i < times.length; i++) { const f = join(dir, `${names[i] || 'still-' + times[i]}.png`); await shoot(times[i], f, 'png'); console.log('still', f); }
   } else {
+    // --mb N: N sub-frames per frame spread over a 180-degree shutter, averaged by ffmpeg (motion blur)
+    const mb = Math.max(1, Number(args.mb || 1));
     const n = Math.round(dur * fps);
     const t0 = Date.now();
     for (let i = 0; i < n; i++) {
-      await shoot(i / fps + 1e-4, join(frameDir, String(i).padStart(5, '0') + '.jpg'));
+      for (let k = 0; k < mb; k++) {
+        const t = i / fps + (mb > 1 ? (k / mb - 0.25) * (0.5 / fps) : 0) + 1e-4;
+        await shoot(Math.max(0, t), join(frameDir, String(i * mb + k).padStart(6, '0') + '.jpg'));
+      }
       if (i % 120 === 0) console.log(`frame ${i}/${n} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
     }
     const out = resolve(args.out); mkdirSync(dirname(out), { recursive: true });
-    const ff = ['-y', '-hide_banner', '-loglevel', 'error', '-framerate', String(fps), '-i', join(frameDir, '%05d.jpg')];
+    const ff = ['-y', '-hide_banner', '-loglevel', 'error', '-framerate', String(fps * mb), '-i', join(frameDir, '%06d.jpg')];
     if (args.audio) ff.push('-i', resolve(args.audio));
+    if (mb > 1) ff.push('-vf', `tmix=frames=${mb},select='eq(mod(n\\,${mb})\\,${mb - 1})',setpts=N/${fps}/TB`, '-r', String(fps));
     ff.push('-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
       '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-movflags', '+faststart');
     if (args.audio) ff.push('-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-shortest');

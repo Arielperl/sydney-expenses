@@ -1,4 +1,28 @@
-# Three Concepts
+# Concepts
+
+## Revision history
+
+- **v1 — Concept A, "אותו ערב, פעמיים"** was produced as an animatic and **rejected by the client (2026-09-24)**: the cartoon previs placeholders looked cheap and the story didn't grab.
+- **v2 — "מרעש לבהירות" (From Noise to Clarity), selected.** It develops v1's Concept C (typography + real product UI, fully producible in-house), made punchy and music-driven per the client's direction: premium motion design, fast, 30 s.
+
+## v2 — "מרעש לבהירות" (selected)
+
+- **Premise:** Every sale is a beat; too many beats become noise; one mint sweep turns the noise into the product.
+- **Opening hook:** "₪180" slams onto a black screen on frame 1 with a tuned terminal beep; three more amounts follow on the beat.
+- **Structure:** sales (0–4) → noise and questions (4–7.75) → silence → drop and sweep (8) → four product beats (10–25) → the full picture and CTA (25–30).
+- **Visual identity:** dark deep-green 3-D space; mint appears only after the drop.
+- **Tone:** energetic, confident, clean.
+- **Text:** big kinetic Hebrew headlines, all taken from the website's own copy.
+- **Music / sound:** 120 BPM melodic electronic; beeps → riser → silence → drop; sonic logo B4–E5–G♯5.
+- **Main advantage:** punchy, product-forward, 100% accurate, fully rendered with no placeholders.
+- **Challenge:** it has no human face, so the emotion comes from rhythm and release rather than a character.
+- **Duration:** 30 s (+15 s, 6 s). **Assets:** only existing project assets.
+
+Full direction: `selected-concept.md`.
+
+---
+
+## v1 concept exploration (archived)
 
 All three obey the non-negotiables: no voice, no dialogue, no lyrics, understandable muted, only confirmed claims.
 

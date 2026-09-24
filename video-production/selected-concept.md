@@ -1,58 +1,47 @@
-# Selected Concept — "אותו ערב, פעמיים" (Same Evening, Twice)
+# Selected Concept — "מרעש לבהירות" (From Noise to Clarity)
 
-**Status:** Locked direction for production (concept selected from `concepts.md`; client decisions of 2026-09-24 applied).
+**Status:** v2, the current direction. It replaces v1, "אותו ערב, פעמיים", which the client rejected on 2026-09-24: the cartoon previs didn't work and the story didn't grab.
+**Client decisions (v2 brief):** premium motion design, no people and no placeholders · punchy and fast · 30 s main film · website + Meta ads · CTA → `sydney-revenue-manager.vercel.app`.
 
 ## Logline
 
-A studio owner's day of sales, then her 23:40 twice — once chasing the numbers, once when they're already in place. The only thing that changed: מנהל הכנסות מבית Sydney.
+Sales slam onto the screen to the beat and pile up into noise: amounts, receipts, questions. Then a single mint line sweeps through, and everything snaps into place inside the product.
 
 ## The one message
 
-**העסק מכר. אתם כבר בתמונה.** — Your sales arrive and settle by themselves; you see what came in and what needs you, and go home.
+**פחות התעסקות. יותר בהירות.** Your sales arrive and organize themselves; you see what came in, what needs you, and you can just ask.
+The film closes on the website's promise: **העסק מכר. אתם כבר בתמונה.**
+
+## Why this works
+
+- **Punchy by construction:** the edit is locked to a 120 BPM grid, with every sale a beat and every beep a note.
+- **The before/after is one gesture:** chaos → a mint sweep → order. It reads instantly with the sound off.
+- **The product is the hero:** four real features in four bars, using the product's own Hebrew UI strings, tokens and typeface.
+- **Fully producible in-house:** HTML/CSS motion design rendered frame-accurately with motion blur. There's no AI footage, no actors and no continuity risk.
+
+## Structure (30.0 s · 120 BPM · 1 bar = 2 s)
+
+| Section | Time | Bars | What happens |
+|---|---|---|---|
+| A · The sales | 0.00–4.00 | 1–2 | Amounts slam in on each beat (₪180 · ₪65 · ₪650 · ₪320), each with a tuned terminal beep and a source tag (Grow / Cardcom / CSV). On bar 2 they rain in on 8th notes. **העסק מכר.** |
+| B · The noise | 4.00–7.75 | 3–4 | Amounts go grey and jitter; receipts tumble; questions pop up (כמה עמלות? · איפה הקבלה? · מה עם המע״מ? · ומה עם ההחזרים?) over a riser, peaking on **כמה באמת נכנס?** |
+| Gap | 7.75–8.00 | — | Freeze, with digital silence. |
+| C · The drop | 8.00–10.00 | 5 | A mint line sweeps right → left and wipes the noise away. Four amounts fly into rows of the real **מכירות** list. **פחות התעסקות. יותר בהירות.** + brand lockup. |
+| D · Automatic | 10.00–14.00 | 6–7 | New sales land on the beat (Grow/Cardcom highlighted). **מכירה חדשה. עדכון אוטומטי.** / חיבור ישיר ל-Grow ול-Cardcom |
+| E · The number | 14.00–18.00 | 8–9 | Whip pan → סיכום התקופה. The net figure eases ₪24,701.24 → ₪24,850.00, the breakdown cascades and the chart draws. **התמונה המלאה, במבט אחד.** |
+| F · Attention | 18.00–22.00 | 10–11 | Whip pan → דורש טיפול. A click on ייבוא מסמך → ✓ טופל → the count goes 2 → 1. **יודעים מה דורש טיפול.** |
+| G · Ask | 22.00–25.00 | 12–13½ | Whip pan → עוזר AI. "כמה הכנסתי החודש?" is typed and answered. **שואלים את הנתונים שלכם.** |
+| H · The picture | 25.00–30.00 | 13½–15 | All four panels fly into one composition, then dim. **העסק מכר. אתם כבר בתמונה.** · lockup · **פתיחת חשבון** · URL · sonic logo. |
+
+## Claims (all confirmed; see `project-analysis.md` §13)
+
+Automatic capture from connected Grow and Cardcom · a net figure with its breakdown and the product's own line "אינו רווח ואינו יתרת חשבון" · a needs-attention list · the AI assistant answering from the business's data. Every panel carries **נתונים להמחשה**; figures reconcile exactly (see `visual-continuity-bible.md` §6).
 
 ## Deliverables
 
-| Version | Duration | Ratio | Status in this package |
-|---|---|---|---|
-| Main film | 45.0 s | 16:9 1920×1080, 24 fps | Animatic rendered (final typography, UI motion graphics, end card, temp score; live-action slots = storyboard previs) |
-| Vertical | 45.0 s | 9:16 1080×1920 | Animatic rendered, recomposed |
-| Cutdown | 15.0 s | 16:9 + 9:16 | Animatic rendered |
-| Hook bumper | 6.0 s | 9:16 + 16:9 | Animatic rendered |
-| Square | 45.0 s | 1:1 1080×1080 | Specified (`platform-versions.md`) |
-
-## Structure (master, 45.0 s)
-
-| Act | Time | Shots | What happens |
-|---|---|---|---|
-| I · Day — "the sale" | 00:00.00–00:07.00 | S01–S03 | Card, phone, card: three payments, three beeps = three notes (B4–E5–G♯5). The owner is busy teaching in the background. **העסק מכר.** |
-| II · Night 1 — "the chase" | 00:07.00–00:17.50 | S04–S08 | Same terminal, dark. Lamp on. **23:40.** Receipts, notebook, phone, cold laptop glare. **כמה באמת נכנס היום?** |
-| III · The turn | 00:17.50–00:20.00 | S09 | Hard cut to black and silence. **אותו יום.** + brand lockup. |
-| IV · Discovery | 00:20.00–00:29.00 | S10–S12 | The same card tap → the sale lands by itself in מכירות (Cardcom) → the net-receipts figure eases to its new value, with the honest breakdown. **מכירה חדשה. עדכון אוטומטי.** / **התמונה המלאה, במבט אחד.** |
-| V · Night 2 — "the picture" | 00:29.00–00:38.50 | S13–S16 | Same frame, same **23:40** — calm. The attention list holds two items; one is handled. **יודעים מה דורש טיפול.** She closes the laptop and switches off the lamp. |
-| VI · End card | 00:38.50–00:45.00 | S17 | **העסק מכר. אתם כבר בתמונה.** · logo lockup · **פתיחת חשבון** · sydney-revenue-manager.vercel.app · sonic logo. |
-
-## Production method summary
-
-| Method | Shots |
+| Version | File |
 |---|---|
-| AI video (image-to-video from locked reference plates) | S01, S02, S03, S04, S05, S06, S07, S08, S13, S15, S16 (S10 re-uses S01) |
-| Motion graphics (typography, brand, UI rebuilt from the real product) | S09, S11, S12, S14, S17 + all text overlays |
-| Captured from the real product | Reference capture of מכירות / לוח בקרה / דורש טיפול in dark theme with a fictional demo workspace — used to verify and, if preferred, replace the rebuilt UI |
-| Existing brand assets | `investment-logo.svg` (on a pale tile), `sydney-hero-clean.png` (end-card background texture) |
-
-## Claims used (all confirmed — see `project-analysis.md` §13)
-
-Automatic capture from Grow and Cardcom · one figure with a breakdown (gross, VAT, processing fees, partial refunds) that is explicitly *not profit and not a bank balance* · a clear "needs attention" list · Hebrew / Israeli VAT. All figures on screen are the website's own illustrative numbers and carry the label **נתונים להמחשה**.
-
-## Explicitly excluded
-
-Voice, dialogue, lyrics, profit claims, "replaces your accountant", "issues your invoices", statistics, testimonials, pricing, Grow/Cardcom logos, the AI assistant (valid feature, but a second message — kept out to protect the single idea).
-
-## Key creative rules
-
-1. The owner never looks into the lens and never speaks or mouths words.
-2. The master wide (S05 / S13 / S16) is one identical composition.
-3. Night 1 = conflicting color temperatures + handheld drift. Night 2 = harmony + locked-off.
-4. No readable text or UI in any AI-generated shot. All text and UI are added in editing.
-5. Progress moves **right → left** (Hebrew reading direction): new rows enter from the right, the owner exits to frame-left, text is right-aligned.
-6. The three beep notes are the only melodic motif and they return as the sonic logo.
+| 30 s · 16:9 | `exports/main/sydney-30s-16x9.mp4` |
+| 30 s · 9:16 | `exports/vertical/sydney-30s-9x16.mp4` |
+| 15 s · 16:9 / 9:16 | `exports/cutdowns/sydney-15s-{16x9,9x16}.mp4` |
+| 6 s · 16:9 / 9:16 | `exports/cutdowns/sydney-06s-{16x9,9x16}.mp4` |

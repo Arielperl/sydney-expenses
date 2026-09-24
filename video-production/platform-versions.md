@@ -1,78 +1,38 @@
-# Platform Versions
+# Platform Versions (v2)
 
-All versions keep: no voice, the same text system, the same sonic logo, and the same CTA **פתיחת חשבון** → `sydney-revenue-manager.vercel.app`.
+All versions share one source (`tools/film.html`) and one mix (`tools/score.py`). Cutdowns are built by remapping output time to source time, so every picture segment and its audio come from identical source times.
 
----
+## 1. Main 16:9 — 30.0 s · `exports/main/sydney-30s-16x9.mp4`
+Website hero / landing page, YouTube, LinkedIn. The timeline is in `script-and-timeline.md`.
 
-## 1. Main 16:9 — 45.00 s (website hero, YouTube, LinkedIn)
+## 2. Main 9:16 — 30.0 s · `exports/vertical/sydney-30s-9x16.mp4`
+Reels / Stories. Same timeline and audio. The layout is recomposed rather than cropped:
+- Headlines at the top (right 70 px, top 300 px, 96 px) and the product panel below (x 50–1030, from y 740).
+- Hero/question type 150/118 px, centered around y 800–830.
+- The "doc status" badge is hidden in list rows to keep them readable at phone width.
+- Finale slots stacked in a vertical 2×2.
+- Safe zones: nothing important above y 270 or below y 1250.
 
-Exactly as `script-and-timeline.md`. Rendered animatic: `exports/main/sydney-45s-16x9-animatic.mp4`.
+## 3. 1:1 — specified, not rendered
+Derive it from the 9:16 layout with the panel scaled to 86% width and headlines at 72 px. Same timing.
 
----
+## 4. 15 s cutdown · `exports/cutdowns/sydney-15s-{16x9,9x16}.mp4`
 
-## 2. Main 9:16 — 45.00 s (Instagram/Facebook Reels, Stories)
-
-**Same timeline and cut points as the master** (so the music conforms 1:1). Composition is adapted, not cropped blindly.
-
-| Shot | Method for 9:16 | Reframing |
+| Output | Source | Content |
 |---|---|---|
-| S01/S10, S02, S04 | Crop from the 16:9 generation (generate at 4K if possible) | Crop window centered on the terminal (the terminal sits on the 16:9 left third → crop x ≈ 18–50%) |
-| S03 | **Native 9:16 generation** (same prompt + "vertical composition: counter and client in the lower half, the owner at a reformer above/behind, the plaster wall in the top third") | Text on the wall at y 16–26% |
-| S05, S13, S16 | **Native 9:16 generations** from vertical versions of R3/R4, locked identically to each other | The counter at y 52–72%; the lamp above the counter; the window-light grid in the bottom 25%; the dark wall at y 14–35% for "23:40" |
-| S06 | Crop (top-down works vertically: notebook centered, phone below) | — |
-| S07, S15 | Crop (face on the 16:9 right third → centered) | Face center at y ≈ 45% |
-| S08 | Crop centered on the shoulder/screen glow | Text at y 16–26% |
-| S09, S11, S12, S14, S17 | Re-laid-out motion graphics | Headline on top (y 15–30%, centered/right-aligned), UI panel below (y 33–78%), full width minus 6% margins |
+| 0.0–2.0 | 0.0–2.0 | Sales slam in with beeps |
+| 2.0–4.0 | 6.0–8.0 | "כמה באמת נכנס?" + the frozen gap |
+| 4.0–6.0 | 8.0–10.0 | The drop: sweep, "פחות התעסקות. יותר בהירות.", lockup |
+| 6.0–8.0 | 11.0–13.0 | Sales land automatically (headline already on screen) |
+| 8.0–10.5 | 14.0–16.5 | The net figure updates with its breakdown |
+| 10.5–15.0 | 25.5–30.0 | Panels → end card, CTA, URL, sonic logo |
 
-- **Text:** identical copy; headline size 76 px (of 1080 width); T3 breaks as "כמה באמת / נכנס היום?".
-- **Safe zones:** top 14% / bottom 35% / sides 6% free of text, logo and CTA. The end-card CTA sits at y ≈ 60%, the URL at y ≈ 64%.
-- **Music / SFX:** identical to the master.
-- **End card:** 6.50 s; stacked: headline → lockup → button → URL.
-- Rendered animatic: `exports/vertical/sydney-45s-9x16-animatic.mp4`.
+Kept: the hook, the problem, the drop, two features, the end card. Removed: the attention list and the assistant. End card: 4.5 s.
 
----
+## 5. 6 s hook · `exports/cutdowns/sydney-06s-{16x9,9x16}.mp4`
 
-## 3. Square 1:1 — 45.00 s (Facebook/Instagram feed)
-
-Specified, not rendered in this package (it's derived from the 9:16 and 16:9 masters in the edit).
-
-- Live action: crop from the 16:9 generation, keeping the subject on the center line (S03: crop x 22–78%; master wides: x 20–76% so the owner and lamp stay in).
-- Motion graphics: headline above the panel (as in 9:16) with the panel at 84% width; headline 64 px.
-- Safe margin 8%. Same timing, music and end card (6.50 s).
-
----
-
-## 4. 15-second cutdown (Meta in-feed, pre-roll)
-
-One idea: "problem → it arrives by itself → promise".
-
-| Timecode | Shot (source) | On-screen text | Sound |
-|---|---|---|---|
-| 00:00.00–00:01.50 | S01 (source 00:00.00–00:01.50) | — | Beep 1 at 00:00.50 |
-| 00:01.50–00:03.50 | S05 (source 00:08.50–00:10.50) | **23:40** 00:01.75–00:03.50 | Night drone in; J-cut hum 0.2 s before |
-| 00:03.50–00:05.50 | S08 (source 00:15.25–00:17.25) | **כמה באמת נכנס היום?** 00:03.65–00:05.50 | Drone sweep |
-| 00:05.50–00:06.25 | Black | — | **Silence** |
-| 00:06.25–00:09.25 | S11 (the row lands at 00:06.45) | **מכירה חדשה. עדכון אוטומטי.** 00:06.60–00:09.10 | UI tick E6 at 00:06.45; the pulse starts |
-| 00:09.25–00:10.75 | S12 (the figure eases 00:09.40–00:10.60) | — (the "נתונים להמחשה" pill stays) | Bass in, settle 00:10.60 |
-| 00:10.75–00:11.75 | S15 (the lid closes; source 00:35.25–00:36.25) | — | Lid thock 00:11.60 |
-| 00:11.75–00:15.00 | S17 compressed | **העסק מכר.** 00:11.85 · **אתם כבר בתמונה.** 00:12.30 · lockup + **פתיחת חשבון** + URL 00:12.75 | Sonic logo 00:12.75 / 13.00 / 13.25 / chord 13.50 |
-
-- **Shots preserved:** S01, S05, S08, S11, S12, S15, S17. **Removed:** S02–S04, S06, S07, S09, S10, S13, S14, S16.
-- **End card:** 3.25 s (CTA visible for 2.25 s; the Meta ad's own CTA button reinforces it).
-- **Music edit:** the day section is removed; night drone → silence → the discovery section from the pulse start → the end-card swell and sonic logo, cut on bar lines.
-- Rendered animatics: `exports/cutdowns/sydney-15s-16x9-animatic.mp4`, `exports/cutdowns/sydney-15s-9x16-animatic.mp4`.
-
----
-
-## 5. 6-second hook (bumper / Stories)
-
-| Timecode | Shot | Text | Sound |
-|---|---|---|---|
-| 00:00.00–00:01.25 | S01 | — | Beep 1 at 00:00.50 |
-| 00:01.25–00:02.75 | S11 (the row lands at 00:01.45) | — | UI tick at 00:01.45 |
-| 00:02.75–00:06.00 | S17 compressed | **העסק מכר.** 00:02.85 · **אתם כבר בתמונה.** 00:03.25 · lockup + **פתיחת חשבון** 00:04.00 (the URL is dropped in the 6 s cut; the ad link carries it) | Sonic logo 00:04.00 / 04.20 / 04.40 / chord 04.60 |
-
-- **Removed:** everything except S01, S11 and S17.
-- **Music:** the beep → UI tick → sonic logo only (no bed until the end-card chord).
-- **End card:** 3.25 s.
-- Rendered animatics: `exports/cutdowns/sydney-06s-9x16-animatic.mp4`, `exports/cutdowns/sydney-06s-16x9-animatic.mp4`.
+| Output | Source | Content |
+|---|---|---|
+| 0.0–2.0 | 0.0–2.0 | Sales slam in with beeps |
+| 2.0–3.0 | 8.0–9.0 | The mint sweep + amounts snapping into the list |
+| 3.0–6.0 | 27.0–30.0 | End card with lockup + CTA (the URL is omitted; the ad link carries it) + sonic logo |
