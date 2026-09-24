@@ -111,8 +111,11 @@ export function DashboardPage() {
         <div className="space-y-6">
           <PeriodSummary data={data} showComparison={showComparison} />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2" aria-labelledby="trend-title">
+          {/* Main column + side rail on desktop. On phones both columns dissolve (display: contents)
+              into one stream, ordered so the actionable panel comes right after the summary. */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+            <div className="max-lg:contents lg:col-span-2 lg:space-y-6">
+            <Card className="max-lg:order-2" aria-labelledby="trend-title">
               <CardHeader
                 id="trend-title"
                 title={t('dashboard.revenueTrend')}
@@ -146,16 +149,7 @@ export function DashboardPage() {
               </div>
             </Card>
 
-            <NeedsAttentionPanel
-              className="lg:self-start"
-              pendingDocumentsCount={data.pending_documents_count}
-              documentFailuresCount={data.document_failures_count}
-              incompleteDetailsCount={data.incomplete_details_count}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2" aria-labelledby="recent-title">
+            <Card className="max-lg:order-3" aria-labelledby="recent-title">
               <CardHeader
                 id="recent-title"
                 title={t('dashboard.recentSales')}
@@ -202,26 +196,37 @@ export function DashboardPage() {
               )}
             </Card>
 
-            <Card aria-labelledby="services-title">
-              <CardHeader id="services-title" title={t('dashboard.topServices')} description={t('dashboard.topServicesDescription')} />
-              <div className="space-y-6 px-5 pt-4 pb-5">
-                {serviceCurrencies.map((currency) => (
-                  <div key={currency}>
-                    {serviceCurrencies.length > 1 && <CurrencyLabel currency={currency} />}
-                    <TopServicesList services={data.top_services} currency={currency} />
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
+            <FinancialBreakdown
+              className="max-lg:order-5"
+              grossRevenue={data.gross_revenue}
+              vatCollected={data.vat_collected}
+              processingFees={data.processing_fees}
+              refundsTotal={data.refunds_total}
+              netRevenue={data.net_revenue_current_period}
+            />
+            </div>
 
-          <FinancialBreakdown
-            grossRevenue={data.gross_revenue}
-            vatCollected={data.vat_collected}
-            processingFees={data.processing_fees}
-            refundsTotal={data.refunds_total}
-            netRevenue={data.net_revenue_current_period}
-          />
+            <div className="max-lg:contents lg:space-y-6">
+              <NeedsAttentionPanel
+                className="max-lg:order-1"
+                pendingDocumentsCount={data.pending_documents_count}
+                documentFailuresCount={data.document_failures_count}
+                incompleteDetailsCount={data.incomplete_details_count}
+              />
+
+              <Card className="max-lg:order-4" aria-labelledby="services-title">
+                <CardHeader id="services-title" title={t('dashboard.topServices')} description={t('dashboard.topServicesDescription')} />
+                <div className="space-y-6 px-5 pt-4 pb-5">
+                  {serviceCurrencies.map((currency) => (
+                    <div key={currency}>
+                      {serviceCurrencies.length > 1 && <CurrencyLabel currency={currency} />}
+                      <TopServicesList services={data.top_services} currency={currency} />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -126,9 +126,11 @@ export function HomePage() {
         </section>
 
         <section className="public-section features" id="features">
-          <div className="section-heading">
-            <span className="eyebrow">כל העסק, בפרספקטיבה</span>
-            <h2>המספרים במקום אחד.<br />הראש פנוי לעסק.</h2>
+          <div className="section-heading split">
+            <div>
+              <span className="eyebrow">כל העסק, בפרספקטיבה</span>
+              <h2>המספרים במקום אחד.<br />הראש פנוי לעסק.</h2>
+            </div>
             <p>פחות מעבר בין דוחות ומערכות. יותר זמן להבין מה עובד ולפעול בהתאם.</p>
           </div>
           <div className="feature-grid">
@@ -144,9 +146,12 @@ export function HomePage() {
 
         <section className="how-band" id="how">
           <div className="public-section how-section">
-            <div className="section-heading">
-              <span className="eyebrow">מתחברים. מוכרים. רואים.</span>
-              <h2>מהעסקה הראשונה,<br />הכול מתחבר.</h2>
+            <div className="section-heading split">
+              <div>
+                <span className="eyebrow">מתחברים. מוכרים. רואים.</span>
+                <h2>מהעסקה הראשונה,<br />הכול מתחבר.</h2>
+              </div>
+              <p>שלושה צעדים, פעם אחת. מכאן והלאה כל מכירה נקלטת ומסתדרת במקום שלה.</p>
             </div>
             <ol className="steps">
               {steps.map(([number, title, text]) => (
@@ -158,12 +163,13 @@ export function HomePage() {
 
         <section className="public-section connection-section" id="connections">
           <div className="connection-art" aria-hidden="true">
-            <div><PlugZap size={32} /></div><i /><div><img src={logo} alt="" /></div><i /><div><ChartNoAxesCombined size={32} /></div>
+            <div className="sources"><span>Grow</span><span>Cardcom</span><span><PlugZap size={14} /> CSV</span></div>
+            <i /><div><img src={logo} alt="" /></div><i /><div><ChartNoAxesCombined size={32} /></div>
           </div>
           <div>
             <span className="eyebrow">המערכות שלכם, יחד</span>
             <h2>המידע מגיע.<br />אתם ממשיכים לעבוד.</h2>
-            <p>המוצר מרכז מכירות ממקורות שונים ומכין את הנתונים לניתוח במקום אחד. חיבורים ישירים לספקי תשלומים וקופות יתווספו בהדרגה.</p>
+            <p>חיבור ישיר ל-Grow ול-Cardcom קולט כל תשלום ברגע שהוא מתבצע, וייבוא מקובץ CSV מביא מכירות מכל מקור אחר. הכול מתרכז ומוכן לניתוח במקום אחד.</p>
             <Link to="/signup" className="text-link">פותחים חשבון ומתחילים <ArrowLeft size={18} aria-hidden="true" /></Link>
           </div>
         </section>

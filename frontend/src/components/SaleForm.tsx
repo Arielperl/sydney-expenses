@@ -73,150 +73,165 @@ export function SaleForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(guardedSubmit)} noValidate className="space-y-5">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <FormField
-          label={t('form.customerName')}
-          htmlFor="customer_name"
-          required
-          error={translateError(t, errors.customer_name?.message)}
-        >
-          <input
-            id="customer_name"
-            className={inputClasses}
-            placeholder={t('form.customerNamePlaceholder')}
-            {...register('customer_name')}
-          />
-        </FormField>
-
-        <FormField
-          label={t('form.customerContact')}
-          htmlFor="customer_contact"
-          hint={t('form.customerContactHint')}
-          error={translateError(t, errors.customer_contact?.message)}
-        >
-          <input
-            id="customer_contact"
-            className={inputClasses}
-            placeholder={t('form.customerContactPlaceholder')}
-            {...register('customer_contact')}
-          />
-        </FormField>
-
-        <FormField
-          label={t('form.serviceName')}
-          htmlFor="service_name"
-          required
-          error={translateError(t, errors.service_name?.message)}
-        >
-          <input
-            id="service_name"
-            className={inputClasses}
-            placeholder={t('form.serviceNamePlaceholder')}
-            {...register('service_name')}
-          />
-        </FormField>
-
-        <FormField
-          label={t('form.grossAmount')}
-          htmlFor="gross_amount"
-          required
-          error={translateError(t, errors.gross_amount?.message)}
-        >
-          <input
-            id="gross_amount"
-            type="number"
-            step="0.01"
-            min="0"
-            className={inputClasses}
-            {...register('gross_amount')}
-          />
-        </FormField>
-
-        <FormField
-          label={t('form.taxTreatment')}
-          htmlFor="tax_treatment"
-          required
-          hint={taxTreatmentNeedsReview ? t('form.taxTreatmentNeedsReviewHint') : undefined}
-          error={translateError(t, errors.tax_treatment?.message)}
-        >
-          <select id="tax_treatment" className={inputClasses} {...register('tax_treatment')}>
-            {TAX_TREATMENTS.map((treatment) => (
-              <option key={treatment} value={treatment}>
-                {t(`taxTreatment.${treatment}`)}
-              </option>
-            ))}
-          </select>
-        </FormField>
-
-        <FormField label={t('form.vatAmount')} htmlFor="vat_amount_preview">
-          <p
-            id="vat_amount_preview"
-            className="flex min-h-10 flex-wrap items-center gap-x-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300"
+    <form onSubmit={handleSubmit(guardedSubmit)} noValidate className="space-y-8">
+      <fieldset className="space-y-4">
+        <legend className="mb-4 flex w-full items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          {t('form.sections.customer')}
+          <span className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" aria-hidden="true" />
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <FormField
+            label={t('form.customerName')}
+            htmlFor="customer_name"
+            required
+            error={translateError(t, errors.customer_name?.message)}
           >
-            <bdi className="figure font-medium">{formatCurrency(vatPreview, currency || 'ILS', i18n.language)}</bdi>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('form.vatAmountPreviewHint')}</span>
-          </p>
-        </FormField>
+            <input
+              id="customer_name"
+              className={inputClasses}
+              placeholder={t('form.customerNamePlaceholder')}
+              {...register('customer_name')}
+            />
+          </FormField>
+          <FormField
+            label={t('form.customerContact')}
+            htmlFor="customer_contact"
+            hint={t('form.customerContactHint')}
+            error={translateError(t, errors.customer_contact?.message)}
+          >
+            <input
+              id="customer_contact"
+              className={inputClasses}
+              placeholder={t('form.customerContactPlaceholder')}
+              {...register('customer_contact')}
+            />
+          </FormField>
+          <FormField
+            label={t('form.serviceName')}
+            htmlFor="service_name"
+            required
+            error={translateError(t, errors.service_name?.message)}
+          >
+            <input
+              id="service_name"
+              className={inputClasses}
+              placeholder={t('form.serviceNamePlaceholder')}
+              {...register('service_name')}
+            />
+          </FormField>
+        </div>
+      </fieldset>
 
-        <FormField
-          label={t('form.processingFee')}
-          htmlFor="processing_fee"
-          error={translateError(t, errors.processing_fee?.message as string | undefined)}
-        >
-          <input
-            id="processing_fee"
-            type="number"
-            step="0.01"
-            min="0"
-            className={inputClasses}
-            {...register('processing_fee')}
-          />
-        </FormField>
+      <fieldset className="space-y-4">
+        <legend className="mb-4 flex w-full items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          {t('form.sections.amount')}
+          <span className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" aria-hidden="true" />
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <FormField
+            label={t('form.grossAmount')}
+            htmlFor="gross_amount"
+            required
+            error={translateError(t, errors.gross_amount?.message)}
+          >
+            <input
+              id="gross_amount"
+              type="number"
+              step="0.01"
+              min="0"
+              className={inputClasses}
+              {...register('gross_amount')}
+            />
+          </FormField>
+          <FormField
+            label={t('form.currency')}
+            htmlFor="currency"
+            required
+            error={translateError(t, errors.currency?.message)}
+          >
+            <select id="currency" className={inputClasses} {...register('currency')}>
+              {TRANSACTION_CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {t(`currency.${code}`)}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField
+            label={t('form.taxTreatment')}
+            htmlFor="tax_treatment"
+            required
+            hint={taxTreatmentNeedsReview ? t('form.taxTreatmentNeedsReviewHint') : undefined}
+            error={translateError(t, errors.tax_treatment?.message)}
+          >
+            <select id="tax_treatment" className={inputClasses} {...register('tax_treatment')}>
+              {TAX_TREATMENTS.map((treatment) => (
+                <option key={treatment} value={treatment}>
+                  {t(`taxTreatment.${treatment}`)}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label={t('form.vatAmount')} htmlFor="vat_amount_preview">
+            <p
+              id="vat_amount_preview"
+              className="flex min-h-10 flex-wrap items-center gap-x-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300"
+            >
+              <bdi className="figure font-medium">{formatCurrency(vatPreview, currency || 'ILS', i18n.language)}</bdi>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('form.vatAmountPreviewHint')}</span>
+            </p>
+          </FormField>
+          <FormField
+            label={t('form.processingFee')}
+            htmlFor="processing_fee"
+            error={translateError(t, errors.processing_fee?.message as string | undefined)}
+          >
+            <input
+              id="processing_fee"
+              type="number"
+              step="0.01"
+              min="0"
+              className={inputClasses}
+              {...register('processing_fee')}
+            />
+          </FormField>
+        </div>
+      </fieldset>
 
-        <FormField
-          label={t('form.currency')}
-          htmlFor="currency"
-          required
-          error={translateError(t, errors.currency?.message)}
-        >
-          <select id="currency" className={inputClasses} {...register('currency')}>
-            {TRANSACTION_CURRENCIES.map((code) => (
-              <option key={code} value={code}>
-                {t(`currency.${code}`)}
-              </option>
-            ))}
-          </select>
+      <fieldset className="space-y-4">
+        <legend className="mb-4 flex w-full items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          {t('form.sections.payment')}
+          <span className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" aria-hidden="true" />
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <FormField
+            label={t('form.saleDate')}
+            htmlFor="sale_date"
+            required
+            error={translateError(t, errors.sale_date?.message)}
+          >
+            <input id="sale_date" type="date" className={inputClasses} {...register('sale_date')} />
+          </FormField>
+          <FormField
+            label={t('form.paymentMethod')}
+            htmlFor="payment_method"
+            error={translateError(t, errors.payment_method?.message)}
+          >
+            <select id="payment_method" className={inputClasses} {...register('payment_method')}>
+              <option value="">{t('form.paymentMethodPlaceholder')}</option>
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {t(`paymentMethod.${method}`)}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+        <FormField label={t('form.description')} htmlFor="description" error={translateError(t, errors.description?.message)}>
+          <textarea id="description" rows={3} className={inputClasses} {...register('description')} />
         </FormField>
+      </fieldset>
 
-        <FormField
-          label={t('form.saleDate')}
-          htmlFor="sale_date"
-          required
-          error={translateError(t, errors.sale_date?.message)}
-        >
-          <input id="sale_date" type="date" className={inputClasses} {...register('sale_date')} />
-        </FormField>
-
-        <FormField
-          label={t('form.paymentMethod')}
-          htmlFor="payment_method"
-          error={translateError(t, errors.payment_method?.message)}
-        >
-          <select id="payment_method" className={inputClasses} {...register('payment_method')}>
-            <option value="">{t('form.paymentMethodPlaceholder')}</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {t(`paymentMethod.${method}`)}
-              </option>
-            ))}
-          </select>
-        </FormField>
-      </div>
-
-      <FormField label={t('form.description')} htmlFor="description" error={translateError(t, errors.description?.message)}>
-        <textarea id="description" rows={3} className={inputClasses} {...register('description')} />
-      </FormField>
 
       {extraContent}
 

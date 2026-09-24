@@ -118,7 +118,7 @@ export function PeriodSummary({ data, showComparison }: { data: DashboardStats; 
         </p>
       </div>
 
-      <dl className="grid grid-cols-1 divide-y divide-zinc-100 border-t border-zinc-100 bg-zinc-50/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:rtl:divide-x-reverse dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/30">
+      <dl className="grid grid-cols-1 divide-y divide-zinc-100 border-t border-zinc-100 bg-zinc-50/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/30">
         <SupportingFigure
           label={t('dashboard.grossRevenue')}
           hint={t('dashboard.summary.grossHint')}

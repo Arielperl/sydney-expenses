@@ -29,12 +29,14 @@ export function FinancialBreakdown({
   processingFees,
   refundsTotal,
   netRevenue,
+  className,
 }: {
   grossRevenue: CurrencyAmount[]
   vatCollected: CurrencyAmount[]
   processingFees: CurrencyAmount[]
   refundsTotal: CurrencyAmount[]
   netRevenue: CurrencyAmount[]
+  className?: string
 }) {
   const { t } = useTranslation()
   const currencies = currenciesOf([grossRevenue, vatCollected, processingFees, refundsTotal, netRevenue])
@@ -49,7 +51,7 @@ export function FinancialBreakdown({
   ]
 
   return (
-    <Card aria-labelledby="breakdown-title">
+    <Card className={className} aria-labelledby="breakdown-title">
       <CardHeader id="breakdown-title" title={t('dashboard.breakdown.title')} description={t('dashboard.breakdown.description')} />
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[520px] text-sm">

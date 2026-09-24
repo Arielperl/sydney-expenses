@@ -284,7 +284,12 @@
     "paymentMethod": "Payment method",
     "paymentMethodPlaceholder": "Select a payment method",
     "description": "Notes",
-    "saveSale": "Save sale"
+    "saveSale": "Save sale",
+    "sections": {
+      "customer": "Customer and service",
+      "amount": "Amount and VAT",
+      "payment": "Payment and date"
+    }
   },
   "paymentMethod": {
     "card": "Credit card",
@@ -403,7 +408,8 @@
     "refundAmountLabel": "Refund amount",
     "refundAmountHint": "Leave blank for a full refund.",
     "refundFullPlaceholder": "Full refund",
-    "confirmRefund": "Confirm refund"
+    "confirmRefund": "Confirm refund",
+    "keyFigures": "Key figures"
   },
   "exceptions": {
     "title": "Needs Attention",

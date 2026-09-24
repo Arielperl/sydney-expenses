@@ -41,7 +41,7 @@ export function AddSalePage() {
   })
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       <div>
         <Link to="/sales" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
           <ChevronRight className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />

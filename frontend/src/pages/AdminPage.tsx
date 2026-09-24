@@ -104,7 +104,7 @@ export function AdminPage() {
                 {t('admin.deleteBusiness')}
               </button>
             </div>
-            <dl className="mx-5 grid grid-cols-3 divide-x divide-zinc-200 rounded-lg bg-zinc-50 py-3 text-center rtl:divide-x-reverse dark:divide-zinc-800 dark:bg-zinc-950/40">
+            <dl className="mx-5 grid grid-cols-3 divide-x divide-zinc-200 rounded-lg bg-zinc-50 py-3 text-center dark:divide-zinc-800 dark:bg-zinc-950/40">
               {([['sales', business.sale_count], ['connections', business.connection_count], ['members', business.member_count]] as const).map(([key, value]) => (
                 <div key={key}>
                   <dd className="figure text-lg font-medium text-zinc-900 dark:text-zinc-50">{value}</dd>

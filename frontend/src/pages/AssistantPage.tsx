@@ -161,8 +161,8 @@ export function AssistantPage() {
     <div className="flex h-[calc(100dvh-9rem)] min-h-[560px] flex-col lg:h-[calc(100dvh-5rem)]">
       <PageHeader title={t('assistant.title')} description={t('assistant.subtitle')} />
 
-      <div className="mt-6 grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col rounded-xl border border-zinc-200/80 bg-white p-3 shadow-card max-lg:max-h-40 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mt-6 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 min-w-0 flex-col rounded-xl border border-zinc-200/80 bg-white p-3 shadow-card max-lg:max-h-40 dark:border-zinc-800 dark:bg-zinc-900">
           <button
             type="button"
             onClick={startNewConversation}
@@ -178,7 +178,7 @@ export function AssistantPage() {
             {(conversationsQuery.data ?? []).map((conversation) => (
               <div
                 key={conversation.id}
-                className={`group flex min-w-[280px] items-start gap-1 rounded-xl lg:min-w-0 ${
+                className={`group flex w-[15.5rem] shrink-0 items-start gap-1 rounded-xl lg:w-auto lg:shrink ${
                   activeConversationId === conversation.id
                     ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/10 dark:text-brand-200'
                     : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/70'

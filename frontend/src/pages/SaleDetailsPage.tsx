@@ -192,7 +192,7 @@ export function SaleDetailsPage() {
               <SaleStatusBadge status={sale.status} />
               <DocumentStatusBadge status={sale.document_status} />
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {t(`saleSource.${sale.source}`)} · <bdi>{formatDateTime(sale.occurred_at, i18n.language)}</bdi>
+                {sale.service_name} · {t(`saleSource.${sale.source}`)} · <bdi>{formatDateTime(sale.occurred_at, i18n.language)}</bdi>
               </span>
             </div>
           </div>
@@ -210,6 +210,22 @@ export function SaleDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* The three numbers people open a sale for, before the full statement below. */}
+      <Card as="div">
+        <dl aria-label={t('saleDetails.keyFigures')} className="grid grid-cols-1 divide-y divide-zinc-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
+          {[
+            { key: 'gross', label: t('saleDetails.grossAmount'), value: money(sale.gross_amount) },
+            { key: 'vat', label: t('form.vatAmount'), value: vatAmount != null ? money(vatAmount) : notApplicable },
+            { key: 'remaining', label: t('saleDetails.remainingAfterRefunds'), value: money(remainingAfterRefunds) },
+          ].map((figure) => (
+            <div key={figure.key} className="min-w-0 px-5 py-4 sm:px-6">
+              <dt className="text-sm text-zinc-600 dark:text-zinc-400">{figure.label}</dt>
+              <dd className="mt-1.5 text-lg font-medium text-zinc-900 dark:text-zinc-50">{figure.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="space-y-6">

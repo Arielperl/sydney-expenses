@@ -111,10 +111,12 @@ export function ExceptionCenterPage() {
   const total = totals[selected]
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <PageHeader title={t('exceptions.title')} description={t('exceptions.subtitle')} />
 
-      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      {/* One control surface: how much is waiting, and the filters that slice it. */}
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <span className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-full', data.attention_count > 0 ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' : 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500')} aria-hidden="true">
             {data.attention_count > 0 ? <ListTodo className="h-5 w-5" /> : <CircleCheck className="h-5 w-5" />}
@@ -125,9 +127,9 @@ export function ExceptionCenterPage() {
           </div>
         </div>
         <p className="max-w-sm text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{t('exceptions.totalHint')}</p>
-      </Card>
+        </div>
 
-      <div role="group" aria-label={t('exceptions.filterLabel')} className="flex flex-wrap gap-2">
+      <div role="group" aria-label={t('exceptions.filterLabel')} className="flex flex-wrap gap-2 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950/30">
         {(['all', ...CATEGORIES] as Filter[]).map((category) => {
           const active = selected === category
           return (
@@ -149,6 +151,7 @@ export function ExceptionCenterPage() {
           )
         })}
       </div>
+      </Card>
 
       <section aria-label={t('exceptions.listLabel')}>
         {visible.length === 0 ? (

@@ -12,6 +12,8 @@ import { formatCurrency, formatDate } from '../lib/format'
 
 const HEADER = 'px-4 py-2.5 text-xs font-medium text-zinc-500 dark:text-zinc-400'
 const ACTION = 'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors'
+// Edit/delete repeat on every row, so they stay quiet icons; colour (and red) only appears on hover/focus.
+const ICON_ACTION = 'grid h-8 w-8 place-items-center rounded-md text-zinc-500 transition-colors dark:text-zinc-400'
 
 /**
  * One table in the DOM for every screen size: a real table from `md` up, and
@@ -39,8 +41,8 @@ export function SaleList({
           <col className="w-[17%]" />
           <col className="w-[16%]" />
           <col className="w-[12%]" />
-          <col className="w-[15%]" />
-          <col className="w-[16%]" />
+          <col className="w-[18%]" />
+          <col className="w-[13%]" />
         </colgroup>
         <thead className="border-b border-zinc-200 bg-zinc-50/80 max-md:hidden dark:border-zinc-800 dark:bg-zinc-950/30">
           <tr>
@@ -89,7 +91,7 @@ export function SaleList({
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3.5 text-start align-top whitespace-nowrap text-zinc-600 max-md:col-start-1 max-md:row-start-4 max-md:p-0 max-md:text-xs dark:text-zinc-400">
+              <td className="px-4 py-3.5 text-start align-top whitespace-nowrap text-zinc-600 max-md:col-start-1 max-md:row-start-4 max-md:self-center max-md:p-0 max-md:text-xs dark:text-zinc-400">
                 <bdi>{formatDate(sale.occurred_at.slice(0, 10), i18n.language)}</bdi>
               </td>
               <td className="px-4 py-3.5 text-end align-top max-md:col-start-2 max-md:row-start-1 max-md:p-0">
@@ -117,8 +119,8 @@ export function SaleList({
                   </p>
                 )}
               </td>
-              <td className="px-4 py-3.5 text-end align-top max-md:col-span-2 max-md:row-start-5 max-md:border-t max-md:border-zinc-100 max-md:p-0 max-md:pt-2 max-md:text-start dark:max-md:border-zinc-800" onClick={(event) => event.stopPropagation()}>
-                <div className="flex flex-wrap justify-end gap-1 max-md:justify-start">
+              <td className="px-4 py-3.5 text-end align-top max-md:col-start-2 max-md:row-start-4 max-md:-my-1 max-md:-me-2 max-md:p-0" onClick={(event) => event.stopPropagation()}>
+                <div className="flex flex-wrap items-center justify-end gap-1">
                   {sale.document_url && (
                     <button
                       type="button"
@@ -142,20 +144,20 @@ export function SaleList({
                   <button
                     type="button"
                     onClick={() => onEdit(sale)}
-                    className={cx(ACTION, 'text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-500/10')}
+                    className={cx(ICON_ACTION, 'hover:bg-brand-50 hover:text-brand-700 focus-visible:text-brand-700 dark:hover:bg-brand-500/10 dark:hover:text-brand-300')}
                     aria-label={t('sales.editAction', { name: sale.customer_name })}
+                    title={t('common.edit')}
                   >
-                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                    {t('common.edit')}
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
                     onClick={() => onDelete(sale)}
-                    className={cx(ACTION, 'text-danger-700 hover:bg-danger-50 dark:text-danger-500 dark:hover:bg-danger-500/10')}
+                    className={cx(ICON_ACTION, 'hover:bg-danger-50 hover:text-danger-700 focus-visible:text-danger-700 dark:hover:bg-danger-500/10 dark:hover:text-danger-500')}
                     aria-label={t('sales.deleteAction', { name: sale.customer_name })}
+                    title={t('common.delete')}
                   >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    {t('common.delete')}
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </td>

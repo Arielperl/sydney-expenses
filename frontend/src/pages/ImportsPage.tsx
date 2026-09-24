@@ -25,7 +25,7 @@ export function ImportsPage() {
   })
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <PageHeader title={t('imports.title')} description={t('imports.subtitle')} />
 
       <div role="tablist" aria-label={t('imports.sectionsLabel')} className="flex gap-6 border-b border-zinc-200 dark:border-zinc-800">

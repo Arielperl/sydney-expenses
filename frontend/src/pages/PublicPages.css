@@ -115,6 +115,10 @@
 /* ---------- Content sections ---------- */
 .public-section { max-width: 1200px; margin: 0 auto; padding: 104px 5%; scroll-margin-top: 80px; }
 .section-heading { max-width: 620px; }
+/* Heading on one side, supporting line on the other: fills the row instead of leaving half of it empty. */
+.section-heading.split { max-width: none; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: end; gap: 24px 64px; }
+.section-heading.split h2 { margin-bottom: 0; }
+.section-heading.split > p { margin: 0 0 6px; }
 .public-section h2,
 .public-cta h2 { margin: 12px 0 18px; font-size: clamp(30px, 3.2vw, 44px); line-height: 1.25; font-weight: 600; letter-spacing: -.005em; }
 .public-section p { max-width: 520px; line-height: 1.85; color: var(--muted); }
@@ -128,8 +132,11 @@
 .steps p { font-size: 15px; }
 
 .how-band { background: var(--color-zinc-50); border-block: 1px solid var(--line); }
-.how-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 64px; align-items: start; }
-.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding: 0; margin: 0; list-style: none; }
+.how-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 52px; }
+.steps { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding: 0; margin: 0; list-style: none; counter-reset: none; }
+.steps li { position: relative; padding: 26px 24px 24px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+/* A quiet connector between consecutive steps, pointing in reading direction. */
+.steps li:not(:last-child)::after { content: ''; position: absolute; top: 40px; inset-inline-end: -21px; width: 20px; border-top: 1px dashed var(--color-brand-300); }
 .steps li > span { display: inline-grid; place-items: center; min-width: 40px; height: 28px; margin-bottom: 16px; padding: 0 8px; border-radius: 999px; background: #fff; border: 1px solid var(--color-brand-200); color: var(--color-brand-700); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .connection-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: center; }
@@ -137,6 +144,8 @@
 .connection-art > div { display: grid; place-items: center; flex-shrink: 0; width: 84px; height: 84px; border-radius: 18px; background: #fff; color: var(--color-brand-700); border: 1px solid var(--color-brand-200); box-shadow: 0 10px 24px -14px rgb(8 36 31 / .35); }
 .connection-art img { width: 48px; height: 48px; }
 .connection-art i { position: relative; width: 44px; border-top: 2px dashed var(--color-brand-300); }
+.connection-art > .sources { width: auto; height: auto; padding: 10px; gap: 6px; display: flex; flex-direction: column; align-items: stretch; }
+.connection-art .sources span { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 88px; padding: 6px 10px; border-radius: 9px; background: var(--color-brand-50); color: var(--color-brand-800); font-size: 12.5px; font-weight: 600; letter-spacing: .01em; }
 .text-link { display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; font-size: 15px; font-weight: 600; color: var(--color-brand-700); }
 .text-link:hover { color: var(--color-brand-800); }
 
@@ -223,6 +232,9 @@
   .hero-inner { grid-template-columns: minmax(0, 1fr); padding-top: 52px; }
   .hero-product { max-width: 560px; width: 100%; margin: 8px auto 0; }
   .public-section { padding: 72px 6%; }
+  .section-heading.split { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .steps li:not(:last-child)::after { top: auto; bottom: -13px; inset-inline-start: 44px; inset-inline-end: auto; width: 0; height: 12px; border-top: 0; border-inline-start: 1px dashed var(--color-brand-300); }
   .how-section,
   .connection-section,
   .faq-section { grid-template-columns: minmax(0, 1fr); gap: 32px; }
@@ -245,6 +257,7 @@
   .product-preview { padding: 18px; }
   .preview-figure strong { font-size: 26px; }
   .connection-art > div { width: 64px; height: 64px; }
+  .connection-art .sources span { min-width: 72px; font-size: 11.5px; padding: 5px 8px; }
   .connection-art i { width: 22px; }
   .hero-bottom { font-size: 12px; }
 }

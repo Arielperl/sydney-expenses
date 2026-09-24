@@ -284,7 +284,12 @@
     "paymentMethod": "אמצעי תשלום",
     "paymentMethodPlaceholder": "בחרו אמצעי תשלום",
     "description": "הערות",
-    "saveSale": "שמירת המכירה"
+    "saveSale": "שמירת המכירה",
+    "sections": {
+      "customer": "הלקוח והשירות",
+      "amount": "סכום ומע״מ",
+      "payment": "תשלום ותאריך"
+    }
   },
   "paymentMethod": {
     "card": "כרטיס אשראי",
@@ -403,7 +408,8 @@
     "refundAmountLabel": "סכום הזיכוי",
     "refundAmountHint": "השאירו ריק לזיכוי מלא.",
     "refundFullPlaceholder": "זיכוי מלא",
-    "confirmRefund": "אישור הזיכוי"
+    "confirmRefund": "אישור הזיכוי",
+    "keyFigures": "נתוני מפתח"
   },
   "exceptions": {
     "title": "דורש טיפול",

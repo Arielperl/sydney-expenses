@@ -366,8 +366,28 @@ export function GrowConnectionPanel() {
 
   return (
     <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-card dark:border-zinc-800 dark:bg-zinc-900">
-      <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.grow.heading')}</h2>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.description')}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.grow.heading')}</h2>
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{t('imports.grow.description')}</p>
+        </div>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => setShowCreate((value) => !value)}
+            aria-expanded={showCreate}
+            className={buttonClasses(!isLoading && growConnections.length === 0 && !showCreate ? 'primary' : 'secondary')}
+          >
+            {showCreate ? t('imports.cancelNewConnection') : t('imports.startConnection')}
+          </button>
+        )}
+      </div>
+
+      {isOwner && showCreate && <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/30">
+        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{t('imports.stepCreate')}</p>
+        <CreateConnectionForm onCreated={(id) => { setNewConnectionId(id); setShowCreate(false) }} />
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.stepAfterCreate')}</p>
+      </div>}
 
       {isLoading && <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>}
       {isError && <p className="mt-4 text-sm text-danger-600 dark:text-danger-500">{t('errors.generic')}</p>}
@@ -381,20 +401,7 @@ export function GrowConnectionPanel() {
         </div>
       )}
 
-      {isOwner ? (
-        <div className="mt-4">
-          <button type="button" onClick={() => setShowCreate((value) => !value)} aria-expanded={showCreate} className={buttonClasses('primary')}>
-            {showCreate ? t('imports.cancelNewConnection') : t('imports.startConnection')}
-          </button>
-          {showCreate && <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/30">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{t('imports.stepCreate')}</p>
-            <CreateConnectionForm onCreated={(id) => { setNewConnectionId(id); setShowCreate(false) }} />
-            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.stepAfterCreate')}</p>
-          </div>}
-        </div>
-      ) : (
-        <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.ownerOnlyNote')}</p>
-      )}
+      {!isOwner && <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.ownerOnlyNote')}</p>}
     </div>
   )
 }

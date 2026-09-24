@@ -61,7 +61,7 @@ export function ImportDocumentPage() {
 
   if (!saleId) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <EmptyState title={t('importDocument.noSaleTitle')} description={t('importDocument.noSaleDescription')} />
       </div>
     )
@@ -70,7 +70,7 @@ export function ImportDocumentPage() {
   const warningGroups = groupWarnings(importMutation.data?.extracted_data?.warnings ?? [])
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="max-w-2xl space-y-6">
       <PageHeader title={t('importDocument.title')} description={t('importDocument.subtitle')} actions={<ExtractionModeBadge />} />
 
       {isLoadingSale && <LoadingState label={t('common.loading')} />}
