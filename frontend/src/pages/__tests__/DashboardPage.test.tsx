@@ -52,7 +52,7 @@ describe('DashboardPage', () => {
     })
     expect(screen.getByText(/50\.0%/)).toBeInTheDocument()
     expect(screen.getByText('2 מכירות ממתינות למסמך')).toBeInTheDocument()
-    expect(screen.getByText('1 זיכויים דורשים טיפול')).toBeInTheDocument()
+    expect(screen.queryByText('1 זיכויים דורשים טיפול')).not.toBeInTheDocument()
   })
 
   it('shows a "not enough data" badge instead of a fabricated percentage when there is no previous-period baseline', async () => {

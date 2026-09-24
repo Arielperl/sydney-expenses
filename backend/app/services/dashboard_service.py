@@ -403,11 +403,12 @@ def build_dashboard_stats(
     failed_payments_count = db.scalar(
         select(func.count(Sale.id)).where(Sale.status == SaleStatus.FAILED)
     ) or 0
-    refunds_needing_attention_count = db.scalar(
-        select(func.count(Sale.id)).where(Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED]))
-    ) or 0
+    # Refunded sales have already changed the revenue totals; the status
+    # alone does not imply unfinished work. Keep this legacy response field
+    # until clients no longer rely on the dashboard schema.
+    refunds_needing_attention_count = 0
     incomplete_details_count = db.scalar(
-        select(func.count(Sale.id)).where(Sale.customer_contact.is_(None))
+        select(func.count(Sale.id)).where(Sale.tax_treatment_needs_review.is_(True))
     ) or 0
 
     return DashboardStats(

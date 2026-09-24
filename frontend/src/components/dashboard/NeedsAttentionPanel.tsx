@@ -17,14 +17,10 @@ const SEVERITY_STYLES: Record<AttentionItem['severity'], string> = {
 export function NeedsAttentionPanel({
   pendingDocumentsCount,
   documentFailuresCount,
-  failedPaymentsCount,
-  refundsNeedingAttentionCount,
   incompleteDetailsCount,
 }: {
   pendingDocumentsCount: number
   documentFailuresCount: number
-  failedPaymentsCount: number
-  refundsNeedingAttentionCount: number
   incompleteDetailsCount: number
 }) {
   const { t } = useTranslation()
@@ -35,35 +31,21 @@ export function NeedsAttentionPanel({
       count: pendingDocumentsCount,
       label: t('dashboard.attention.pendingDocuments', { count: pendingDocumentsCount }),
       severity: 'amber',
-      to: '/exceptions#pending-documents',
+      to: '/exceptions?category=pendingDocuments',
     },
     {
       key: 'documentFailures',
       count: documentFailuresCount,
       label: t('dashboard.attention.documentFailures', { count: documentFailuresCount }),
       severity: 'danger',
-      to: '/exceptions#document-failures',
-    },
-    {
-      key: 'failedPayments',
-      count: failedPaymentsCount,
-      label: t('dashboard.attention.failedPayments', { count: failedPaymentsCount }),
-      severity: 'danger',
-      to: '/sales?status=failed',
-    },
-    {
-      key: 'refundsNeedingAttention',
-      count: refundsNeedingAttentionCount,
-      label: t('dashboard.attention.refunds', { count: refundsNeedingAttentionCount }),
-      severity: 'amber',
-      to: '/exceptions#refunds-needing-attention',
+      to: '/exceptions?category=documentFailures',
     },
     {
       key: 'incompleteDetails',
       count: incompleteDetailsCount,
       label: t('dashboard.attention.incompleteDetails', { count: incompleteDetailsCount }),
       severity: 'amber',
-      to: '/exceptions#incomplete-details',
+      to: '/exceptions?category=incompleteDetails',
     },
   ] satisfies AttentionItem[]).filter((item) => item.count > 0)
 

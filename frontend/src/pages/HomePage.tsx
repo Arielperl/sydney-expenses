@@ -9,7 +9,7 @@ export function ProductPreview() { return <div className="product-preview" aria-
 const features = [
  {icon:ChartNoAxesCombined,title:'התמונה המלאה, במבט אחד',text:'מכירות, מע״מ, עמלות וזיכויים — עם פירוט שמבהיר איך מתקבל כל סכום.'},
  {icon:Zap,title:'מכירה חדשה. עדכון אוטומטי.',text:'חיבור למערכת התשלומים מאפשר לקלוט עסקאות בלי להזין כל מכירה מחדש.'},
- {icon:ShieldCheck,title:'יודעים מה דורש טיפול',text:'תשלומים שנכשלו ומסמכים חסרים מופיעים במקום ברור בעמוד דורש טיפול.'},
+ {icon:ShieldCheck,title:'יודעים מה דורש טיפול',text:'מסמכים חסרים או כאלה שלא הגיעו בזמן מופיעים ברשימת טיפול ברורה, בלי להעמיס עסקאות תקינות.'},
  {icon:MessageSquare,title:'שואלים את הנתונים שלכם',text:'איזה שירות מכר הכי הרבה? כמה נכנס החודש? העוזר עוזר למצוא תשובות.'},
 ]
 export function HomePage() {

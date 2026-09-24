@@ -66,7 +66,7 @@ The target flow is: **a customer pays → a sale is created automatically → th
 
 1. A payment provider or POS system sends a webhook when a customer completes a purchase (in this demo, a signed local script stands in for that provider). Sydney creates a `Sale` row immediately — no manual entry.
 2. If that provider is Grow or Cardcom, its own customer document is linked automatically once the provider delivers it (see "Automatic provider documents" below) — the sale shows **"waiting for provider document"**, never a false "issued," until it actually arrives. Without a document-capable provider connected, issuance remains pending until a real invoicing provider exists. Production never creates a synthetic document number or claims that a legal document was issued.
-3. The business owner's day-to-day job narrows to the **Exception Center**: sales whose document genuinely needs attention (a generation failure, or an automatic document that never arrived within a reasonable time — never a normal, still-waiting sale), refunds needing attention, and sales with incomplete customer/service details — not manually re-entering every sale.
+3. The business owner's day-to-day job narrows to the **Exception Center**: sales whose document genuinely needs attention (a generation failure, or an automatic document that never arrived within a reasonable time — never a normal, still-waiting sale), sales needing a historical document, and legacy sales whose VAT treatment needs review — not manually re-entering every sale.
 4. If a real historical document needs to be attached to a sale (e.g. backfilling an old paper receipt), that's a secondary, explicit action — "Import historical document" — never the primary way sales get created.
 5. The AI Assistant answers questions about revenue, VAT collected, processing fees, top services, and refunds — always from real data, and always correctly distinguishing gross revenue, net revenue, and profit (see "AI Assistant" below).
 
@@ -86,7 +86,7 @@ Each verified account creates a private business workspace. The current release 
 
 ## Automatic sale ingestion
 
-The goal of this feature is that a human should not need to type in every sale by hand: a payment provider or POS system sends a webhook the moment a customer pays, and the app's job narrows to handling the exceptions (a document that failed to generate, a refund, incomplete details) rather than data entry.
+The goal of this feature is that a human should not need to type in every sale by hand: a payment provider or POS system sends a webhook the moment a customer pays, and the app's job narrows to handling actionable document and VAT-review exceptions rather than data entry.
 
 **What's real today:**
 - **Development-only simulator** ([`app/services/demo_simulator.py`](backend/app/services/demo_simulator.py)) — retained as an internal testing utility. Its API is blocked in production and it has no route, navigation item, reset control, or bundle in the public frontend.
@@ -208,7 +208,7 @@ Only the business **owner** can create, enable/disable, delete, or rotate a Card
 
 **Supported operations:** `ChargeOnly`, `ChargeAndCreateToken`, and `Do3DSAndSubmit` — the LowProfile operations that represent an actual charge attempt. `CreateTokenOnly` (no charge occurred) and `SuspendedDeal` are explicitly not treated as sales. `CoinId` `1` → ILS, `2` → USD.
 
-**Declined payments:** confirmed directly by Cardcom's representative, Cardcom *can* send a webhook notification for a declined transaction. The adapter supports a verified decline response as a failed sale, visible in the connection activity and Exception Center and **never** counted as revenue. A live test-account decline also confirmed that Cardcom may call the identifier `LowProfileCode` (including as a URL query parameter), so the receiver accepts both that name and API v11's `LowProfileId`, case-insensitively, before making the authoritative server-to-server check. In that live test, however, `GetLpResult` returned only nonzero top-level code `60000004`, with no transaction details from which a trusted amount could be built. The delivery therefore remains a visible verification failure and creates no sale; the exact declined-result retrieval contract must be confirmed with Cardcom before this path can be called complete. Whether Cardcom sends decline notifications is controlled by the terminal's own **"always report a transaction"** setting in Cardcom's dashboard.
+**Declined payments:** confirmed directly by Cardcom's representative, Cardcom *can* send a webhook notification for a declined transaction. The adapter supports a verified decline response as a failed sale, visible in the connection activity and sales history, and **never** counted as revenue. A decline does not by itself create an Exception Center task because there is no owner action defined for it. A live test-account decline also confirmed that Cardcom may call the identifier `LowProfileCode` (including as a URL query parameter), so the receiver accepts both that name and API v11's `LowProfileId`, case-insensitively, before making the authoritative server-to-server check. In that live test, however, `GetLpResult` returned only nonzero top-level code `60000004`, with no transaction details from which a trusted amount could be built. The delivery therefore remains a visible verification failure and creates no sale; the exact declined-result retrieval contract must be confirmed with Cardcom before this path can be called complete. Whether Cardcom sends decline notifications is controlled by the terminal's own **"always report a transaction"** setting in Cardcom's dashboard.
 
 **What Cardcom does not send an ingestible event for, in this integration:** refunds and cancellations are **not** implemented — Cardcom's documentation does not define an exact, unambiguous format for them that this integration could rely on, so none is guessed at. Record refunds manually on the sale, exactly as with any other provider. This is stated here and in the connection panel's own UI copy, not left implicit.
 
@@ -257,11 +257,12 @@ date,customer,service,amount,currency
 
 Refunds are recorded explicitly via `POST /api/sales/{id}/refund` (no real payment provider sends a refund webhook in this demo) — omit `amount` for a full refund, or supply it for a partial one. A refund can never exceed a sale's net amount (`409` if it would), and refunding an already-fully-refunded sale again is a safe no-op, not a double deduction.
 
-The **Exception Center** (`/exceptions`) replaces what used to be a receipt-to-expense reconciliation inbox — there's no more matching to review, because a sale's document is either issued automatically or imported explicitly onto a named sale. It surfaces four things:
-- Successful sales whose document is still `pending`
-- Sales whose document generation `failed`
-- Sales that are `refunded` or `partially_refunded`
-- Sales missing a customer contact (email/phone) — the one genuinely optional customer field
+The **Exception Center** (`/exceptions`) replaces what used to be a receipt-to-expense reconciliation inbox — there's no more matching to review, because a sale's document is either issued automatically or imported explicitly onto a named sale. It shows one deduplicated list of actionable sales, filterable by reason:
+- Successful sales whose document is still `pending` and needs an already-issued document attached.
+- Sales whose document generation `failed`, or whose automatic provider document has not arrived after the grace period. Fresh sales waiting for a provider document are not tasks.
+- Legacy sales marked `tax_treatment_needs_review`, where the VAT treatment needs a human decision.
+
+An already-recorded full or partial refund does not create a permanent task, and a missing customer contact is normal for many provider transactions. The task count therefore reflects unique sales that currently need an action, even when a sale has more than one reason.
 
 ## Importing a historical document (secondary feature)
 
@@ -510,7 +511,7 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - **Sales** — search, filter by status/date, edit, delete, view an attached document, import a historical document for a sale that's still missing one, or click a row to open its full **Sale Details** page.
 - **Sale Details** (`/sales/:id`) — the complete picture for one sale: customer/service/description, origin (source, provider, external reference), the full VAT/currency breakdown (gross, tax treatment, VAT rate snapshot, VAT amount, revenue before VAT, processing fee, net revenue, refunded amount, remaining revenue), customer-document status, and a persisted, real (never invented) event timeline. Provider-originated facts (source, external reference) are always read-only; editing only ever changes the fields a human is actually allowed to correct.
 - **Add sale** (fallback) — manual entry with validation.
-- **Exception Center** — sales whose document is pending or failed, refunds needing attention, and sales with incomplete customer details.
+- **Exception Center** — one deduplicated list for pending or failed documents and sales needing a VAT decision, with filters and direct links to the appropriate action.
 - **Import historical document** (secondary, reached from a sale's own row) — attach a photo of a previously issued receipt/invoice to that specific sale.
 - **Data Import** — the Grow/Cardcom connection panels selected for this business during onboarding, plus CSV sales-export import with preview and explicit confirmation. Adding or removing a payment provider later is a platform-admin/support action and is enforced by the API as well as the UI. Removing a provider immediately disables its active webhook connections while retaining sales history and connection records for audit and possible later reactivation.
 - **Platform administration** (`/admin`, DB-backed admin role only) — cross-business overview, payment-provider enablement, and exact-name-confirmed business deletion. The role is stored in `app_accounts.system_role`; frontend state or a matching email address cannot grant access.

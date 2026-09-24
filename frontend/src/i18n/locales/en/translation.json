@@ -113,7 +113,7 @@
       "documentFailures": "{{count}} documents needing review",
       "failedPayments": "{{count}} failed payments",
       "refunds": "{{count}} refunds needing attention",
-      "incompleteDetails": "{{count}} sales missing customer details"
+      "incompleteDetails": "{{count}} sales needing a VAT review"
     },
     "topServicesEmpty": "No successful sales yet in this period.",
     "topServicesSaleCount": "{{count}} sales",
@@ -368,17 +368,38 @@
   },
   "exceptions": {
     "title": "Needs Attention",
-    "subtitle": "Sales that need your attention",
+    "subtitle": "Sales that need an action from you, ordered by priority",
+    "totalLabel": "Sales needing action",
+    "totalHint": "Each sale is counted once, even if it has multiple issues.",
+    "filterLabel": "Filter by task type",
+    "listLabel": "Sales needing action",
+    "filters": {
+      "all": "All",
+      "documentFailures": "Document problem",
+      "pendingDocuments": "Missing document",
+      "incompleteDetails": "VAT review"
+    },
+    "reasons": {
+      "documentFailures": "Document issuance failed. Open the sale to see what happened.",
+      "automaticDocumentLate": "The provider document has not arrived in time. Check the sale and connection before importing it manually.",
+      "pendingDocuments": "This sale has no automatic document source. Attach the document issued to the customer.",
+      "incompleteDetails": "The VAT treatment could not be determined safely. Review and update it."
+    },
+    "moreReasons": "More issues ({{count}})",
+    "emptyTitle": "No sales need action in this filter",
+    "emptyDescription": "Healthy sales and recorded refunds do not appear here.",
+    "resultLimit": "Showing up to 500 sales. Use a filter to find the others.",
+    "reviewSale": "Sale details",
     "sections": {
       "pendingDocuments": "Successful sales awaiting a document",
       "documentFailures": "Documents needing review",
       "refundsNeedingAttention": "Refunds needing attention",
-      "incompleteDetails": "Incomplete customer or service details"
+      "incompleteDetails": "VAT details need review"
     },
     "emptyPendingDocuments": "Every successful sale has a document",
     "emptyDocumentFailures": "No documents need review — including generation failures and automatic documents that never arrived within a reasonable time",
     "emptyRefunds": "No refunds needing attention",
-    "emptyIncompleteDetails": "No sales are missing customer details",
+    "emptyIncompleteDetails": "No sales need VAT review",
     "showingCount": "Showing {{shown}} of {{total}}",
     "loadMore": "Show more",
     "importDocument": "Import document",

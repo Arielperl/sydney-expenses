@@ -60,10 +60,14 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
         Sale.document_status == DocumentStatus.PENDING,
     )
     document_failures = _query(document_needs_attention)
-    refunds_needing_attention = _query(
-        Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
-    )
-    incomplete_details = _query(Sale.customer_contact.is_(None))
+    # A recorded refund is already reflected in revenue. Without a separate
+    # unresolved refund workflow, its status alone must not create a task.
+    refunds_needing_attention: list[Sale] = []
+    # A missing contact address is normal for many provider transactions. The
+    # only incomplete field that currently requires a decision by the owner
+    # is a legacy tax treatment that could not be inferred safely.
+    tax_review_needed = Sale.tax_treatment_needs_review.is_(True)
+    incomplete_details = _query(tax_review_needed)
 
     def _count(*conditions) -> int:
         return db.scalar(select(func.count(Sale.id)).where(*conditions)) or 0
@@ -73,10 +77,8 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
         Sale.document_status == DocumentStatus.PENDING,
     )
     document_failures_count = _count(document_needs_attention)
-    refunds_needing_attention_count = _count(
-        Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED])
-    )
-    incomplete_details_count = _count(Sale.customer_contact.is_(None))
+    refunds_needing_attention_count = 0  # Retained in the response for existing clients.
+    incomplete_details_count = _count(tax_review_needed)
     attention_count = db.scalar(
         select(func.count(Sale.id)).where(
             or_(
@@ -85,8 +87,7 @@ def build_exception_center(db: Session, *, limit: int = DEFAULT_SECTION_LIMIT) -
                     Sale.document_status == DocumentStatus.PENDING,
                 ),
                 document_needs_attention,
-                Sale.status.in_([SaleStatus.REFUNDED, SaleStatus.PARTIALLY_REFUNDED]),
-                Sale.customer_contact.is_(None),
+                tax_review_needed,
             )
         )
     ) or 0

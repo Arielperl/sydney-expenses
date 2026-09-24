@@ -43,20 +43,23 @@ def test_document_failures(db_session):
     assert [s.id for s in center.document_failures] == [failed.id]
 
 
-def test_refunds_needing_attention(db_session):
+def test_recorded_refunds_do_not_create_permanent_tasks(db_session):
     refunded = _add_sale(db_session, status=SaleStatus.REFUNDED, refunded_amount=Decimal("100.00"))
     partially_refunded = _add_sale(db_session, status=SaleStatus.PARTIALLY_REFUNDED, refunded_amount=Decimal("40.00"))
     _add_sale(db_session, status=SaleStatus.SUCCEEDED)
 
     center = build_exception_center(db_session)
 
-    ids = {s.id for s in center.refunds_needing_attention}
-    assert ids == {refunded.id, partially_refunded.id}
+    assert center.refunds_needing_attention == []
+    assert center.refunds_needing_attention_count == 0
+    assert center.attention_count == 0
+    assert refunded.status == SaleStatus.REFUNDED
+    assert partially_refunded.status == SaleStatus.PARTIALLY_REFUNDED
 
 
-def test_incomplete_details_flags_missing_customer_contact(db_session):
-    incomplete = _add_sale(db_session, customer_contact=None)
-    _add_sale(db_session, customer_contact="demo@example.com")
+def test_only_ambiguous_legacy_tax_needs_details_review(db_session):
+    _add_sale(db_session, customer_contact=None)
+    incomplete = _add_sale(db_session, tax_treatment_needs_review=True)
 
     center = build_exception_center(db_session)
 
@@ -79,17 +82,16 @@ def test_exception_center_route(client):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["attention_count"] == 1
+    assert body["attention_count"] == 0
     assert body["pending_documents_count"] == 0
-    assert body["incomplete_details_count"] == 1
-    assert len(body["incomplete_details"]) == 1
-    assert body["incomplete_details"][0]["customer_name"] == "No Contact"
+    assert body["incomplete_details_count"] == 0
+    assert body["incomplete_details"] == []
 
 
 def test_attention_count_is_unique_and_not_limited(db_session):
     both_pending_and_incomplete = _add_sale(
         db_session,
-        customer_contact=None,
+        tax_treatment_needs_review=True,
         document_status=DocumentStatus.PENDING,
     )
     for index in range(25):

@@ -113,7 +113,7 @@
       "documentFailures": "{{count}} מסמכים הדורשים בדיקה",
       "failedPayments": "{{count}} תשלומים שנכשלו",
       "refunds": "{{count}} זיכויים דורשים טיפול",
-      "incompleteDetails": "{{count}} מכירות עם פרטי לקוח חסרים"
+      "incompleteDetails": "{{count}} מכירות שדורשות בדיקת מע״מ"
     },
     "topServicesEmpty": "עדיין אין מכירות מוצלחות בתקופה זו.",
     "topServicesSaleCount": "{{count}} מכירות",
@@ -368,17 +368,38 @@
   },
   "exceptions": {
     "title": "דורש טיפול",
-    "subtitle": "מכירות שדורשות את תשומת לבכם",
+    "subtitle": "מכירות שמצריכות פעולה מצדכם, מסודרות לפי דחיפות",
+    "totalLabel": "מכירות שדורשות פעולה",
+    "totalHint": "כל מכירה נספרת פעם אחת, גם אם יש בה יותר מבעיה אחת.",
+    "filterLabel": "סינון לפי סוג טיפול",
+    "listLabel": "רשימת מכירות לטיפול",
+    "filters": {
+      "all": "הכול",
+      "documentFailures": "בעיה במסמך",
+      "pendingDocuments": "חסר מסמך",
+      "incompleteDetails": "בדיקת מע״מ"
+    },
+    "reasons": {
+      "documentFailures": "הפקת המסמך נכשלה. פתחו את המכירה כדי לבדוק מה קרה.",
+      "automaticDocumentLate": "המסמך מחברת הסליקה לא הגיע בזמן. בדקו את המכירה ואת החיבור לפני ייבוא ידני.",
+      "pendingDocuments": "למכירה הזו אין מסמך אוטומטי. יש לצרף את המסמך שהופק ללקוח.",
+      "incompleteDetails": "לא ניתן היה לקבוע בבטחה את סוג המע״מ במכירה זו. בדקו ועדכנו אותו."
+    },
+    "moreReasons": "סיבות נוספות ({{count}})",
+    "emptyTitle": "אין מכירות שממתינות לטיפול בסינון הזה",
+    "emptyDescription": "מכירות תקינות וזיכויים שכבר נרשמו אינם מופיעים כאן.",
+    "resultLimit": "מוצגות עד 500 מכירות. כדי לטפל במכירות נוספות, צמצמו את הרשימה בעזרת הסינון.",
+    "reviewSale": "פרטי מכירה",
     "sections": {
       "pendingDocuments": "מכירות מוצלחות הממתינות למסמך",
       "documentFailures": "מסמכים הדורשים בדיקה",
       "refundsNeedingAttention": "זיכויים הדורשים תשומת לב",
-      "incompleteDetails": "פרטי לקוח או שירות חסרים"
+      "incompleteDetails": "פרטי מע״מ דורשים בדיקה"
     },
     "emptyPendingDocuments": "לכל מכירה מוצלחת יש מסמך",
     "emptyDocumentFailures": "אין מסמכים שדורשים בדיקה — כולל כשלי הפקה ומסמכים אוטומטיים שלא הגיעו זמן סביר",
     "emptyRefunds": "אין זיכויים הדורשים תשומת לב",
-    "emptyIncompleteDetails": "לכל המכירות יש פרטי לקוח מלאים",
+    "emptyIncompleteDetails": "אין מכירות שדורשות בדיקת מע״מ",
     "showingCount": "מוצגות {{shown}} מתוך {{total}}",
     "loadMore": "הצגת עוד",
     "importDocument": "ייבוא מסמך",

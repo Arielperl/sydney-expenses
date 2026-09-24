@@ -206,8 +206,6 @@ export function DashboardPage() {
             <NeedsAttentionPanel
               pendingDocumentsCount={data.pending_documents_count}
               documentFailuresCount={data.document_failures_count}
-              failedPaymentsCount={data.failed_payments_count}
-              refundsNeedingAttentionCount={data.refunds_needing_attention_count}
               incompleteDetailsCount={data.incomplete_details_count}
             />
           </div>

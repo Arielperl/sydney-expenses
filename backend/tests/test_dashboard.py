@@ -212,7 +212,7 @@ def test_failed_payments_count_is_unscoped_by_period(db_session):
 
 def test_incomplete_details_count(db_session):
     _add_sale(db_session, customer_contact=None)
-    _add_sale(db_session, customer_contact="dana@example.com")
+    _add_sale(db_session, tax_treatment_needs_review=True)
 
     stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
 
@@ -228,7 +228,7 @@ def test_refunds_reduce_net_revenue_and_are_counted(db_session):
     stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
 
     assert stats.net_revenue_current_period == []
-    assert stats.refunds_needing_attention_count == 1
+    assert stats.refunds_needing_attention_count == 0
     assert _amount(stats.refunds_total) == Decimal("100.00")
 
 
@@ -244,7 +244,7 @@ def test_refunds_total_is_scoped_to_the_original_sale_period(db_session):
     stats = build_dashboard_stats(db_session, today=date(2026, 3, 25))
 
     assert _amount(stats.refunds_total) == Decimal("0.00")
-    assert stats.refunds_needing_attention_count == 1  # still an operational exception, unscoped
+    assert stats.refunds_needing_attention_count == 0  # a recorded refund is already accounted for
 
 
 def test_partial_refund_contributes_remaining_net_to_revenue(db_session):
