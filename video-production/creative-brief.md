@@ -1,7 +1,7 @@
 # Creative Brief (v2) — "מרעש לבהירות" (From Noise to Clarity)
 
 Client: מנהל הכנסות מבית Sydney · Market: Israel · Hebrew RTL · No voice, dialogue or lyrics.
-v2 decisions (2026-09-24): premium motion design (no people, no placeholders) · punchy and fast · 30 s · website + Meta ads · CTA → `sydney-revenue-manager.vercel.app`. v1 ("same evening twice") was rejected: the cartoon previs didn't work and the story didn't grab.
+v2 decisions (2026-09-24): premium motion design (no people, no placeholders) · punchy and fast · 30 s · website + Meta ads · CTA → `www.sydneyexpenses.com`. v1 ("same evening twice") was rejected: the cartoon previs didn't work and the story didn't grab.
 
 | Item | Decision |
 |---|---|

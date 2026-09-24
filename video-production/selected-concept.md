@@ -1,7 +1,7 @@
 # Selected Concept — "מרעש לבהירות" (From Noise to Clarity)
 
 **Status:** v2, the current direction. **Text revision 2026-09-25:** the on-screen slogans were updated to the new website messaging; scenes, timing, motion, audio and visuals are unchanged. It replaces v1, "אותו ערב, פעמיים", which the client rejected on 2026-09-24: the cartoon previs didn't work and the story didn't grab.
-**Client decisions (v2 brief):** premium motion design, no people and no placeholders · punchy and fast · 30 s main film · website + Meta ads · CTA → `sydney-revenue-manager.vercel.app`.
+**Client decisions (v2 brief):** premium motion design, no people and no placeholders · punchy and fast · 30 s main film · website + Meta ads · CTA → `www.sydneyexpenses.com`.
 
 ## Logline
 
@@ -23,7 +23,7 @@ The film closes on the website's headline (updated 2026-09-25): **מכירות, 
 
 | Section | Time | Bars | What happens |
 |---|---|---|---|
-| A · The sales | 0.00–4.00 | 1–2 | Amounts slam in on each beat (₪180 · ₪65 · ₪650 · ₪320), each with a tuned terminal beep and a source tag (Grow / Cardcom / CSV). On bar 2 they rain in on 8th notes. **מכירות, הכנסות** |
+| A · The sales | 0.00–4.00 | 1–2 | Amounts slam in on each beat (₪180 · ₪65 · ₪650 · ₪320), each with a tuned terminal beep. On bar 2 they rain in on 8th notes. **מכירות, הכנסות** |
 | B · The noise | 4.00–7.75 | 3–4 | Amounts go grey and jitter; receipts tumble; questions pop up (כמה עמלות? · איפה הקבלה? · מה עם המע״מ? · ומה עם ההחזרים?) over a riser, peaking on **כמה באמת נכנס?** |
 | Gap | 7.75–8.00 | — | Freeze, with digital silence. |
 | C · The drop | 8.00–10.00 | 5 | A mint line sweeps right → left and wipes the noise away. Four amounts fly into rows of the real **מכירות** list. **מנהל הכנסות לעסקים** + brand lockup. |

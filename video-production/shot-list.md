@@ -4,7 +4,7 @@ All shots are **motion graphics built from existing project assets** (the produc
 
 | # | Time | Dur | Subject | Start frame → end frame | Framing / "camera" | Depth | Light / color | Text | Music · SFX | Transition | Purpose |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| A1 | 0.00–2.00 | 2.00 | Four sale amounts with source tags | "₪180" already landing at center → 4 amounts in depth | Frontal; amounts at ±42% W / ±38% H | Older amounts shrink, blur (≤ 7 px) and dim | Near-black ink, warm-white type, no mint | Amounts | Beeps B4-E5-G♯5-B5 | — | Hook |
+| A1 | 0.00–2.00 | 2.00 | Four sale amounts | "₪180" already landing at center → 4 amounts in depth | Frontal; amounts at ±42% W / ±38% H | Older amounts shrink, blur (≤ 7 px) and dim | Near-black ink, warm-white type, no mint | Amounts | Beeps B4-E5-G♯5-B5 | — | Hook |
 | A2 | 2.00–4.00 | 2.00 | 8 more amounts on 8ths + hero line | A crowd of amounts → headline out | Same | Amounts dim to 25% behind the line | Same | מכירות, הכנסות | Kick in, stab at 2.00 | Mask out | Name the moment |
 | B | 4.00–7.75 | 3.75 | The noise: 14 amounts, 9 receipts, 4 questions, the big question | Grey haze begins → peak chaos, frozen | Micro-shake (≤ 3 px) | Everything behind the big question dims to 30% and blurs 8 px | Grey `#C4CCC9`, paper, no mint | 4 questions → כמה באמת נכנס? | Riser, clusters, impact 6.00, roll | Freeze | Tension |
 | Gap | 7.75–8.00 | 0.25 | Frozen frame, dimmed 35% | — | — | — | — | (question) | Silence | — | Breath |

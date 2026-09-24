@@ -3,7 +3,7 @@
 `[x]` = done in this package · `[ ]` = remaining.
 
 ## Business and claims
-- [x] Product name, lockup and domain confirmed (`sydney-revenue-manager.vercel.app`)
+- [x] Product name, lockup and domain confirmed (`www.sydneyexpenses.com`)
 - [x] Film text matches the website messaging of 2026-09-25 (eyebrow מנהל הכנסות לעסקים; headline מכירות, הכנסות ומה שדורש טיפול. במקום אחד.); no earlier slogans remain
 - [x] Automatic capture claimed only for connected Grow/Cardcom; CSV is not called automatic
 - [x] Net figure shown with the product's own "אינו רווח ואינו יתרת חשבון" line

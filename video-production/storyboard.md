@@ -4,7 +4,7 @@ These are final-quality frames rendered from the film itself (`tools/film.html`)
 
 | Frame | Section | TC | Composition | Text placement | Transition | Emotion / purpose |
 |---|---|---|---|---|---|---|
-| F01-A1 | A | 0.12 | "₪180" slamming in at center, the CARDCOM tag beneath; near-black | — | — | Hook: a sale on frame 1 |
+| F01-A1 | A | 0.12 | "₪180" slamming in at center; near-black | — | — | Hook: a sale on frame 1 |
 | F02-A1 | A | 1.60 | Four amounts around the center; older ones smaller and blurred in depth | — | — | Rhythm, momentum |
 | F03-A2 | A | 3.00 | A crowd of amounts dimmed to 25% behind the centered hero line | "מכירות, הכנסות" center | Mask out 3.72 | The business is selling |
 | F04-B | B | 5.30 | Grey jittering amounts, tumbling receipts, three questions in the quadrants | Questions scattered | — | Overload |

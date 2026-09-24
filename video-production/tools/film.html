@@ -208,7 +208,7 @@ function noise(t) {
       x += dx * blow * .8; y += dy * blow * .8; sc *= 1 + blow * .6; op *= 1 - blow; blur += blow * 18;
       if (op <= .01) return;
     }
-    s += `<div class="amt" style="left:${x}px;top:${y}px;font-size:${size}px;color:${col};transform:translate(-50%,-50%) scale(${sc}) rotate(${rot}deg);filter:blur(${blur}px);opacity:${op}">${moneyShort(a.v)}<small>${a.src}</small></div>`;
+    s += `<div class="amt" style="left:${x}px;top:${y}px;font-size:${size}px;color:${col};transform:translate(-50%,-50%) scale(${sc}) rotate(${rot}deg);filter:blur(${blur}px);opacity:${op}">${moneyShort(a.v)}</div>`;
   });
   RCPTS.forEach((r, i) => {
     if (T < r.at) return;
@@ -425,7 +425,7 @@ function endCard(t) {
   const ly = V ? 1000 : 610, cy = V ? 1170 : 750, uy = V ? 1290 : 860;
   s += `<div class="abs" style="left:0;right:0;top:${ly}px;display:flex;justify-content:center;opacity:${lk};transform:translateY(${(1 - lk) * 24}px)">${lockup(V ? 44 : 40)}</div>`;
   s += `<div class="abs" style="left:0;right:0;top:${cy}px;display:flex;justify-content:center;opacity:${ct};transform:translateY(${(1 - ct) * 24}px) scale(${lerp(.92, 1, back(prog(t, 27.5, 28.0)))})"><span class="cta" style="font-size:${V ? 38 : 32}px;padding:${V ? '22px 40px' : '18px 34px'}">פתיחת חשבון <span style="font-family:'IBM Plex Sans'">←</span></span></div>`;
-  if (CUT !== '06') s += `<div class="url abs" style="left:0;right:0;top:${uy}px;font-size:${V ? 32 : 28}px;opacity:${ur};transform:translateY(${(1 - ur) * 16}px)">sydney-revenue-manager.vercel.app</div>`;
+  if (CUT !== '06') s += `<div class="url abs" style="left:0;right:0;top:${uy}px;font-size:${V ? 32 : 28}px;opacity:${ur};transform:translateY(${(1 - ur) * 16}px)">www.sydneyexpenses.com</div>`;
   return s;
 }
 

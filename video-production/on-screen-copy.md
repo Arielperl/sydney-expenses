@@ -4,7 +4,7 @@ One final version per element. Global system: IBM Plex Sans Hebrew 700 for headl
 
 | # | Hebrew (exact) | English (production reference) | In → out | Reading time | Purpose | Position / align | Font / weight / size | Color & contrast | Sound cue | Source |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | ₪180 · ₪65 · ₪650 · ₪320 (+ tags CARDCOM / GROW / CSV) | The day's sales | 0.00 / 0.50 / 1.00 / 1.50 → recede | — (visual) | Hook: sales, visually | Center + around, in depth | IBM Plex Sans 600, 190 px; tags 500, 0.2 em, tracked 12% | Warm white on near-black; later amounts dimmer/blurred | A tuned beep per hit | Illustrative |
+| 1 | ₪180 · ₪65 · ₪650 · ₪320 (no source tags; removed 2026-09-25) | The day's sales | 0.00 / 0.50 / 1.00 / 1.50 → recede | — (visual) | Hook: sales, visually | Center + around, in depth | IBM Plex Sans 600, 190 px | Warm white on near-black; later amounts dimmer/blurred | A tuned beep per hit | Illustrative |
 | 2 | **מכירות, הכנסות** (9:16: **מכירות,** / **הכנסות**) | Sales, revenue | 2.00 → 3.72 | 1.7 s (min 1.0) | Names the moment; opens the website headline | Center, y 420 px (9:16: two lines from y 745) | 700, 180 px (9:16: 150 px) | White; amounts behind dim to 25% | Stab + soft impact at 2.00 | Website headline, line 1 |
 | 3 | כמה עמלות? · איפה הקבלה? · מה עם המע״מ? · ומה עם ההחזרים? | How much in fees? · Where's the receipt? · What about VAT? · And the refunds? | 4.00 / 4.50 / 5.00 / 5.50 → dim from 6.0, swept at 8.0 | 0.5–2 s each (texture, then context) | The noise: questions owners actually have | Scattered in the four quadrants | 600, 58 px | Light grey `#E9EEEC`, jittering | Dissonant cluster on each | Problem framing (no claim) |
 | 4 | **כמה באמת נכנס?** | How much actually came in? | 6.00 → swept at 8.00 | 1.75 s + a 0.25 s freeze | The problem in one question | Center, y 440 px | 700, 150 px, dark halo `0 4px 40px rgba(0,0,0,.55)` | White; receipts behind dim to 30% and blur | Impact at 6.00; riser; silence at 7.75 | — |
@@ -18,7 +18,7 @@ One final version per element. Global system: IBM Plex Sans Hebrew 700 for headl
 | 12 | **מכירות, הכנסות** / **ומה שדורש טיפול.** / **במקום אחד.** | Sales, revenue / and what needs attention. / In one place. | 26.00 / 26.30 / 26.60 → end | 3.4 s after the last line (min 2.2) | The complete website headline; completes the line opened by #2 | Center, top 270 → 210 px at 27.10 (9:16: 640 → 570 px) | 700, 96 px (9:16: 100 px); "במקום אחד." in mint | White/mint on dimmed panels (radial darkening 60%) | Piano chord 26.00 | Website headline (2026-09-25) |
 | 13 | Lockup | — | 27.25 → end | 2.75 s | Brand recall | Center, y 610 | Tile 88 px + name 40 px | — | Sonic logo starts 27.25 | Brand |
 | 14 | **פתיחת חשבון ←** | Open an account | 27.50 → end | 2.5 s | The one action | Center, y 750 | 600, 32 px in a mint pill (`#41D7B2`, text `#062B23`), mint glow; pops with a slight overshoot | ≈ 9:1 contrast | Chord 28.00 | Website CTA |
-| 15 | sydney-revenue-manager.vercel.app | — | 27.62 → end (not in the 6 s cut) | 2.4 s | Where to go | Center, y 860 | IBM Plex Sans 500, 28 px, LTR-isolated | White 82% | — | Client-confirmed domain |
+| 15 | www.sydneyexpenses.com | — | 27.62 → end (not in the 6 s cut) | 2.4 s | Where to go | Center, y 860 | IBM Plex Sans 500, 28 px, LTR-isolated | White 82% | — | Client-confirmed domain (updated 2026-09-25) |
 
 ## In-product UI strings (exact, from `frontend/src/i18n/locales/he/translation.json` and `HomePage.tsx`)
 
