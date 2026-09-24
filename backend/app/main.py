@@ -12,6 +12,8 @@ from app.api.router import api_router
 from app.core.config import get_settings, validate_auth_settings, validate_storage_settings
 
 settings = get_settings()
+if settings.app_environment == "production" and "https://support.sydneyexpenses.com" not in settings.cors_allowed_origins:
+    settings.cors_allowed_origins.append("https://support.sydneyexpenses.com")
 validate_storage_settings(settings)
 validate_auth_settings(settings)
 
@@ -70,6 +72,15 @@ async def protect_workspace(request: Request, call_next):
         if protected:
             try:
                 user = await current_user(request)
+                if path.startswith("/api/support/staff/"):
+                    if user["system_role"] not in ("support", "admin"):
+                        raise HTTPException(403, "נדרשת הרשאת תמיכה")
+                    request.state.user = user
+                    response = await call_next(request)
+                    response.headers["Cache-Control"] = "no-store"
+                    return response
+                if user["system_role"] == "support":
+                    raise HTTPException(403, "חשבון התמיכה אינו חשבון עסק")
                 if not user["has_workspace"]:
                     raise HTTPException(403, "החשבון עדיין לא שויך לעסק")
                 request.state.user = user

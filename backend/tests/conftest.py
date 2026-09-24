@@ -36,11 +36,13 @@ def _reset_database():
 def _reset_rate_limiters():
     from app.api.routes import assistant as assistant_routes
     from app.api.routes import auth as auth_routes
+    from app.api.routes import support as support_routes
 
     auth_routes._signup_by_ip.reset()
     auth_routes._login_by_ip.reset()
     auth_routes._login_by_email.reset()
     auth_routes._refresh_by_ip.reset()
+    support_routes._requests_by_user.reset()
     assistant_routes._chat_by_ip.reset()
     yield
 

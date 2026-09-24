@@ -36,7 +36,7 @@ class AppAccount(Base):
 
     __tablename__ = "app_accounts"
     __table_args__ = (
-        CheckConstraint("system_role in ('user','admin')", name="ck_app_account_system_role"),
+        CheckConstraint("system_role in ('user','admin','support')", name="ck_app_account_system_role"),
     )
 
     user_id: Mapped[str] = mapped_column(String(128), primary_key=True)
@@ -47,6 +47,7 @@ class AppAccount(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class BusinessPaymentProvider(Base):

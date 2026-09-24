@@ -60,6 +60,8 @@ def user_view(user):
     verified = bool(user.get("email_confirmed_at"))
     with SessionLocal() as db:
         account = db.get(AppAccount, user["id"]) if verified else None
+        if account is not None and account.disabled_at is not None:
+            raise HTTPException(403, "החשבון הזה הושבת")
         if verified:
             display_name = user.get("user_metadata", {}).get("full_name", "")
             if account is None:

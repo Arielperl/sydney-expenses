@@ -590,7 +590,8 @@
     "providersError": "Could not load payment providers. Refresh the page and try again.",
     "noProvidersTitle": "No payment provider is configured",
     "noProvidersDescription": "CSV import is still available. Contact support to add an automatic payment-provider connection.",
-    "addProviderSupport": "Need another payment provider? Contact support to have it approved for this business."
+    "addProviderSupport": "Need another payment provider? Send a request to support.",
+    "contactSupportButton": "Contact support"
   },
   "admin": {
     "eyebrow": "Platform admin",

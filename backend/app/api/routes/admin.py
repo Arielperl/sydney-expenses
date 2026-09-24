@@ -1,34 +1,102 @@
 from datetime import datetime
 from typing import Literal
 
+import httpx
+from collections.abc import Generator
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy import delete, func, select
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models.assistant_conversation import AssistantConversation, AssistantMessage
+from app.database import SessionLocal
 from app.models.business import AppAccount, Business, BusinessMember, BusinessPaymentProvider
-from app.models.cardcom_credential import CardcomCredential
-from app.models.import_batch import ImportBatch
 from app.models.integration_connection import IntegrationConnection
-from app.models.provider_document_event import ProviderDocumentEvent
 from app.models.sale import Sale
-from app.models.sale_event import SaleEvent
-from app.models.webhook_event import WebhookEvent
+from app.core.config import get_settings
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/support/staff", tags=["support-staff"])
+
+
+def get_support_db() -> Generator[Session, None, None]:
+    with SessionLocal() as db:
+        yield db
+
+
+def _require_support(request: Request, db: Session) -> AppAccount:
+    user = getattr(request.state, "user", None) or {}
+    account = db.get(AppAccount, user.get("id")) if user.get("id") else None
+    if account is None or account.system_role not in ("support", "admin") or account.disabled_at is not None:
+        raise HTTPException(status_code=403, detail="נדרשת הרשאת תמיכה")
+    return account
 
 
 def _require_admin(request: Request, db: Session) -> AppAccount:
-    user = getattr(request.state, "user", None) or {}
-    account = db.get(AppAccount, user.get("id")) if user.get("id") else None
-    if account is None or account.system_role != "admin":
-        raise HTTPException(status_code=403, detail="נדרשת הרשאת מנהל מערכת")
-    # Only after the DB role has been verified may this request leave the
-    # normal tenant scope and inspect/manage other businesses.
-    db.info.pop("business_id", None)
+    account = _require_support(request, db)
+    if account.system_role != "admin":
+        raise HTTPException(status_code=403, detail="נדרשת הרשאת אדמין")
     return account
+
+
+async def delete_auth_identity(user_id: str) -> None:
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_secret_key:
+        raise HTTPException(503, "שירות ההתחברות אינו מוגדר")
+    url = settings.supabase_url.rstrip("/") + f"/auth/v1/admin/users/{user_id}"
+    headers = {"apikey": settings.supabase_secret_key, "Authorization": f"Bearer {settings.supabase_secret_key}"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.delete(url, headers=headers)
+    except httpx.RequestError:
+        raise HTTPException(503, "מחיקת החשבון נכשלה בשירות ההתחברות")
+    if response.status_code not in (200, 204):
+        raise HTTPException(503, "מחיקת החשבון נכשלה בשירות ההתחברות")
+
+
+class StaffUserRead(BaseModel):
+    id: str
+    email: str
+    name: str
+    system_role: str
+    business_name: str | None
+
+
+@router.get("/users", response_model=list[StaffUserRead])
+def list_users(request: Request, db: Session = Depends(get_support_db)) -> list[StaffUserRead]:
+    _require_admin(request, db)
+    rows = db.scalars(select(AppAccount).where(AppAccount.disabled_at.is_(None)).order_by(AppAccount.created_at.desc())).all()
+    result = []
+    for account in rows:
+        member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == account.user_id))
+        business = db.get(Business, member.business_id) if member else None
+        result.append(StaffUserRead(id=account.user_id, email=account.email, name=account.display_name,
+                                    system_role=account.system_role, business_name=business.name if business else None))
+    return result
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: str, request: Request, db: Session = Depends(get_support_db)) -> None:
+    admin = _require_admin(request, db)
+    if user_id == admin.user_id:
+        raise HTTPException(409, "לא ניתן למחוק את החשבון של עצמך")
+    target = db.get(AppAccount, user_id)
+    if target is None or target.disabled_at is not None:
+        raise HTTPException(404, "המשתמש לא נמצא")
+    if target.system_role == "admin":
+        raise HTTPException(403, "לא ניתן למחוק אדמין אחר דרך ממשק התמיכה")
+    member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == user_id))
+    if member and member.role == "owner":
+        owners = db.scalar(select(func.count()).select_from(BusinessMember).where(
+            BusinessMember.business_id == member.business_id, BusinessMember.role == "owner")) or 0
+        if owners <= 1:
+            raise HTTPException(409, "יש להעביר בעלות על העסק לפני מחיקת בעליו היחיד")
+    await delete_auth_identity(user_id)
+    if member:
+        db.delete(member)
+    target.email = f"deleted-{target.user_id}@invalid.local"
+    target.display_name = ""
+    target.system_role = "user"
+    target.disabled_at = datetime.utcnow()
+    db.commit()
 
 
 class AdminBusinessRead(BaseModel):
@@ -43,14 +111,9 @@ class AdminBusinessRead(BaseModel):
     connection_count: int
 
 
-class DeleteBusinessRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    confirm_name: str
-
-
 @router.get("/businesses", response_model=list[AdminBusinessRead])
-def list_businesses(request: Request, db: Session = Depends(get_db)) -> list[AdminBusinessRead]:
-    _require_admin(request, db)
+def list_businesses(request: Request, db: Session = Depends(get_support_db)) -> list[AdminBusinessRead]:
+    _require_support(request, db)
     businesses = db.scalars(select(Business).order_by(Business.created_at.desc())).all()
     result: list[AdminBusinessRead] = []
     for business in businesses:
@@ -89,9 +152,9 @@ def add_payment_provider(
     business_id: str,
     provider: Literal["grow", "cardcom"],
     request: Request,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_support_db),
 ) -> dict:
-    admin = _require_admin(request, db)
+    admin = _require_support(request, db)
     if db.get(Business, business_id) is None:
         raise HTTPException(status_code=404, detail="העסק לא נמצא")
     existing = db.get(BusinessPaymentProvider, (business_id, provider))
@@ -111,9 +174,9 @@ def remove_payment_provider(
     business_id: str,
     provider: Literal["grow", "cardcom"],
     request: Request,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_support_db),
 ) -> dict:
-    _require_admin(request, db)
+    _require_support(request, db)
     if db.get(Business, business_id) is None:
         raise HTTPException(status_code=404, detail="העסק לא נמצא")
     approved_provider = db.get(BusinessPaymentProvider, (business_id, provider))
@@ -139,39 +202,3 @@ def remove_payment_provider(
         "removed": True,
         "disabled_connections": disabled_connections,
     }
-
-
-@router.delete("/businesses/{business_id}", status_code=204)
-def delete_business(
-    business_id: str,
-    payload: DeleteBusinessRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-) -> None:
-    _require_admin(request, db)
-    business = db.get(Business, business_id)
-    if business is None:
-        raise HTTPException(status_code=404, detail="העסק לא נמצא")
-    if business_id == request.state.user.get("business_id"):
-        raise HTTPException(status_code=409, detail="לא ניתן למחוק את העסק הפעיל של חשבון המנהל")
-    if payload.confirm_name.strip() != business.name:
-        raise HTTPException(status_code=422, detail="שם העסק לאימות אינו תואם")
-
-    # Explicit ordering keeps deletion correct in SQLite tests as well as in
-    # PostgreSQL, even where a legacy foreign key lacks ON DELETE CASCADE.
-    for model in (
-        AssistantMessage,
-        SaleEvent,
-        WebhookEvent,
-        ProviderDocumentEvent,
-        CardcomCredential,
-        AssistantConversation,
-        Sale,
-        ImportBatch,
-        IntegrationConnection,
-        BusinessPaymentProvider,
-        BusinessMember,
-    ):
-        db.execute(delete(model).where(model.business_id == business_id))
-    db.delete(business)
-    db.commit()

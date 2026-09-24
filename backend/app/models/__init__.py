@@ -7,6 +7,7 @@ from app.models.provider_document_event import ProviderDocumentEvent, ProviderDo
 from app.models.sale import DocumentStatus, Sale, SaleSource, SaleStatus
 from app.models.sale_event import SaleEvent, SaleEventSource, SaleEventType
 from app.models.webhook_event import WebhookEvent, WebhookEventFailureCategory, WebhookEventStatus
+from app.models.support_request import SupportRequest
 
 __all__ = [
     "Business",
@@ -31,4 +32,5 @@ __all__ = [
     "WebhookEvent",
     "WebhookEventFailureCategory",
     "WebhookEventStatus",
+    "SupportRequest",
 ]

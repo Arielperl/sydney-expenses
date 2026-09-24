@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { FileSpreadsheet, PlugZap } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { CardcomConnectionPanel } from '../components/CardcomConnectionPanel'
 import { CsvImportWizard } from '../components/CsvImportWizard'
@@ -10,6 +11,7 @@ import { getBusinessPaymentProviders } from '../services/businessService'
 import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
 import { PageHeader } from '../components/ui'
 import { cx } from '../components/ui-classes'
+import { buttonClasses } from '../components/ui-classes'
 
 export function ImportsPage() {
   const { t } = useTranslation()
@@ -75,6 +77,7 @@ export function ImportsPage() {
           <EmptyState title={t('imports.noProvidersTitle')} description={t('imports.noProvidersDescription')} icon={<PlugZap className="h-5 w-5" />} />
         )}
         {providers && providers.length > 0 && <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('imports.addProviderSupport')}</p>}
+        {providers && <Link to="/support/request" className={buttonClasses('secondary')}>{t('imports.contactSupportButton')}</Link>}
       </div>
       <div id="imports-panel-csv" role="tabpanel" aria-labelledby="imports-tab-csv" hidden={section !== 'csv'}>
         {csvVisited && <CsvImportWizard />}

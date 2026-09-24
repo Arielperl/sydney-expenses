@@ -35,6 +35,8 @@ class CreateBusiness(BaseModel):
 @router.post("", status_code=201)
 async def create_business(payload: CreateBusiness, request: Request):
     user = await current_user(request)
+    if user["system_role"] == "support":
+        raise HTTPException(403, "חשבון התמיכה אינו יכול ליצור עסק")
     if not user["email_verified"]:
         raise HTTPException(403, "יש לאמת את האימייל לפני יצירת עסק")
     with SessionLocal() as db:

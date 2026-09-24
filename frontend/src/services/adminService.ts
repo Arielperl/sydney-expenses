@@ -13,22 +13,29 @@ export interface AdminBusiness {
   connection_count: number
 }
 
+export interface StaffUser { id: string; email: string; name: string; system_role: 'user' | 'support' | 'admin'; business_name: string | null }
+
+export async function listStaffUsers(): Promise<StaffUser[]> {
+  try { return (await apiClient.get<StaffUser[]>('/support/staff/users')).data }
+  catch (error) { throw toApiError(error) }
+}
+
+export async function deleteStaffUser(id: string): Promise<void> {
+  try { await apiClient.delete(`/support/staff/users/${id}`) }
+  catch (error) { throw toApiError(error) }
+}
+
 export async function listAdminBusinesses(): Promise<AdminBusiness[]> {
-  try { return (await apiClient.get<AdminBusiness[]>('/admin/businesses')).data }
+  try { return (await apiClient.get<AdminBusiness[]>('/support/staff/businesses')).data }
   catch (error) { throw toApiError(error) }
 }
 
 export async function addBusinessProvider(businessId: string, provider: PaymentProvider): Promise<void> {
-  try { await apiClient.post(`/admin/businesses/${businessId}/payment-providers/${provider}`) }
+  try { await apiClient.post(`/support/staff/businesses/${businessId}/payment-providers/${provider}`) }
   catch (error) { throw toApiError(error) }
 }
 
 export async function removeBusinessProvider(businessId: string, provider: PaymentProvider): Promise<void> {
-  try { await apiClient.delete(`/admin/businesses/${businessId}/payment-providers/${provider}`) }
-  catch (error) { throw toApiError(error) }
-}
-
-export async function deleteBusinessAsAdmin(businessId: string, confirmName: string): Promise<void> {
-  try { await apiClient.delete(`/admin/businesses/${businessId}`, { data: { confirm_name: confirmName } }) }
+  try { await apiClient.delete(`/support/staff/businesses/${businessId}/payment-providers/${provider}`) }
   catch (error) { throw toApiError(error) }
 }
