@@ -89,7 +89,6 @@ export function SaleForm({
             <input
               id="customer_name"
               className={inputClasses}
-              placeholder={t('form.customerNamePlaceholder')}
               {...register('customer_name')}
             />
           </FormField>
@@ -102,7 +101,6 @@ export function SaleForm({
             <input
               id="customer_contact"
               className={inputClasses}
-              placeholder={t('form.customerContactPlaceholder')}
               {...register('customer_contact')}
             />
           </FormField>
@@ -115,7 +113,6 @@ export function SaleForm({
             <input
               id="service_name"
               className={inputClasses}
-              placeholder={t('form.serviceNamePlaceholder')}
               {...register('service_name')}
             />
           </FormField>

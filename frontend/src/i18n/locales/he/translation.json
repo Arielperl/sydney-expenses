@@ -267,12 +267,9 @@
   },
   "form": {
     "customerName": "שם הלקוח",
-    "customerNamePlaceholder": "לדוגמה: דנה כהן",
     "customerContact": "אימייל או טלפון של הלקוח",
     "customerContactHint": "לא חובה, אך נדרש כדי לשלוח קבלה.",
-    "customerContactPlaceholder": "לדוגמה: dana@example.com",
     "serviceName": "מוצר או שירות",
-    "serviceNamePlaceholder": "לדוגמה: שיחת ייעוץ",
     "grossAmount": "סכום שחויב",
     "vatAmount": "סכום מע\"מ",
     "vatAmountPreviewHint": "מחושב אוטומטית — לקריאה בלבד",

@@ -267,12 +267,9 @@
   },
   "form": {
     "customerName": "Customer name",
-    "customerNamePlaceholder": "e.g. Dana Cohen",
     "customerContact": "Customer email or phone",
     "customerContactHint": "Optional, but needed to send a receipt.",
-    "customerContactPlaceholder": "e.g. dana@example.com",
     "serviceName": "Product or service",
-    "serviceNamePlaceholder": "e.g. Consulting session",
     "grossAmount": "Amount charged",
     "vatAmount": "VAT amount",
     "vatAmountPreviewHint": "Calculated automatically — read-only",
