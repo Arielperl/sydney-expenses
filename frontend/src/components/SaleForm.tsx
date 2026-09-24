@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
 import { FormField, inputClasses } from './FormField'
+import { buttonClasses } from './ui-classes'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from '../schemas/sale'
 import { formatCurrency, todayIsoDate } from '../lib/format'
 import { previewVat } from '../lib/vat'
@@ -151,10 +152,10 @@ export function SaleForm({
         <FormField label={t('form.vatAmount')} htmlFor="vat_amount_preview">
           <p
             id="vat_amount_preview"
-            className="flex h-10 items-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400"
+            className="flex min-h-10 flex-wrap items-center gap-x-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300"
           >
-            {formatCurrency(vatPreview, currency || 'ILS', i18n.language)}
-            <span className="ms-2 text-xs text-zinc-400 dark:text-zinc-500">{t('form.vatAmountPreviewHint')}</span>
+            <bdi className="figure font-medium">{formatCurrency(vatPreview, currency || 'ILS', i18n.language)}</bdi>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('form.vatAmountPreviewHint')}</span>
           </p>
         </FormField>
 
@@ -220,18 +221,17 @@ export function SaleForm({
       {extraContent}
 
       {submitError && (
-        <p role="alert" className="text-sm text-danger-600">
+        <p role="alert" className="rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500">
           {submitError}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isSubmitting ? t('common.saving') : (submitLabel ?? t('form.saveSale'))}
-      </button>
+      <div className="flex justify-end border-t border-zinc-100 pt-5 dark:border-zinc-800">
+        <button type="submit" disabled={isSubmitting} className={buttonClasses('primary', 'md', 'min-w-32')}>
+          {isSubmitting && <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+          {isSubmitting ? t('common.saving') : (submitLabel ?? t('form.saveSale'))}
+        </button>
+      </div>
     </form>
   )
 }

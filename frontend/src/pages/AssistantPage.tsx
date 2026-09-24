@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Pencil, Plus, Trash2 } from 'lucide-react'
+import { MessageSquare, Pencil, Plus, Trash2, Bot, SendHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,6 +13,9 @@ import {
   sendChatMessage,
 } from '../services/assistantService'
 import type { AssistantConversation, AssistantConversationDetail, ChatMessage } from '../types/assistant'
+import { buttonClasses, cardClasses, cx } from '../components/ui-classes'
+import { PageHeader } from '../components/ui'
+import { inputClasses } from '../components/FormField'
 
 export function AssistantPage() {
   const { t } = useTranslation()
@@ -151,27 +154,24 @@ export function AssistantPage() {
     }
   }
 
-  const isInitialLoading = conversationsQuery.isLoading ||
-    (typeof activeConversationId === 'string' && conversationQuery.isLoading && messages.length === 0)
+  const isInitialLoading = conversationsQuery.isPending ||
+    (typeof activeConversationId === 'string' && conversationQuery.isPending && messages.length === 0)
 
   return (
-    <div className="flex h-[76vh] min-h-[560px] flex-col">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('assistant.title')}</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('assistant.subtitle')}</p>
-      </div>
+    <div className="flex h-[calc(100dvh-9rem)] min-h-[560px] flex-col lg:h-[calc(100dvh-5rem)]">
+      <PageHeader title={t('assistant.title')} description={t('assistant.subtitle')} />
 
-      <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mt-6 grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col rounded-xl border border-zinc-200/80 bg-white p-3 shadow-card max-lg:max-h-40 dark:border-zinc-800 dark:bg-zinc-900">
           <button
             type="button"
             onClick={startNewConversation}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+            className={buttonClasses('primary', 'md', 'w-full')}
           >
             <Plus size={17} />
             {t('assistant.newConversation')}
           </button>
-          <p className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <p className="mt-4 mb-2 px-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
             {t('assistant.conversations')}
           </p>
           <div className="flex gap-2 overflow-x-auto lg:flex-1 lg:flex-col lg:overflow-y-auto">
@@ -180,8 +180,8 @@ export function AssistantPage() {
                 key={conversation.id}
                 className={`group flex min-w-[280px] items-start gap-1 rounded-xl lg:min-w-0 ${
                   activeConversationId === conversation.id
-                    ? 'bg-brand-50 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200'
-                    : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                    ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/10 dark:text-brand-200'
+                    : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/70'
                 }`}
               >
                 <button
@@ -209,7 +209,7 @@ export function AssistantPage() {
                     }}
                     aria-label={`${t('assistant.renameConversation')}: ${conversation.title}`}
                     title={t('assistant.renameConversation')}
-                    className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-white hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 dark:hover:bg-zinc-700"
+                    className="shrink-0 rounded-md p-1.5 text-zinc-500 hover:bg-white hover:text-brand-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-brand-300"
                   >
                     <Pencil size={15} />
                   </button>
@@ -224,7 +224,7 @@ export function AssistantPage() {
                     }}
                     aria-label={`${t('assistant.deleteConversation')}: ${conversation.title}`}
                     title={t('assistant.deleteConversation')}
-                    className="shrink-0 rounded-lg p-1.5 text-zinc-400 hover:bg-white hover:text-danger-600 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-1 dark:hover:bg-zinc-700"
+                    className="shrink-0 rounded-md p-1.5 text-zinc-500 hover:bg-white hover:text-danger-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-danger-500"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -232,27 +232,30 @@ export function AssistantPage() {
               </div>
             ))}
             {conversationsQuery.data?.length === 0 && (
-              <p className="px-2 py-3 text-sm text-zinc-400">{t('assistant.noConversations')}</p>
+              <p className="px-2 py-3 text-sm text-zinc-500 dark:text-zinc-400">{t('assistant.noConversations')}</p>
             )}
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col">
-          <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <section className={cx(cardClasses, 'flex min-h-0 flex-col overflow-hidden')}>
+          <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6" aria-live="polite">
             {isInitialLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+              <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
                 {t('assistant.loadingConversation')}
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('assistant.emptyTitle')}</p>
-                <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-700 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/20" aria-hidden="true">
+                  <Bot className="h-5 w-5" />
+                </span>
+                <p className="text-[0.9375rem] font-medium text-zinc-900 dark:text-zinc-100">{t('assistant.emptyTitle')}</p>
+                <div className="flex max-w-xl flex-wrap justify-center gap-2">
                   {exampleQuestions.map((question) => (
                     <button
                       key={question}
                       type="button"
                       onClick={() => send(question)}
-                      className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm text-zinc-700 shadow-card transition-colors hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-200"
                     >
                       {question}
                     </button>
@@ -261,12 +264,18 @@ export function AssistantPage() {
               </div>
             ) : (
               messages.map((message, index) => (
-                <div key={message.id ?? index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                <div key={message.id ?? index} className={cx('flex animate-pop-in items-end gap-2', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  {message.role !== 'user' && (
+                    <span className="mb-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/20" aria-hidden="true">
+                      <Bot className="h-3.5 w-3.5" />
+                    </span>
+                  )}
                   <p
+                    dir="auto"
                     className={
                       message.role === 'user'
-                        ? 'max-w-[80%] whitespace-pre-wrap rounded-lg bg-brand-600 px-3 py-2 text-sm text-white'
-                        : 'max-w-[80%] whitespace-pre-wrap rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                        ? 'max-w-[80%] rounded-2xl rounded-ee-md bg-brand-600 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-white dark:bg-brand-500 dark:text-brand-950'
+                        : 'max-w-[80%] rounded-2xl rounded-es-md bg-zinc-100 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
                     }
                   >
                     {message.content}
@@ -279,7 +288,7 @@ export function AssistantPage() {
                 <div
                   role="status"
                   aria-label={t('assistant.thinking')}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-100 px-3 py-2.5 dark:bg-zinc-800"
+                  className="ms-9 flex items-center gap-1 rounded-2xl rounded-es-md bg-zinc-100 px-3.5 py-3 dark:bg-zinc-800"
                 >
                   {[0, 150, 300].map((delay) => (
                     <span
@@ -292,11 +301,11 @@ export function AssistantPage() {
               </div>
             )}
             <div ref={endRef} />
-            {error && <p className="text-sm text-danger-700 dark:text-danger-400">{error}</p>}
+            {error && <p role="alert" className="rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500">{error}</p>}
           </div>
 
           <form
-            className="mt-4 flex gap-2"
+            className="flex gap-2 border-t border-zinc-100 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-950/30"
             onSubmit={(event) => {
               event.preventDefault()
               send(input)
@@ -307,13 +316,16 @@ export function AssistantPage() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder={t('assistant.inputPlaceholder')}
-              className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              aria-label={t('assistant.inputPlaceholder')}
+              dir="auto"
+              className={`${inputClasses} flex-1`}
             />
             <button
               type="submit"
               disabled={sendMutation.isPending}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              className={buttonClasses('primary')}
             >
+              <SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden="true" />
               {t('assistant.send')}
             </button>
           </form>

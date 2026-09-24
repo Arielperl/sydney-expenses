@@ -1,14 +1,16 @@
+// Muted, mid-luminance hues that read on white and on the dark surface, and
+// sit comfortably beside Sydney's teal instead of competing with it.
 const PALETTE = [
-  '#2563eb',
-  '#059669',
-  '#d97706',
-  '#dc2626',
-  '#7c3aed',
-  '#0891b2',
-  '#db2777',
-  '#65a30d',
-  '#4f46e5',
-  '#64748b',
+  '#26957a',
+  '#3b6fb6',
+  '#c98a1b',
+  '#8a5a9e',
+  '#b5543c',
+  '#5b7083',
+  '#7a8a3a',
+  '#2c8ea3',
+  '#b24c6a',
+  '#5a5fb0',
 ]
 
 // Service/product names are free text, not a fixed enum — colors are

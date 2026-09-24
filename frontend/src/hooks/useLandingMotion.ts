@@ -10,7 +10,7 @@ export function useLandingMotion() {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
     const targets = Array.from(root.querySelectorAll<HTMLElement>([
       '.hero-copy > *', '.hero-product', '.section-heading',
-      '.feature-grid > article', '.steps > article',
+      '.feature-grid > article', '.steps > li',
       '.connection-section > div', '.faq-section > div', '.public-cta',
     ].join(', ')))
     let observer: IntersectionObserver | undefined

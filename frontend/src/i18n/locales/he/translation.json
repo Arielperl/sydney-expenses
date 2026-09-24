@@ -8,7 +8,8 @@
     "assistant": "עוזר AI",
     "mainNavigation": "ניווט ראשי",
     "openMenu": "פתיחת תפריט",
-    "admin": "ניהול מערכת"
+    "admin": "ניהול מערכת",
+    "skipToContent": "דילוג לתוכן הראשי"
   },
   "account": {
     "myAccount": "החשבון שלי",
@@ -71,7 +72,7 @@
   },
   "dashboard": {
     "title": "לוח בקרה",
-    "subtitle": "מבט כולל על ההכנסות שלכם.",
+    "subtitle": "הכנסות העסק לתקופה שבחרתם, ומה שדורש טיפול עכשיו.",
     "emptyTitle": "עדיין אין מכירות",
     "emptyDescription": "הוסיפו מכירה ידנית ראשונה, או חברו ספק תשלומים כדי להתחיל.",
     "noComparisonBaseline": "אין עדיין מספיק נתונים להשוואה",
@@ -87,7 +88,7 @@
     "recentSalesEmpty": "עדיין אין מכירות — הוסיפו את הראשונה כדי לראות אותה כאן.",
     "viewAll": "הצגת הכול",
     "netRevenue": "תקבולים נטו לאחר ניכויים",
-    "netRevenueExplanation": "לאחר מע\"מ, עמלות וזיכויים",
+    "netRevenueExplanation": "ברוטו בניכוי מע״מ, עמלות סליקה והחזרים חלקיים. אינו רווח ואינו יתרה בחשבון הבנק.",
     "periodLabel": "תקופת הדיווח",
     "period": {
       "this_month": "החודש הנוכחי",
@@ -113,25 +114,59 @@
       "documentFailures": "{{count}} מסמכים הדורשים בדיקה",
       "failedPayments": "{{count}} תשלומים שנכשלו",
       "refunds": "{{count}} זיכויים דורשים טיפול",
-      "incompleteDetails": "{{count}} מכירות שדורשות בדיקת מע״מ"
+      "incompleteDetails": "{{count}} מכירות שדורשות בדיקת מע״מ",
+      "pendingDocuments_one": "מכירה אחת ממתינה למסמך",
+      "documentFailures_one": "מסמך אחד דורש בדיקה",
+      "failedPayments_one": "תשלום אחד נכשל",
+      "refunds_one": "זיכוי אחד דורש טיפול",
+      "incompleteDetails_one": "מכירה אחת דורשת בדיקת מע״מ"
     },
     "topServicesEmpty": "עדיין אין מכירות מוצלחות בתקופה זו.",
     "topServicesSaleCount": "{{count}} מכירות",
     "breakdown": {
-      "title": "פירוט כספי",
+      "title": "איך מחושבים הסכומים",
       "metric": "מדד",
       "gross": "הכנסה ברוטו",
-      "grossHint": "הסכום הכולל שחויב מהלקוחות, לפני כל ניכוי.",
-      "vat": "מע\"מ שנגבה",
-      "vatHint": "מוחזק עבור רשות המסים — אינו הכנסת העסק.",
+      "grossHint": "הסכום שחויב בפועל ממכירות שהושלמו, לפני ניכויים.",
+      "vat": "מע״מ הכלול בברוטו",
+      "vatHint": "מוחזק עבור רשות המסים ואינו הכנסת העסק. מכירות שלא דווח בהן מע״מ נספרות כאפס.",
       "fees": "עמלות סליקה",
-      "feesHint": "מוחזקות על ידי ספק התשלומים — אינן הכנסת העסק.",
-      "refunds": "זיכויים",
-      "refundsHint": "סכומים שזוכו ללקוחות בתקופה זו.",
-      "net": "נטו לאחר ניכויים",
-      "netHint": "ברוטו פחות מע\"מ, עמלות וזיכויים. אינו רווח חשבונאי — האפליקציה אינה עוקבת אחר הוצאות העסק.",
-      "notProfitNote": "הנתונים הללו אינם רווח חשבונאי — אפליקציה זו אינה עוקבת אחר הוצאות העסק."
-    }
+      "feesHint": "נגבות על ידי ספק התשלומים. מכירות שלא דווחה בהן עמלה נספרות כאפס.",
+      "refunds": "החזרים ללקוחות",
+      "refundsHint": "החזרים על מכירות מהתקופה, כולל מכירות שזוכו במלואן (שאינן נכללות בברוטו).",
+      "net": "תקבולים נטו",
+      "netHint": "ברוטו בניכוי מע״מ, עמלות והחזרים חלקיים.",
+      "notProfitNote": "הנתונים הללו אינם רווח חשבונאי — אפליקציה זו אינה עוקבת אחר הוצאות העסק.",
+      "description": "הרכיבים שמרכיבים את הסכום נטו, לפי מטבע",
+      "reconcileNote": "הרכיבים מסבירים את הסכום ואינם חיסור שורה אחר שורה: החזרים על מכירות שזוכו במלואן כבר אינם כלולים בברוטו."
+    },
+    "summary": {
+      "title": "סיכום התקופה",
+      "range": "{{start}} – {{end}}",
+      "scope": "מבוסס על מכירות שהושלמו, כולל מכירות שזוכו חלקית. מכירות ממתינות, שנכשלו או שזוכו במלואן אינן נכללות.",
+      "vsPrevious": "לעומת {{range}}",
+      "noChange": "ללא שינוי",
+      "multiCurrencyNote": "כל מטבע מוצג בנפרד. הסכומים אינם מומרים ואינם מסוכמים יחד.",
+      "grossHint": "הסכום שחויב מלקוחות, לפני ניכויים",
+      "countHint": "מכירות שהושלמו בתקופה",
+      "averageHint": "ברוטו חלקי מספר המכירות",
+      "viewSales": "הצגת המכירות בתקופה",
+      "increase": "עלייה",
+      "decrease": "ירידה"
+    },
+    "topServicesDescription": "לפי הכנסה ברוטו בתקופה",
+    "trendDescription": "לפי {{granularity}}",
+    "granularity": {
+      "day": "יום",
+      "week": "שבוע",
+      "month": "חודש"
+    },
+    "attentionDescription": "מצב נוכחי, ללא תלות בתקופה שנבחרה",
+    "trendCurrency": "מטבע התרשים",
+    "trendMetricLabel": "סוג הסכום בתרשים",
+    "topServicesSaleCount_one": "מכירה אחת",
+    "invalidCustomRange": "תאריך הסיום מוקדם מתאריך ההתחלה",
+    "invalidCustomRangeDescription": "בחרו תאריך סיום שחל באותו יום או אחרי תאריך ההתחלה."
   },
   "sales": {
     "title": "מכירות",
@@ -164,7 +199,11 @@
     "documentImageUnavailable": "לא ניתן היה לטעון את תמונת המסמך. ייתכן שפג תוקפה או שהוסרה.",
     "vatInline": "מע\"מ {{amount}}",
     "taxTreatmentNeedsReview": "סוג העסקה (מע\"מ) דורש בדיקה",
-    "foreignCurrencyIsraeliTax": "עדיין ממוסה לפי כללי מע\"מ ישראלי"
+    "foreignCurrencyIsraeliTax": "עדיין ממוסה לפי כללי מע\"מ ישראלי",
+    "resultCount_one": "מכירה אחת",
+    "resultCount_other": "{{count}} מכירות",
+    "clearFilters": "ניקוי סינון",
+    "resultCount": "{{count}} מכירות"
   },
   "addSale": {
     "title": "הוספת מכירה",
@@ -324,7 +363,7 @@
     "system": "מערכת"
   },
   "saleDetails": {
-    "backToSales": "← חזרה למכירות",
+    "backToSales": "חזרה למכירות",
     "notProvided": "לא סופק",
     "notApplicable": "—",
     "customerAndService": "לקוח ושירות",
@@ -447,7 +486,8 @@
       "columnAmount": "סכום",
       "columnCurrency": "מטבע",
       "columnError": "שגיאה",
-      "formatNote": "הפורמט הנתמך (עם שורת כותרת): date,customer,service,amount,currency"
+      "formatNote": "הפורמט הנתמך (עם שורת כותרת): date,customer,service,amount,currency",
+      "chooseHint": "קובץ ‎.csv‎ בקידוד UTF-8"
     },
     "grow": {
       "heading": "חיבור Grow",
@@ -548,5 +588,39 @@
     "noProvidersTitle": "לא הוגדרה חברת סליקה לעסק",
     "noProvidersDescription": "ייבוא CSV עדיין זמין. כדי להוסיף חיבור אוטומטי לחברת סליקה, פנו לתמיכה.",
     "addProviderSupport": "צריכים להוסיף חברת סליקה נוספת? פנו לתמיכה כדי שנאשר אותה לעסק."
+  },
+  "admin": {
+    "eyebrow": "ניהול מערכת",
+    "title": "עסקים במערכת",
+    "subtitle": "צפייה בעסקים, ספקי סליקה ונתוני שימוש מרכזיים.",
+    "searchLabel": "חיפוש עסקים",
+    "searchPlaceholder": "חיפוש לפי עסק, עוסק או אימייל",
+    "loading": "טוען עסקים…",
+    "loadError": "לא ניתן לטעון את רשימת העסקים.",
+    "noResults": "לא נמצאו עסקים התואמים לחיפוש.",
+    "ownersUnavailable": "לא זמין",
+    "businessNumber": "עוסק {{number}}",
+    "noBusinessNumber": "ללא מספר עוסק",
+    "createdAt": "נוצר {{date}}",
+    "deleteBusiness": "מחיקת עסק",
+    "deleteBusinessFor": "מחיקת העסק {{name}}",
+    "stats": {
+      "sales": "מכירות",
+      "connections": "חיבורים",
+      "members": "חברים"
+    },
+    "providers": "חברות סליקה",
+    "addProvider": "הוספת {{provider}}",
+    "removeProviderFor": "הסרת {{provider}} מהעסק {{business}}",
+    "removeProviderTitle": "הסרת {{provider}}",
+    "removeProviderDescription": "החברה תוסר מהעסק {{business}} וכל החיבורים הקיימים שלה יושבתו מיד. היסטוריית המכירות והחיבורים תישמר.",
+    "removeProviderConfirm": "הסרת החברה",
+    "removeProviderError": "לא ניתן להסיר כרגע את חברת הסליקה.",
+    "deleteTitle": "מחיקה לצמיתות של {{name}}",
+    "deleteDescription": "הפעולה תמחק את העסק ואת כל המכירות, החיבורים והיסטוריית הפעילות שלו. לא ניתן לבטל אותה.",
+    "deleteConfirmLabel": "הקלידו את שם העסק לאישור",
+    "deleteConfirm": "מחיקה לצמיתות",
+    "deleting": "מוחק…",
+    "deleteError": "מחיקת העסק נכשלה. ודאו שזה אינו העסק הפעיל של חשבון האדמין."
   }
 }

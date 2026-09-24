@@ -103,4 +103,32 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('USD').length).toBeGreaterThan(0)
     expect(screen.queryByText('130.00')).not.toBeInTheDocument()
   })
+  it('explains an inverted custom range instead of requesting it', async () => {
+    let requested = false
+    server.use(http.get(STATS_URL, () => { requested = true; return HttpResponse.json(emptyDashboardStats) }))
+    renderWithProviders(<DashboardPage />, { route: '/app?period=custom&custom_start=2026-09-30&custom_end=2026-01-01' })
+
+    expect(await screen.findByText('תאריך הסיום מוקדם מתאריך ההתחלה')).toBeInTheDocument()
+    expect(requested).toBe(false)
+  })
+
+  it('defines net receipts honestly and never presents them as profit or a balance', async () => {
+    server.use(http.get(STATS_URL, () => HttpResponse.json({
+      ...emptyDashboardStats,
+      net_revenue_current_period: [{ currency: 'ILS', amount: '840.00' }],
+      net_revenue_previous_period: [{ currency: 'ILS', amount: '700.00' }],
+      comparison: [{ currency: 'ILS', percentage_change: 20, amount_change: '140.00' }],
+      gross_revenue: [{ currency: 'ILS', amount: '1180.00' }],
+      successful_sales_count: 2,
+    })))
+    renderWithProviders(<DashboardPage />)
+
+    expect(await screen.findByText(/אינו רווח ואינו יתרה בחשבון הבנק/)).toBeInTheDocument()
+    expect(screen.queryByText(/^יתרה/)).not.toBeInTheDocument()
+    // The comparison names the actual previous range, not just "previous period".
+    expect(screen.getByText(/20\.0%/)).toBeInTheDocument()
+    expect(screen.getByText(/לעומת 1 ביולי 2026/)).toBeInTheDocument()
+    // The breakdown explains why its rows are not a line-by-line subtraction.
+    expect(screen.getByText(/אינם חיסור שורה אחר שורה/)).toBeInTheDocument()
+  })
 })

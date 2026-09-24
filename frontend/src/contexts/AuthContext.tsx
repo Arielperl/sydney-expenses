@@ -36,7 +36,7 @@ export function RequireAuth() {
   const { user, loading, error, reload } = useAuth()
   const location = useLocation()
   if (loading) return <div className="auth-state" dir="rtl" role="status">בודקים את מצב ההתחברות…</div>
-  if (error) return <div className="auth-state" dir="rtl"><h1>לא הצלחנו להתחבר לשירות</h1><button onClick={() => void reload()}>ניסיון נוסף</button><Link to="/">חזרה לדף הבית</Link></div>
+  if (error) return <div className="auth-state" dir="rtl"><h1>לא הצלחנו להתחבר לשירות</h1><p>ייתכן שיש תקלה זמנית בחיבור. נסו שוב בעוד רגע.</p><button type="button" onClick={() => void reload()}>ניסיון נוסף</button><Link to="/">חזרה לדף הבית</Link></div>
   if (!user) return <Navigate to="/login" state={{ from: location.pathname + location.search + location.hash }} replace/>
   if (!user.has_workspace) return <CreateBusinessPage/>
   return <Outlet/>

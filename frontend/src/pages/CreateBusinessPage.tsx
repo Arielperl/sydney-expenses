@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiClient } from '../services/apiClient'
-import { PublicBrand } from './HomePage'
+import { ProductPreview, PublicBrand } from './HomePage'
 
 export function CreateBusinessPage() {
   const { reload, logout } = useAuth()
@@ -31,12 +31,12 @@ export function CreateBusinessPage() {
       <label htmlFor="business-name">שם העסק</label><input id="business-name" required minLength={2} maxLength={100} value={name} onChange={e => setName(e.target.value)}/>
       <label htmlFor="business-number">מספר עוסק (אופציונלי)</label><input id="business-number" maxLength={30} value={number} onChange={e => setNumber(e.target.value)}/>
       <label htmlFor="business-country">מדינה</label><input id="business-country" value="ישראל" readOnly/>
-      <fieldset className="mt-5">
-        <legend className="text-sm font-medium">עם אילו חברות סליקה העסק עובד?</legend>
-        <p className="mt-1 text-xs text-zinc-500">בחרו את כל החברות הרלוונטיות. לאחר יצירת העסק, הוספת חברה נוספת מתבצעת דרך התמיכה.</p>
+      <fieldset>
+        <legend>עם אילו חברות סליקה העסק עובד?</legend>
+        <p className="auth-hint">בחרו את כל החברות הרלוונטיות. לאחר יצירת העסק, הוספת חברה נוספת מתבצעת דרך התמיכה.</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {([['grow', 'Grow'], ['cardcom', 'Cardcom']] as const).map(([value, label]) => (
-            <label key={value} className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 p-3 hover:border-emerald-400">
+            <label key={value} className="provider-option">
               <input
                 type="checkbox"
                 checked={providers.includes(value)}
@@ -48,11 +48,11 @@ export function CreateBusinessPage() {
             </label>
           ))}
         </div>
-        <p className="mt-2 text-xs text-zinc-500">אם אינכם עובדים כרגע עם חברה נתמכת, אפשר להמשיך ללא בחירה ולהשתמש בייבוא CSV.</p>
+        <p className="auth-hint">אם אינכם עובדים כרגע עם חברה נתמכת, אפשר להמשיך ללא בחירה ולהשתמש בייבוא CSV.</p>
       </fieldset>
-      <p className="auth-note">הגרסה הנוכחית מותאמת לישראל: מטבע תצוגה שקל ואזור זמן ירושלים. טיפול המע״מ נבחר לכל מכירה.</p>
+      <p className="auth-note mt-5">הגרסה הנוכחית מותאמת לישראל: מטבע תצוגה שקל ואזור זמן ירושלים. טיפול המע״מ נבחר לכל מכירה.</p>
       {error && <p className="auth-message error" role="alert">{error}</p>}
       <button className="public-button" disabled={busy}>{busy ? 'יוצרים את העסק…' : 'יצירת העסק וכניסה למערכת'}</button>
       <button type="button" className="auth-forgot" onClick={() => void logout().catch(() => setError('ההתנתקות נכשלה. נסו שוב.'))}>התנתקות</button>
-    </form><p className="auth-note">מנהל הכנסות · מבית Sydney</p></section><aside className="auth-art"><h2>העסק שלכם.<br/>הנתונים שלכם.</h2><p>המכירות והמסמכים זמינים רק לחברי העסק המורשים.</p></aside></div>
+    </form><p className="auth-note">מנהל הכנסות · מבית Sydney</p></section><aside className="auth-art"><h2>העסק שלכם.<br/>הנתונים שלכם.</h2><p>המכירות והמסמכים זמינים רק לחברי העסק המורשים.</p><ProductPreview/><span className="preview-caption">תצוגה להמחשה בלבד</span></aside></div>
 }

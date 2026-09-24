@@ -1,14 +1,11 @@
 import { colorForService } from '../lib/serviceColors'
 
+/** Neutral chip with a per-service colour dot: the text stays high-contrast in both themes. */
 export function ServiceBadge({ serviceName }: { serviceName: string }) {
-  const color = colorForService(serviceName)
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: `${color}1a`, color }}
-    >
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {serviceName}
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorForService(serviceName) }} />
+      <span className="truncate">{serviceName}</span>
     </span>
   )
 }

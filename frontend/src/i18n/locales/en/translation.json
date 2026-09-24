@@ -8,7 +8,8 @@
     "assistant": "AI Assistant",
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu",
-    "admin": "System Admin"
+    "admin": "System Admin",
+    "skipToContent": "Skip to main content"
   },
   "account": {
     "myAccount": "My account",
@@ -71,7 +72,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Your revenue at a glance.",
+    "subtitle": "Your business revenue for the selected period, and what needs attention now.",
     "emptyTitle": "No sales yet",
     "emptyDescription": "Add your first sale manually, or connect a payment provider to get started.",
     "noComparisonBaseline": "Not enough data yet to compare",
@@ -87,7 +88,7 @@
     "recentSalesEmpty": "No sales yet — add your first one to see it here.",
     "viewAll": "View all",
     "netRevenue": "Net receipts after deductions",
-    "netRevenueExplanation": "After VAT, fees, and refunds",
+    "netRevenueExplanation": "Gross minus VAT, processing fees and partial refunds. Not profit, and not a bank balance.",
     "periodLabel": "Reporting period",
     "period": {
       "this_month": "This month",
@@ -113,25 +114,59 @@
       "documentFailures": "{{count}} documents needing review",
       "failedPayments": "{{count}} failed payments",
       "refunds": "{{count}} refunds needing attention",
-      "incompleteDetails": "{{count}} sales needing a VAT review"
+      "incompleteDetails": "{{count}} sales needing a VAT review",
+      "pendingDocuments_one": "1 sale awaiting a document",
+      "documentFailures_one": "1 document needing review",
+      "failedPayments_one": "1 failed payment",
+      "refunds_one": "1 refund needing attention",
+      "incompleteDetails_one": "1 sale needing a VAT review"
     },
     "topServicesEmpty": "No successful sales yet in this period.",
     "topServicesSaleCount": "{{count}} sales",
     "breakdown": {
-      "title": "Financial breakdown",
+      "title": "How these amounts are calculated",
       "metric": "Metric",
       "gross": "Gross revenue",
-      "grossHint": "Total amount customers were charged, before any deductions.",
-      "vat": "VAT collected",
-      "vatHint": "Held for the tax authority — not business revenue.",
+      "grossHint": "Actually charged on completed sales, before deductions.",
+      "vat": "VAT included in gross",
+      "vatHint": "Held for the tax authority, not business revenue. Sales with no reported VAT count as zero.",
       "fees": "Processing fees",
-      "feesHint": "Kept by the payment provider — not business revenue.",
-      "refunds": "Refunds",
-      "refundsHint": "Amounts refunded to customers in this period.",
-      "net": "Net after deductions",
-      "netHint": "Gross minus VAT, fees, and refunds. Not accounting profit — business expenses aren't tracked here.",
-      "notProfitNote": "These figures are not accounting profit — this app doesn't track business expenses."
-    }
+      "feesHint": "Kept by the payment provider. Sales with no reported fee count as zero.",
+      "refunds": "Refunds to customers",
+      "refundsHint": "Refunds on sales from this period, including fully refunded sales (which are not in gross).",
+      "net": "Net receipts",
+      "netHint": "Gross minus VAT, fees and partial refunds.",
+      "notProfitNote": "These figures are not accounting profit — this app doesn't track business expenses.",
+      "description": "The components behind net receipts, per currency",
+      "reconcileNote": "These components explain the figure; they are not a line-by-line subtraction, because full refunds are already excluded from gross."
+    },
+    "summary": {
+      "title": "Period summary",
+      "range": "{{start}} – {{end}}",
+      "scope": "Based on completed sales, including partially refunded ones. Pending, failed and fully refunded sales are excluded.",
+      "vsPrevious": "vs. {{range}}",
+      "noChange": "No change",
+      "multiCurrencyNote": "Each currency is shown separately. Amounts are not converted or added together.",
+      "grossHint": "Charged to customers, before deductions",
+      "countHint": "Completed in this period",
+      "averageHint": "Gross divided by number of sales",
+      "viewSales": "View sales in this period",
+      "increase": "Increase",
+      "decrease": "Decrease"
+    },
+    "topServicesDescription": "By gross revenue in this period",
+    "trendDescription": "By {{granularity}}",
+    "granularity": {
+      "day": "day",
+      "week": "week",
+      "month": "month"
+    },
+    "attentionDescription": "Current status, independent of the selected period",
+    "trendCurrency": "Chart currency",
+    "trendMetricLabel": "Amount shown in chart",
+    "topServicesSaleCount_one": "1 sale",
+    "invalidCustomRange": "The end date is before the start date",
+    "invalidCustomRangeDescription": "Choose an end date on or after the start date."
   },
   "sales": {
     "title": "Sales",
@@ -164,7 +199,11 @@
     "documentImageUnavailable": "This document image could not be loaded. It may have expired or been removed.",
     "vatInline": "VAT {{amount}}",
     "taxTreatmentNeedsReview": "Tax treatment needs review",
-    "foreignCurrencyIsraeliTax": "Still taxed under Israeli VAT rules"
+    "foreignCurrencyIsraeliTax": "Still taxed under Israeli VAT rules",
+    "resultCount_one": "1 sale",
+    "resultCount_other": "{{count}} sales",
+    "clearFilters": "Clear filters",
+    "resultCount": "{{count}} sales"
   },
   "addSale": {
     "title": "Add sale",
@@ -324,7 +363,7 @@
     "system": "System"
   },
   "saleDetails": {
-    "backToSales": "← Back to Sales",
+    "backToSales": "Back to Sales",
     "notProvided": "Not provided",
     "notApplicable": "—",
     "customerAndService": "Customer & service",
@@ -447,7 +486,8 @@
       "columnAmount": "Amount",
       "columnCurrency": "Currency",
       "columnError": "Error",
-      "formatNote": "Supported format (with a header row): date,customer,service,amount,currency"
+      "formatNote": "Supported format (with a header row): date,customer,service,amount,currency",
+      "chooseHint": "A .csv file, UTF-8 encoded"
     },
     "grow": {
       "heading": "Grow connection",
@@ -548,5 +588,39 @@
     "noProvidersTitle": "No payment provider is configured",
     "noProvidersDescription": "CSV import is still available. Contact support to add an automatic payment-provider connection.",
     "addProviderSupport": "Need another payment provider? Contact support to have it approved for this business."
+  },
+  "admin": {
+    "eyebrow": "Platform admin",
+    "title": "Businesses",
+    "subtitle": "Businesses, payment providers and key usage figures.",
+    "searchLabel": "Search businesses",
+    "searchPlaceholder": "Search by business, business number or email",
+    "loading": "Loading businesses…",
+    "loadError": "The business list could not be loaded.",
+    "noResults": "No businesses match your search.",
+    "ownersUnavailable": "Not available",
+    "businessNumber": "Business no. {{number}}",
+    "noBusinessNumber": "No business number",
+    "createdAt": "Created {{date}}",
+    "deleteBusiness": "Delete business",
+    "deleteBusinessFor": "Delete business {{name}}",
+    "stats": {
+      "sales": "Sales",
+      "connections": "Connections",
+      "members": "Members"
+    },
+    "providers": "Payment providers",
+    "addProvider": "Add {{provider}}",
+    "removeProviderFor": "Remove {{provider}} from {{business}}",
+    "removeProviderTitle": "Remove {{provider}}",
+    "removeProviderDescription": "The provider will be removed from {{business}} and all of its existing connections will be disabled immediately. Sales and connection history are kept.",
+    "removeProviderConfirm": "Remove provider",
+    "removeProviderError": "The payment provider could not be removed right now.",
+    "deleteTitle": "Permanently delete {{name}}",
+    "deleteDescription": "This deletes the business with all of its sales, connections and activity history. It cannot be undone.",
+    "deleteConfirmLabel": "Type the business name to confirm",
+    "deleteConfirm": "Delete permanently",
+    "deleting": "Deleting…",
+    "deleteError": "Deleting the business failed. Make sure it is not the admin account's active business."
   }
 }

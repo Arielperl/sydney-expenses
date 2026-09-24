@@ -10,7 +10,9 @@ import { importHistoricalDocument } from '../services/documentService'
 import { getSale } from '../services/saleService'
 import { getSystemCapabilities } from '../services/systemService'
 import { toApiError } from '../services/apiClient'
-import { formatCurrency, formatDate } from '../lib/format'
+import { formatDate } from '../lib/format'
+import { Money } from '../components/Money'
+import { PageHeader } from '../components/ui'
 import { groupWarnings, type WarningGroup } from '../lib/warnings'
 
 const WARNING_GROUP_STYLES: Record<WarningGroup, string> = {
@@ -26,7 +28,7 @@ export function ImportDocumentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  const { data: sale, isLoading: isLoadingSale } = useQuery({
+  const { data: sale, isPending: isLoadingSale } = useQuery({
     queryKey: ['sale', saleId],
     queryFn: () => getSale(saleId!),
     enabled: !!saleId,
@@ -59,7 +61,7 @@ export function ImportDocumentPage() {
 
   if (!saleId) {
     return (
-      <div className="max-w-2xl">
+      <div className="mx-auto max-w-2xl">
         <EmptyState title={t('importDocument.noSaleTitle')} description={t('importDocument.noSaleDescription')} />
       </div>
     )
@@ -68,29 +70,23 @@ export function ImportDocumentPage() {
   const warningGroups = groupWarnings(importMutation.data?.extracted_data?.warnings ?? [])
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('importDocument.title')}</h1>
-          <ExtractionModeBadge />
-        </div>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('importDocument.subtitle')}</p>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader title={t('importDocument.title')} description={t('importDocument.subtitle')} actions={<ExtractionModeBadge />} />
 
       {isLoadingSale && <LoadingState label={t('common.loading')} />}
 
       {sale && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-card dark:border-zinc-800 dark:bg-zinc-900">
           <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t('importDocument.targetSaleLabel')}</p>
           <div className="mt-1 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{sale.customer_name}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {formatDate(sale.occurred_at.slice(0, 10), i18n.language)} · {sale.service_name}
+              <p className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={sale.customer_name}>{sale.customer_name}</p>
+              <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <bdi>{formatDate(sale.occurred_at.slice(0, 10), i18n.language)}</bdi> · {sale.service_name}
               </p>
             </div>
-            <p className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-              {formatCurrency(sale.gross_amount, sale.currency, i18n.language)}
+            <p className="shrink-0 font-medium text-zinc-900 dark:text-zinc-100">
+              <Money amount={sale.gross_amount} currency={sale.currency} />
             </p>
           </div>
         </div>
@@ -99,27 +95,27 @@ export function ImportDocumentPage() {
       {showOllamaUnavailableWarning && (
         <div
           role="alert"
-          className="rounded-lg border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+          className="rounded-xl border border-amber-600/20 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200"
         >
           {t('uploadReceipt.errors.ollamaUnavailable')}
         </div>
       )}
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-card dark:border-zinc-800 dark:bg-zinc-900">
         <ReceiptDropzone onFileSelected={handleFileSelected} previewUrl={previewUrl} />
       </div>
 
       {importMutation.isPending && <LoadingState label={t('importDocument.importing')} />}
 
       {importMutation.isError && (
-        <div role="alert" className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-400">
+        <div role="alert" className="rounded-xl border border-danger-600/20 bg-danger-50 p-4 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500">
           <p className="font-semibold">{t('importDocument.importFailedTitle')}</p>
           <p className="mt-1">{toApiError(importMutation.error).message}</p>
         </div>
       )}
 
       {importMutation.data && (
-        <div className="rounded-2xl border border-success-500/30 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-400">
+        <div className="rounded-xl border border-success-500/25 bg-success-50 p-4 text-sm text-success-700 dark:bg-success-500/10 dark:text-success-500">
           <p className="font-semibold">{t('importDocument.attachedTitle')}</p>
           <p className="mt-1">{t('importDocument.attachedBody')}</p>
           {!importMutation.data.extraction_succeeded && (

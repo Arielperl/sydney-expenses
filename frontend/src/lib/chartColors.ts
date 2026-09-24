@@ -5,20 +5,26 @@ export interface ChartColors {
   tick: string
   axisLabel: string
   tooltipCursor: string
+  series: string
+  seriesFill: string
 }
 
 const LIGHT_CHART_COLORS: ChartColors = {
-  grid: '#e7e5e4',
-  tick: '#78716c',
-  axisLabel: '#44403c',
-  tooltipCursor: '#f5f5f4',
+  grid: '#e1e6e3',
+  tick: '#69736f',
+  axisLabel: '#3b4441',
+  tooltipCursor: '#cbd3cf',
+  series: '#17745f',
+  seriesFill: '#26957a',
 }
 
 const DARK_CHART_COLORS: ChartColors = {
-  grid: '#44403c',
-  tick: '#a8a29e',
-  axisLabel: '#e7e5e4',
-  tooltipCursor: '#292524',
+  grid: '#252c2a',
+  tick: '#98a29e',
+  axisLabel: '#e1e6e3',
+  tooltipCursor: '#3b4441',
+  series: '#7ccdb5',
+  seriesFill: '#47b395',
 }
 
 export function getChartColors(theme: ResolvedTheme): ChartColors {

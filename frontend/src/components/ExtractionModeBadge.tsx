@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 
 import { getSystemCapabilities } from '../services/systemService'
 import type { SystemCapabilities } from '../types/system'
+import { Badge, type BadgeTone } from './ui'
 
-const BADGE_STYLES: Record<SystemCapabilities['receipt_extraction_mode'], { badge: string; dot: string }> = {
-  demo: { badge: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300', dot: 'bg-zinc-400' },
-  local: { badge: 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400', dot: 'bg-brand-500' },
-  ai: { badge: 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400', dot: 'bg-success-500' },
+const MODE_TONES: Record<SystemCapabilities['receipt_extraction_mode'], BadgeTone> = {
+  demo: 'neutral',
+  local: 'brand',
+  ai: 'success',
 }
 
 export function ExtractionModeBadge() {
@@ -23,12 +24,5 @@ export function ExtractionModeBadge() {
   if (!data) return null
 
   const mode = data.receipt_extraction_mode
-  const styles = BADGE_STYLES[mode]
-
-  return (
-    <span className={['inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium', styles.badge].join(' ')}>
-      <span aria-hidden="true" className={['h-1.5 w-1.5 rounded-full', styles.dot].join(' ')} />
-      {t(`uploadReceipt.mode.${mode}`)}
-    </span>
-  )
+  return <Badge tone={MODE_TONES[mode]}>{t(`uploadReceipt.mode.${mode}`)}</Badge>
 }

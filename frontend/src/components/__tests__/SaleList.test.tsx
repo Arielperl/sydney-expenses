@@ -63,12 +63,16 @@ describe('SaleList', () => {
     }
   })
 
-  it('wraps the table in a horizontally scrollable container for small screens', () => {
+  it('stacks rows as cards on phones and keeps the table scrollable from tablet width up', () => {
     const { container } = renderWithProviders(
       <SaleList sales={[makeSale()]} onEdit={noop} onDelete={noop} onViewDocument={noop} />,
     )
 
-    expect(container.querySelector('.overflow-x-auto table')).not.toBeNull()
+    // Tablet/desktop: the real table sits in a horizontally scrollable container.
+    expect(container.querySelector('.md\\:overflow-x-auto table')).not.toBeNull()
+    // Phone: each row becomes a self-contained card instead of forcing sideways scrolling.
+    expect(container.querySelector('tbody tr')!.className).toContain('max-md:grid')
+    expect(container.querySelector('thead')!.className).toContain('max-md:hidden')
   })
 
   it('places the customer name and contact directly under the Customer header in RTL', () => {

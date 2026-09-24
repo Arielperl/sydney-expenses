@@ -1,22 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Plus, ShieldCheck, Trash2, X } from 'lucide-react'
+import { Building2, Plus, Search, ShieldCheck, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router-dom'
 
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { FormField, inputClasses } from '../components/FormField'
+import { Modal } from '../components/Modal'
+import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
+import { Card, PageHeader } from '../components/ui'
+import { buttonClasses } from '../components/ui-classes'
 import { useAuth } from '../contexts/AuthContext'
+import { formatDate } from '../lib/format'
 import { addBusinessProvider, deleteBusinessAsAdmin, listAdminBusinesses, removeBusinessProvider, type AdminBusiness } from '../services/adminService'
 import type { PaymentProvider } from '../services/businessService'
 
 const PROVIDER_LABELS: Record<PaymentProvider, string> = { grow: 'Grow', cardcom: 'Cardcom' }
 
 export function AdminPage() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<AdminBusiness | null>(null)
   const [providerRemovalTarget, setProviderRemovalTarget] = useState<{ business: AdminBusiness; provider: PaymentProvider } | null>(null)
   const [confirmName, setConfirmName] = useState('')
-  const { data = [], isLoading, isError } = useQuery({ queryKey: ['admin-businesses'], queryFn: listAdminBusinesses })
+  const { data = [], isPending: isLoading, isError, refetch } = useQuery({ queryKey: ['admin-businesses'], queryFn: listAdminBusinesses })
   const addProvider = useMutation({
     mutationFn: ({ businessId, provider }: { businessId: string; provider: PaymentProvider }) => addBusinessProvider(businessId, provider),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-businesses'] }),
@@ -44,26 +53,134 @@ export function AdminPage() {
 
   if (user?.system_role !== 'admin') return <Navigate to="/app" replace />
 
-  return <div className="space-y-6" dir="rtl">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><div className="flex items-center gap-2 text-brand-700"><ShieldCheck className="h-5 w-5"/><span className="text-sm font-semibold">ניהול מערכת</span></div><h1 className="mt-2 text-2xl font-semibold">עסקים במערכת</h1><p className="mt-1 text-sm text-zinc-500">צפייה בעסקים, ספקי סליקה ונתוני שימוש מרכזיים.</p></div>
-      <input aria-label="חיפוש עסקים" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש לפי עסק, עוסק או אימייל" className="w-full max-w-sm rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={<span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />{t('admin.eyebrow')}</span>}
+        title={t('admin.title')}
+        description={t('admin.subtitle')}
+        actions={
+          <div className="relative w-full sm:w-80">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label={t('admin.searchLabel')}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={t('admin.searchPlaceholder')}
+              className={`${inputClasses} ps-9`}
+            />
+          </div>
+        }
+      />
+      {isLoading && <LoadingState label={t('admin.loading')} />}
+      {isError && <ErrorState message={t('admin.loadError')} onRetry={() => refetch()} />}
+      {!isLoading && !isError && filtered.length === 0 && <EmptyState title={t('admin.noResults')} icon={<Building2 className="h-5 w-5" />} />}
+      <div className="grid gap-4 xl:grid-cols-2">
+        {filtered.map((business) => (
+          <Card as="article" key={business.id} className="flex flex-col">
+            <div className="flex flex-wrap items-start justify-between gap-3 p-5">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/20" aria-hidden="true">
+                  <Building2 className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="font-semibold break-words text-zinc-900 dark:text-zinc-50">{business.name}</h2>
+                  <p className="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-400" dir="ltr">{business.owner_emails.join(', ') || t('admin.ownersUnavailable')}</p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {business.business_number ? t('admin.businessNumber', { number: business.business_number }) : t('admin.noBusinessNumber')}
+                    {' · '}
+                    {t('admin.createdAt', { date: formatDate(business.created_at.slice(0, 10), i18n.language) })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setDeleteTarget(business); setConfirmName('') }}
+                aria-label={t('admin.deleteBusinessFor', { name: business.name })}
+                className={buttonClasses('ghost', 'sm', 'text-danger-700 hover:bg-danger-50 hover:text-danger-700 dark:text-danger-500 dark:hover:bg-danger-500/10')}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('admin.deleteBusiness')}
+              </button>
+            </div>
+            <dl className="mx-5 grid grid-cols-3 divide-x divide-zinc-200 rounded-lg bg-zinc-50 py-3 text-center rtl:divide-x-reverse dark:divide-zinc-800 dark:bg-zinc-950/40">
+              {([['sales', business.sale_count], ['connections', business.connection_count], ['members', business.member_count]] as const).map(([key, value]) => (
+                <div key={key}>
+                  <dd className="figure text-lg font-medium text-zinc-900 dark:text-zinc-50">{value}</dd>
+                  <dt className="text-xs text-zinc-500 dark:text-zinc-400">{t(`admin.stats.${key}`)}</dt>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-auto flex flex-wrap items-center gap-2 p-5">
+              <span className="me-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('admin.providers')}</span>
+              {(['grow', 'cardcom'] as PaymentProvider[]).map((provider) => business.payment_providers.includes(provider)
+                ? (
+                  <span key={provider} className="inline-flex items-center gap-1 rounded-full bg-success-50 py-0.5 ps-3 pe-0.5 text-xs font-medium text-success-700 ring-1 ring-success-500/20 ring-inset dark:bg-success-500/10 dark:text-success-500">
+                    <span>{PROVIDER_LABELS[provider]}</span>
+                    <button
+                      type="button"
+                      aria-label={t('admin.removeProviderFor', { provider: PROVIDER_LABELS[provider], business: business.name })}
+                      onClick={() => setProviderRemovalTarget({ business, provider })}
+                      className="grid h-6 w-6 place-items-center rounded-full hover:bg-danger-50 hover:text-danger-700 dark:hover:bg-danger-500/15"
+                    >
+                      <X className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </span>
+                )
+                : (
+                  <button
+                    key={provider}
+                    type="button"
+                    disabled={addProvider.isPending}
+                    onClick={() => addProvider.mutate({ businessId: business.id, provider })}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-dashed border-zinc-300 px-3 text-xs font-medium text-zinc-600 transition-colors hover:border-brand-500 hover:text-brand-700 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:border-brand-400 dark:hover:text-brand-300"
+                  >
+                    <Plus className="h-3 w-3" aria-hidden="true" />
+                    {t('admin.addProvider', { provider: PROVIDER_LABELS[provider] })}
+                  </button>
+                ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {providerRemovalTarget && (
+        <ConfirmDialog
+          title={t('admin.removeProviderTitle', { provider: PROVIDER_LABELS[providerRemovalTarget.provider] })}
+          description={t('admin.removeProviderDescription', { business: providerRemovalTarget.business.name })}
+          confirmLabel={t('admin.removeProviderConfirm')}
+          isLoading={removeProvider.isPending}
+          error={removeProvider.isError ? t('admin.removeProviderError') : null}
+          onClose={() => setProviderRemovalTarget(null)}
+          onConfirm={() => removeProvider.mutate({ businessId: providerRemovalTarget.business.id, provider: providerRemovalTarget.provider })}
+        />
+      )}
+
+      {deleteTarget && (
+        <Modal title={t('admin.deleteTitle', { name: deleteTarget.name })} onClose={() => setDeleteTarget(null)}>
+          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{t('admin.deleteDescription')}</p>
+          <div className="mt-5">
+            <FormField label={t('admin.deleteConfirmLabel')} htmlFor="confirm-business-name">
+              <input id="confirm-business-name" autoFocus value={confirmName} onChange={(event) => setConfirmName(event.target.value)} className={inputClasses} autoComplete="off" />
+            </FormField>
+          </div>
+          {removeBusiness.isError && (
+            <p role="alert" className="mt-3 rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500">{t('admin.deleteError')}</p>
+          )}
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={() => setDeleteTarget(null)} className={buttonClasses('secondary')}>{t('common.cancel')}</button>
+            <button
+              type="button"
+              disabled={confirmName !== deleteTarget.name || removeBusiness.isPending}
+              onClick={() => removeBusiness.mutate({ businessId: deleteTarget.id, name: confirmName })}
+              className={buttonClasses('danger')}
+            >
+              {removeBusiness.isPending ? t('admin.deleting') : t('admin.deleteConfirm')}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
-    {isLoading && <p className="text-sm text-zinc-500">טוען עסקים…</p>}
-    {isError && <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">לא ניתן לטעון את רשימת העסקים.</p>}
-    <div className="grid gap-4">
-      {filtered.map((business) => <article key={business.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900"><Building2 className="h-5 w-5"/></span><div><h2 className="font-semibold text-zinc-900 dark:text-zinc-100">{business.name}</h2><p className="mt-1 text-xs text-zinc-500" dir="ltr">{business.owner_emails.join(', ') || 'לא זמין'}</p><p className="mt-1 text-xs text-zinc-400">{business.business_number ? `עוסק ${business.business_number}` : 'ללא מספר עוסק'} · נוצר {new Date(business.created_at).toLocaleDateString('he-IL')}</p></div></div>
-          <button type="button" onClick={() => { setDeleteTarget(business); setConfirmName('') }} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4"/>מחיקת עסק</button>
-        </div>
-        <div className="mt-5 grid grid-cols-3 gap-3 rounded-lg bg-zinc-50 p-3 text-center text-sm dark:bg-zinc-800"><div><b className="block text-lg">{business.sale_count}</b>מכירות</div><div><b className="block text-lg">{business.connection_count}</b>חיבורים</div><div><b className="block text-lg">{business.member_count}</b>חברים</div></div>
-        <div className="mt-4 flex flex-wrap items-center gap-2"><span className="me-1 text-sm font-medium">חברות סליקה:</span>{(['grow','cardcom'] as PaymentProvider[]).map((provider) => business.payment_providers.includes(provider)
-          ? <span key={provider} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 py-1 pe-1 ps-3 text-xs font-medium text-emerald-700"><span>{PROVIDER_LABELS[provider]}</span><button type="button" aria-label={`הסרת ${PROVIDER_LABELS[provider]} מהעסק ${business.name}`} onClick={() => setProviderRemovalTarget({ business, provider })} className="grid h-6 w-6 place-items-center rounded-full hover:bg-emerald-100 hover:text-red-600"><X className="h-3.5 w-3.5"/></button></span>
-          : <button key={provider} type="button" disabled={addProvider.isPending} onClick={() => addProvider.mutate({ businessId: business.id, provider })} className="inline-flex items-center gap-1 rounded-full border border-dashed border-zinc-300 px-3 py-1 text-xs text-zinc-600 hover:border-brand-500 hover:text-brand-700"><Plus className="h-3 w-3"/>הוספת {PROVIDER_LABELS[provider]}</button>)}</div>
-      </article>)}
-    </div>
-    {providerRemovalTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="remove-provider-title"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"><div className="flex items-start justify-between gap-4"><div><h2 id="remove-provider-title" className="text-lg font-semibold">הסרת {PROVIDER_LABELS[providerRemovalTarget.provider]}</h2><p className="mt-2 text-sm text-zinc-500">החברה תוסר מהעסק {providerRemovalTarget.business.name} וכל החיבורים הקיימים שלה יושבתו מיד. היסטוריית המכירות והחיבורים תישמר.</p></div><button aria-label="סגירה" onClick={() => setProviderRemovalTarget(null)}><X className="h-5 w-5"/></button></div>{removeProvider.isError && <p role="alert" className="mt-3 text-sm text-red-600">לא ניתן להסיר כרגע את חברת הסליקה.</p>}<div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProviderRemovalTarget(null)} className="rounded-lg px-4 py-2 text-sm">ביטול</button><button type="button" disabled={removeProvider.isPending} onClick={() => removeProvider.mutate({ businessId: providerRemovalTarget.business.id, provider: providerRemovalTarget.provider })} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">{removeProvider.isPending ? 'מסיר…' : 'הסרת החברה'}</button></div></div></div>}
-    {deleteTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-business-title"><div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"><div className="flex items-start justify-between gap-4"><div><h2 id="delete-business-title" className="text-lg font-semibold">מחיקה לצמיתות של {deleteTarget.name}</h2><p className="mt-2 text-sm text-zinc-500">הפעולה תמחק את העסק ואת כל המכירות, החיבורים והיסטוריית הפעילות שלו. לא ניתן לבטל אותה.</p></div><button aria-label="סגירה" onClick={() => setDeleteTarget(null)}><X className="h-5 w-5"/></button></div><label className="mt-5 block text-sm font-medium">הקלידו את שם העסק לאישור<input autoFocus value={confirmName} onChange={(event) => setConfirmName(event.target.value)} className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2"/></label>{removeBusiness.isError && <p className="mt-3 text-sm text-red-600">מחיקת העסק נכשלה. ודאו שזה אינו העסק הפעיל של חשבון האדמין.</p>}<div className="mt-6 flex justify-end gap-2"><button onClick={() => setDeleteTarget(null)} className="rounded-lg px-4 py-2 text-sm">ביטול</button><button disabled={confirmName !== deleteTarget.name || removeBusiness.isPending} onClick={() => removeBusiness.mutate({ businessId: deleteTarget.id, name: confirmName })} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">{removeBusiness.isPending ? 'מוחק…' : 'מחיקה לצמיתות'}</button></div></div></div>}
-  </div>
+  )
 }

@@ -1,14 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, CircleCheck, FileUp, ListTodo } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
-import { ErrorState, LoadingState } from '../components/StatusStates'
-import { formatCurrency, formatDate } from '../lib/format'
+import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
+import { Money } from '../components/Money'
+import { Badge, Card, PageHeader } from '../components/ui'
+import { formatDate } from '../lib/format'
 import { toApiError } from '../services/apiClient'
 import { getExceptionCenter } from '../services/exceptionService'
 import type { ExceptionCenter } from '../types/exceptions'
 import type { Sale } from '../types/sale'
+import { buttonClasses, cardClasses, cx } from '../components/ui-classes'
 
 type Category = 'documentFailures' | 'pendingDocuments' | 'incompleteDetails'
 type Filter = 'all' | Category
@@ -50,28 +54,27 @@ function TaskRow({ task, selected }: { task: Task; selected: Filter }) {
     ? t('exceptions.reasons.automaticDocumentLate')
     : t(`exceptions.reasons.${category}`)
   const action = category === 'pendingDocuments'
-    ? { to: `/import-document?saleId=${sale.id}`, label: t('exceptions.importDocument') }
-    : { to: `/sales/${sale.id}`, label: t('exceptions.reviewSale') }
+    ? { to: `/import-document?saleId=${sale.id}`, label: t('exceptions.importDocument'), icon: FileUp }
+    : { to: `/sales/${sale.id}`, label: t('exceptions.reviewSale'), icon: ChevronLeft }
 
   return (
-    <li className="flex flex-col gap-3 border-b border-zinc-100 p-4 last:border-0 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
-      <div className="min-w-0 space-y-1">
+    <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="min-w-0 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${category === 'documentFailures' ? 'bg-danger-500/10 text-danger-700 dark:text-danger-400' : 'bg-amber-500/10 text-amber-800 dark:text-amber-300'}`}>
-            {t(`exceptions.filters.${category}`)}
-          </span>
-          <Link to={`/sales/${sale.id}`} className="font-semibold text-zinc-900 hover:text-brand-700 dark:text-zinc-100 dark:hover:text-brand-400">
+          <Badge tone={category === 'documentFailures' ? 'danger' : 'warning'}>{t(`exceptions.filters.${category}`)}</Badge>
+          <Link to={`/sales/${sale.id}`} className="font-semibold break-words text-zinc-900 underline-offset-2 hover:text-brand-700 hover:underline dark:text-zinc-100 dark:hover:text-brand-300">
             {sale.customer_name}
           </Link>
           {selected === 'all' && reasons.length > 1 && <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('exceptions.moreReasons', { count: reasons.length - 1 })}</span>}
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">{description}</p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{sale.service_name} · {formatDate(sale.occurred_at.slice(0, 10), i18n.language)}</p>
+        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{description}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">{sale.service_name} · <bdi>{formatDate(sale.occurred_at.slice(0, 10), i18n.language)}</bdi></p>
       </div>
-      <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-        <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{formatCurrency(sale.gross_amount, sale.currency, i18n.language)}</span>
-        <Link to={action.to} className="whitespace-nowrap rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+      <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-end">
+        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50"><Money amount={sale.gross_amount} currency={sale.currency} /></span>
+        <Link to={action.to} className={buttonClasses('secondary', 'sm', 'whitespace-nowrap')}>
           {action.label}
+          <action.icon className={`h-3.5 w-3.5 ${action.icon === ChevronLeft ? 'ltr:rotate-180' : ''}`} aria-hidden="true" />
         </Link>
       </div>
     </li>
@@ -83,7 +86,7 @@ export function ExceptionCenterPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [limit, setLimit] = useState(20)
-  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
+  const { data, isPending: isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['exception-center', limit],
     queryFn: () => getExceptionCenter(limit),
     placeholderData: (previousData) => previousData,
@@ -108,46 +111,56 @@ export function ExceptionCenterPage() {
   const total = totals[selected]
 
   return (
-    <div className="max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('exceptions.title')}</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.subtitle')}</p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <PageHeader title={t('exceptions.title')} description={t('exceptions.subtitle')} />
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t('exceptions.totalLabel')}</p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{data.attention_count}</p>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.totalHint')}</p>
-      </div>
+      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <span className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-full', data.attention_count > 0 ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' : 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500')} aria-hidden="true">
+            {data.attention_count > 0 ? <ListTodo className="h-5 w-5" /> : <CircleCheck className="h-5 w-5" />}
+          </span>
+          <div>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('exceptions.totalLabel')}</p>
+            <p className="figure text-2xl font-medium text-zinc-900 dark:text-zinc-50">{data.attention_count}</p>
+          </div>
+        </div>
+        <p className="max-w-sm text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{t('exceptions.totalHint')}</p>
+      </Card>
 
       <div role="group" aria-label={t('exceptions.filterLabel')} className="flex flex-wrap gap-2">
-        {(['all', ...CATEGORIES] as Filter[]).map((category) => (
-          <button
-            key={category}
-            type="button"
-            aria-pressed={selected === category}
-            onClick={() => setSearchParams({ category })}
-            className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${selected === category ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800'}`}
-          >
-            {t(`exceptions.filters.${category}`)} <span className="ms-1 tabular-nums opacity-75">{totals[category]}</span>
-          </button>
-        ))}
+        {(['all', ...CATEGORIES] as Filter[]).map((category) => {
+          const active = selected === category
+          return (
+            <button
+              key={category}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setSearchParams({ category })}
+              className={cx(
+                'inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors',
+                active
+                  ? 'border-brand-600/30 bg-brand-50 text-brand-800 dark:border-brand-400/30 dark:bg-brand-500/10 dark:text-brand-200'
+                  : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800',
+              )}
+            >
+              {t(`exceptions.filters.${category}`)}{' '}
+              <span className={cx('figure rounded-full px-1.5 text-xs', active ? 'bg-brand-600/10 dark:bg-brand-400/15' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400')}>{totals[category]}</span>
+            </button>
+          )
+        })}
       </div>
 
       <section aria-label={t('exceptions.listLabel')}>
         {visible.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-            <p className="font-medium text-zinc-900 dark:text-zinc-100">{t('exceptions.emptyTitle')}</p>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.emptyDescription')}</p>
-          </div>
+          <EmptyState title={t('exceptions.emptyTitle')} description={t('exceptions.emptyDescription')} icon={<CircleCheck className="h-5 w-5 text-success-600 dark:text-success-500" />} />
         ) : (
           <>
             <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.showingCount', { shown: visible.length, total })}</p>
-            <ul className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <ul className={cx(cardClasses, 'divide-y divide-zinc-100 overflow-hidden dark:divide-zinc-800')}>
               {visible.map((task) => <TaskRow key={task.sale.id} task={task} selected={selected} />)}
             </ul>
             {visible.length < total && (limit < 500 ? (
-              <button type="button" onClick={() => setLimit((current) => Math.min(current + 20, 500))} disabled={isFetching} className="mt-4 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+              <button type="button" onClick={() => setLimit((current) => Math.min(current + 20, 500))} disabled={isFetching} className={buttonClasses('secondary', 'md', 'mt-4')}>
                 {isFetching ? t('common.loading') : t('exceptions.loadMore')}
               </button>
             ) : <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{t('exceptions.resultLimit')}</p>)}

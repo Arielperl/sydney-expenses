@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { PlugZap, Plus, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -9,6 +10,8 @@ import { Modal } from '../components/Modal'
 import { ReceiptImage } from '../components/ReceiptImage'
 import { EmptyState, ErrorState, LoadingState } from '../components/StatusStates'
 import { inputClasses } from '../components/FormField'
+import { PageHeader } from '../components/ui'
+import { buttonClasses } from '../components/ui-classes'
 import { deleteSale, listSales, updateSale } from '../services/saleService'
 import { toApiError } from '../services/apiClient'
 import type { SaleFormInput, SaleFormValues } from '../schemas/sale'
@@ -82,7 +85,7 @@ export function SalesPage() {
     setSearchParams(next, { replace: true })
   }, [search, status, dateFrom, dateTo, setSearchParams])
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isPending: isLoading, isError, error, refetch } = useQuery({
     queryKey: ['sales', filters],
     queryFn: () => listSales(filters),
   })
@@ -121,74 +124,109 @@ export function SalesPage() {
     },
   })
 
+  const hasFilters = Boolean(search || status || dateFrom || dateTo)
+
+  function clearFilters() {
+    setSearch('')
+    setStatus('')
+    setDateFrom('')
+    setDateTo('')
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('sales.title')}</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('sales.subtitle')}</p>
-        </div>
-        <Link
-          to="/add-sale"
-          className="shrink-0 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-        >
-          {t('sales.addSaleManually')}
-        </Link>
-      </div>
+      <PageHeader
+        title={t('sales.title')}
+        description={t('sales.subtitle')}
+        actions={
+          <>
+            <Link to="/imports" className={buttonClasses('secondary')}>
+              <PlugZap className="h-4 w-4" aria-hidden="true" />
+              {t('nav.imports')}
+            </Link>
+            <Link to="/add-sale" className={buttonClasses('primary')}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t('sales.addSaleManually')}
+            </Link>
+          </>
+        }
+      />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="min-w-0 sm:flex-[2_2_240px]">
-          <label htmlFor="search" className="sr-only">
-            {t('sales.searchLabel')}
-          </label>
-          <input
-            id="search"
-            className={inputClasses}
-            placeholder={t('sales.searchPlaceholder')}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative min-w-0 sm:flex-[2_2_260px]">
+            <label htmlFor="search" className="sr-only">
+              {t('sales.searchLabel')}
+            </label>
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden="true" />
+            <input
+              id="search"
+              type="search"
+              className={`${inputClasses} ps-9`}
+              placeholder={t('sales.searchPlaceholder')}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <div className="min-w-0 sm:flex-1 sm:basis-44">
+            <label htmlFor="status-filter" className="sr-only">
+              {t('sales.statusFilterLabel')}
+            </label>
+            <select
+              id="status-filter"
+              className={inputClasses}
+              value={status}
+              onChange={(event) => setStatus(event.target.value as SaleStatus | '')}
+            >
+              <option value="">{t('sales.allStatuses')}</option>
+              {SALE_STATUSES.map((item) => (
+                <option key={item} value={item}>
+                  {t(`saleStatus.${item}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex min-w-0 items-center gap-2 sm:flex-1 sm:basis-64">
+            <input
+              aria-label={t('sales.dateFromLabel')}
+              type="date"
+              className={`${inputClasses} min-w-0 flex-1`}
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+            />
+            <span className="text-zinc-500" aria-hidden="true">–</span>
+            <input
+              aria-label={t('sales.dateToLabel')}
+              type="date"
+              className={`${inputClasses} min-w-0 flex-1`}
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+            />
+          </div>
         </div>
-        <div className="min-w-0 sm:flex-1 sm:basis-40">
-          <label htmlFor="status-filter" className="sr-only">
-            {t('sales.statusFilterLabel')}
-          </label>
-          <select
-            id="status-filter"
-            className={inputClasses}
-            value={status}
-            onChange={(event) => setStatus(event.target.value as SaleStatus | '')}
-          >
-            <option value="">{t('sales.allStatuses')}</option>
-            {SALE_STATUSES.map((item) => (
-              <option key={item} value={item}>
-                {t(`saleStatus.${item}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex min-w-0 gap-2 sm:flex-1 sm:basis-56">
-          <input
-            aria-label={t('sales.dateFromLabel')}
-            type="date"
-            className={`${inputClasses} min-w-0 flex-1`}
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-          />
-          <input
-            aria-label={t('sales.dateToLabel')}
-            type="date"
-            className={`${inputClasses} min-w-0 flex-1`}
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-          />
-        </div>
+        {!isLoading && !isError && data && (
+          <div className="flex min-h-8 flex-wrap items-center justify-between gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p aria-live="polite">{t('sales.resultCount', { count: data.length })}</p>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className={buttonClasses('ghost', 'sm')}>
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('sales.clearFilters')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {isLoading && <LoadingState />}
       {isError && <ErrorState message={toApiError(error).message} onRetry={() => refetch()} />}
       {!isLoading && !isError && data && data.length === 0 && (
-        <EmptyState title={t('sales.emptyTitle')} description={t('sales.emptyDescription')} />
+        <EmptyState
+          title={t('sales.emptyTitle')}
+          description={t('sales.emptyDescription')}
+          action={hasFilters
+            ? <button type="button" onClick={clearFilters} className={buttonClasses('secondary')}>{t('sales.clearFilters')}</button>
+            : <Link to="/add-sale" className={buttonClasses('primary')}>{t('sales.addSaleManually')}</Link>}
+        />
       )}
       {!isLoading && !isError && data && data.length > 0 && (
         <SaleList
@@ -226,7 +264,7 @@ export function SalesPage() {
 
       {deletingSale && (
         <Modal title={t('sales.deleteTitle')} onClose={() => setDeletingSale(null)}>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
             <Trans
               i18nKey="sales.deleteConfirm"
               values={{ name: deletingSale.customer_name }}
@@ -234,15 +272,15 @@ export function SalesPage() {
             />
           </p>
           {deleteMutation.isError && (
-            <p role="alert" className="mt-2 text-sm text-danger-600">
+            <p role="alert" className="mt-3 rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500">
               {toApiError(deleteMutation.error).message}
             </p>
           )}
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => setDeletingSale(null)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClasses('secondary')}
             >
               {t('common.cancel')}
             </button>
@@ -253,7 +291,7 @@ export function SalesPage() {
                 if (deleteMutation.isPending) return
                 deleteMutation.mutate(deletingSale.id)
               }}
-              className="rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white hover:bg-danger-700 disabled:opacity-60"
+              className={buttonClasses('danger')}
             >
               {deleteMutation.isPending ? t('common.deleting') : t('common.delete')}
             </button>

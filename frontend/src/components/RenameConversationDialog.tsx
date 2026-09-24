@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useDialogA11y } from '../hooks/useDialogA11y'
+import { buttonClasses } from './ui-classes'
 
 export const CONVERSATION_TITLE_MAX_LENGTH = 80
 
@@ -106,12 +107,12 @@ export function RenameConversationDialog({
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('assistant.renameEmptyHint')}</p>
           )}
           {trimmed.length > CONVERSATION_TITLE_MAX_LENGTH && (
-            <p className="mt-2 text-xs text-danger-600 dark:text-danger-400">
+            <p className="mt-2 text-xs text-danger-600 dark:text-danger-500">
               {t('assistant.renameTooLongHint', { max: CONVERSATION_TITLE_MAX_LENGTH })}
             </p>
           )}
           {error && (
-            <p role="alert" className="mt-2 text-sm text-danger-600 dark:text-danger-400">
+            <p role="alert" className="mt-2 text-sm text-danger-600 dark:text-danger-500">
               {error}
             </p>
           )}
@@ -121,14 +122,14 @@ export function RenameConversationDialog({
               type="button"
               disabled={isLoading}
               onClick={handleClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClasses('secondary')}
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={isLoading || !isValid}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              className={buttonClasses('primary')}
             >
               {isLoading ? t('common.saving') : t('assistant.saveNewTitle')}
             </button>

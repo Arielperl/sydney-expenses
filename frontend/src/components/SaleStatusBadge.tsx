@@ -1,25 +1,17 @@
 import { useTranslation } from 'react-i18next'
 
 import type { SaleStatus } from '../types/sale'
+import { Badge, type BadgeTone } from './ui'
 
-const STATUS_STYLES: Record<SaleStatus, string> = {
-  succeeded: 'bg-success-500/10 text-success-700 dark:text-success-400',
-  pending: 'bg-accent-500/10 text-accent-600 dark:text-accent-400',
-  failed: 'bg-danger-500/10 text-danger-700 dark:text-danger-400',
-  refunded: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
-  partially_refunded: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+const STATUS_TONES: Record<SaleStatus, BadgeTone> = {
+  succeeded: 'success',
+  pending: 'warning',
+  failed: 'danger',
+  refunded: 'neutral',
+  partially_refunded: 'info',
 }
 
 export function SaleStatusBadge({ status }: { status: SaleStatus }) {
   const { t } = useTranslation()
-  return (
-    <span
-      className={[
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-        STATUS_STYLES[status],
-      ].join(' ')}
-    >
-      {t(`saleStatus.${status}`)}
-    </span>
-  )
+  return <Badge tone={STATUS_TONES[status]}>{t(`saleStatus.${status}`)}</Badge>
 }

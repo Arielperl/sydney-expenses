@@ -1,3 +1,4 @@
+import { Upload } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +7,7 @@ import { formatCurrency, formatDate } from '../lib/format'
 import { toApiError } from '../services/apiClient'
 import { confirmCsvImport, previewCsv } from '../services/importService'
 import type { CsvConfirmResponse, CsvPreviewResponse } from '../types/imports'
+import { buttonClasses } from './ui-classes'
 
 type WizardState = 'idle' | 'previewing' | 'previewed' | 'confirming' | 'summary'
 
@@ -61,23 +63,31 @@ export function CsvImportWizard() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-card dark:border-zinc-800 dark:bg-zinc-900">
       <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.csv.heading')}</h2>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.csv.formatNote')}</p>
 
       {(state === 'idle' || state === 'previewing') && (
         <div className="mt-4">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            aria-label={t('imports.csv.chooseFile')}
-            disabled={state === 'previewing'}
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) void handleFileSelected(file)
-            }}
-            className="block w-full text-sm text-zinc-600 file:me-4 file:rounded-md file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700 dark:text-zinc-300"
-          />
+          {/* The native control is visually replaced: its built-in text follows the browser's language, not the app's. */}
+          <label className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 px-6 py-8 text-center transition-colors hover:border-brand-400 hover:bg-brand-50/40 focus-within:border-brand-500 focus-within:ring-3 focus-within:ring-brand-500/15 dark:border-zinc-700 dark:bg-zinc-950/30 dark:hover:border-brand-500/60 dark:hover:bg-brand-500/5 ${state === 'previewing' ? 'pointer-events-none opacity-60' : ''}`}>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              aria-label={t('imports.csv.chooseFile')}
+              disabled={state === 'previewing'}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (file) void handleFileSelected(file)
+              }}
+              className="sr-only"
+            />
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-brand-700 shadow-card ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-brand-300 dark:ring-zinc-700" aria-hidden="true">
+              <Upload className="h-4 w-4" />
+            </span>
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100" aria-hidden="true">{t('imports.csv.chooseFile')}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400" aria-hidden="true">{t('imports.csv.chooseHint')}</span>
+          </label>
           {state === 'previewing' && (
             <p role="status" className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
               {t('imports.csv.uploading')}
@@ -87,7 +97,7 @@ export function CsvImportWizard() {
       )}
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-danger-600 dark:text-danger-400">
+        <p role="alert" className="mt-3 text-sm text-danger-600 dark:text-danger-500">
           {error}
         </p>
       )}
@@ -143,10 +153,10 @@ export function CsvImportWizard() {
               <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                 <thead className="bg-danger-50 dark:bg-danger-500/10">
                   <tr>
-                    <th scope="col" className="px-3 py-2 text-start font-medium text-danger-700 dark:text-danger-400">
+                    <th scope="col" className="px-3 py-2 text-start font-medium text-danger-700 dark:text-danger-500">
                       {t('imports.csv.columnRow')}
                     </th>
-                    <th scope="col" className="px-3 py-2 text-start font-medium text-danger-700 dark:text-danger-400">
+                    <th scope="col" className="px-3 py-2 text-start font-medium text-danger-700 dark:text-danger-500">
                       {t('imports.csv.columnError')}
                     </th>
                   </tr>
@@ -155,7 +165,7 @@ export function CsvImportWizard() {
                   {preview.errors.map((rowError) => (
                     <tr key={rowError.row_number}>
                       <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{rowError.row_number}</td>
-                      <td className="px-3 py-2 text-danger-700 dark:text-danger-400">{rowError.message}</td>
+                      <td className="px-3 py-2 text-danger-700 dark:text-danger-500">{rowError.message}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -167,7 +177,7 @@ export function CsvImportWizard() {
             <button
               type="button"
               onClick={handleReset}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClasses('secondary')}
             >
               {t('imports.csv.startOver')}
             </button>
@@ -175,7 +185,7 @@ export function CsvImportWizard() {
               type="button"
               onClick={handleConfirm}
               disabled={preview.valid_rows.length === 0}
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              className={buttonClasses('primary')}
             >
               {t('imports.csv.confirmImport')}
             </button>
@@ -191,19 +201,19 @@ export function CsvImportWizard() {
 
       {state === 'summary' && summary && (
         <div className="mt-4 rounded-lg border border-success-500/30 bg-success-50 p-4 dark:bg-success-500/10">
-          <p className="font-semibold text-success-700 dark:text-success-400">{t('imports.csv.summaryTitle')}</p>
-          <p className="mt-1 text-sm text-success-700 dark:text-success-400">
+          <p className="font-semibold text-success-700 dark:text-success-500">{t('imports.csv.summaryTitle')}</p>
+          <p className="mt-1 text-sm text-success-700 dark:text-success-500">
             {t('imports.csv.summaryCreated', { count: summary.created_count })}
           </p>
           {summary.duplicate_count > 0 && (
-            <p className="text-sm text-success-700 dark:text-success-400">
+            <p className="text-sm text-success-700 dark:text-success-500">
               {t('imports.csv.summaryDuplicate', { count: summary.duplicate_count })}
             </p>
           )}
           <button
             type="button"
             onClick={handleReset}
-            className="mt-3 rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className={buttonClasses('secondary', 'md', 'mt-3')}
           >
             {t('imports.csv.startOver')}
           </button>

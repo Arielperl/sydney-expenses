@@ -18,6 +18,17 @@ Sydney (**מנהל הכנסות מבית Sydney**) is an AI-ready sales and reve
 
 **Frontend testing:** Vitest, React Testing Library, user-event, jsdom, MSW
 
+## Interface design system
+
+The public website and the authenticated app share one design system, defined in `frontend/src/index.css` (tokens) and `frontend/src/components/ui.tsx` / `ui-classes.ts` (primitives):
+
+- **Colour.** `brand` is Sydney's teal-green (white text on `brand-600` passes WCAG AA at 5.7:1); `zinc` is redefined as a faintly green-tinted neutral, so every surface shares the brand's temperature. Mint `#41d7b2` is reserved for dark marketing surfaces. Text never uses `zinc-400` on light backgrounds; `zinc-500` (4.9:1) is the lightest text tone. Status colour is always paired with a text label (`Badge`).
+- **Type.** IBM Plex Sans with IBM Plex Sans Hebrew. Money uses `Money` (`components/Money.tsx`): `Intl` currency formatting for the active language, tabular figures, `<bdi>` isolation so amounts never reorder inside Hebrew text, and medium rather than bold weight.
+- **Financial wording.** The dashboard labels its main figure "net receipts after deductions" and states in the UI what it includes, which sales it covers, and that it is neither profit nor a bank balance. The breakdown table defines each component and explains why its rows are not a line-by-line subtraction (fully refunded sales are excluded from gross, while their refunds appear in the refunds total). Comparisons name the actual previous date range. Currencies are never converted or summed.
+- **Primitives.** `PageHeader`, `Card`/`CardHeader`, `buttonClasses`/`Button`, `Badge`, `SegmentedControl`, `Skeleton`, plus `LoadingState`/`ErrorState`/`EmptyState` (`StatusStates.tsx`) and the focus-trapping `Modal`/`ConfirmDialog`.
+- **Motion.** Short route entrances, drawer and dialog transitions, figures that ease between periods (never on first render), and one-shot scroll reveals on the landing page. A global `prefers-reduced-motion` rule removes animation everywhere, and charts disable their animation in that mode.
+- **Direction.** Layout uses logical properties (`start`/`end`, `ms`/`me`) and works in RTL and LTR; directional icons are mirrored. The sales table becomes stacked cards below the `md` breakpoint instead of scrolling sideways. The public website, sign-in and onboarding remain Hebrew-only, as before.
+
 ## Project structure
 
 ```
@@ -507,7 +518,7 @@ The app is now available at `http://localhost:5173`.
 
 With both servers running (backend on :8000, frontend on :5173), open `http://localhost:5173` and:
 
-- **Dashboard** — revenue this month vs. last month, successful sale count, average transaction value, gross revenue, VAT collected, processing fees, top services, a revenue trend chart, recent sales, and an exceptions overview.
+- **Dashboard** — a period summary per currency (net receipts after deductions with their definition and scope, a comparison against the actual previous date range, gross revenue, successful sale count, average transaction value), a revenue trend chart (net or gross, one currency at a time), what needs attention now, recent sales, top services by gross revenue, and a breakdown table that defines VAT, processing fees, refunds and net receipts.
 - **Sales** — search, filter by status/date, edit, delete, view an attached document, import a historical document for a sale that's still missing one, or click a row to open its full **Sale Details** page.
 - **Sale Details** (`/sales/:id`) — the complete picture for one sale: customer/service/description, origin (source, provider, external reference), the full VAT/currency breakdown (gross, tax treatment, VAT rate snapshot, VAT amount, revenue before VAT, processing fee, net revenue, refunded amount, remaining revenue), customer-document status, and a persisted, real (never invented) event timeline. Provider-originated facts (source, external reference) are always read-only; editing only ever changes the fields a human is actually allowed to correct.
 - **Add sale** (fallback) — manual entry with validation.
@@ -515,7 +526,7 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 - **Import historical document** (secondary, reached from a sale's own row) — attach a photo of a previously issued receipt/invoice to that specific sale.
 - **Data Import** — the Grow/Cardcom connection panels selected for this business during onboarding, plus CSV sales-export import with preview and explicit confirmation. Adding or removing a payment provider later is a platform-admin/support action and is enforced by the API as well as the UI. Removing a provider immediately disables its active webhook connections while retaining sales history and connection records for audit and possible later reactivation.
 - **Platform administration** (`/admin`, DB-backed admin role only) — cross-business overview, payment-provider enablement, and exact-name-confirmed business deletion. The role is stored in `app_accounts.system_role`; frontend state or a matching email address cannot grant access.
-- **Language switcher** (top right) — toggle between עברית and English at any time.
+- **Language and theme** (sidebar footer; in the menu on mobile) — switch between עברית and English, and between light and dark, at any time.
 - Old routes (`/expenses`, `/add-expense`, `/upload-receipt`, `/reconciliation`) redirect to their new equivalents, so old bookmarks/links don't break.
 
 ## Verification performed

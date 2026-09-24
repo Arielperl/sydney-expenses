@@ -16,6 +16,7 @@ import {
 } from '../services/connectionService'
 import type { Connection, WebhookEventRead } from '../types/connections'
 import { Modal } from './Modal'
+import { buttonClasses } from './ui-classes'
 
 const CONNECTIONS_QUERY_KEY = ['connections']
 
@@ -40,7 +41,7 @@ function StatusBadge({ connection }: { connection: Connection }) {
     )
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
+    <span className="inline-flex items-center rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-500">
       {t('imports.grow.statusActive')}
     </span>
   )
@@ -60,18 +61,18 @@ function EventRow({ connectionId, event }: { connectionId: string; event: Webhoo
   })
 
   const statusStyles: Record<WebhookEventRead['status'], string> = {
-    processed: 'text-success-700 dark:text-success-400',
+    processed: 'text-success-700 dark:text-success-500',
     duplicate: 'text-zinc-500 dark:text-zinc-400',
     received: 'text-amber-700 dark:text-amber-400',
-    failed: 'text-danger-700 dark:text-danger-400',
-    rejected: 'text-danger-700 dark:text-danger-400',
+    failed: 'text-danger-700 dark:text-danger-500',
+    rejected: 'text-danger-700 dark:text-danger-500',
   }
 
   return (
     <li className="flex flex-col gap-1 border-b border-zinc-100 py-2 text-sm last:border-0 dark:border-zinc-800">
       <div className="flex items-center justify-between gap-2">
         <span className={`font-medium ${statusStyles[event.status]}`}>{t(`imports.grow.eventStatus.${event.status}`)}</span>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatDateTime(event.received_at, i18n.language)}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDateTime(event.received_at, i18n.language)}</span>
       </div>
       {event.failure_message && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{event.failure_message}</p>
@@ -86,7 +87,7 @@ function EventRow({ connectionId, event }: { connectionId: string; event: Webhoo
           >
             {reprocess.isPending ? t('imports.grow.reprocessing') : t('imports.grow.reprocess')}
           </button>
-          {error && <p className="mt-1 text-xs text-danger-600 dark:text-danger-400">{error}</p>}
+          {error && <p className="mt-1 text-xs text-danger-600 dark:text-danger-500">{error}</p>}
         </div>
       )}
     </li>
@@ -95,12 +96,12 @@ function EventRow({ connectionId, event }: { connectionId: string; event: Webhoo
 
 function ConnectionActivity({ connectionId }: { connectionId: string }) {
   const { t } = useTranslation()
-  const { data, isLoading } = useQuery({
+  const { data, isPending: isLoading } = useQuery({
     queryKey: ['connection-events', connectionId],
     queryFn: () => listConnectionEvents(connectionId),
   })
 
-  if (isLoading) return <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">{t('common.loading')}</p>
+  if (isLoading) return <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>
   if (!data) return null
 
   return (
@@ -111,7 +112,7 @@ function ConnectionActivity({ connectionId }: { connectionId: string }) {
         <span>{t('imports.grow.countsFailed', { count: data.counts.failed })}</span>
       </div>
       {data.events.length === 0 ? (
-        <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">{t('imports.grow.noActivityYet')}</p>
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.noActivityYet')}</p>
       ) : (
         <ul className="mt-2">
           {data.events.map((event) => (
@@ -182,7 +183,7 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
       </p>
 
       {connection.event_counts.failed > 0 && (
-        <p className="mt-2 text-xs font-medium text-danger-700 dark:text-danger-400">{t('imports.eventsNeedAttention', { count: connection.event_counts.failed })}</p>
+        <p className="mt-2 text-xs font-medium text-danger-700 dark:text-danger-500">{t('imports.eventsNeedAttention', { count: connection.event_counts.failed })}</p>
       )}
       <button type="button" onClick={() => setShowDetails((value) => !value)} aria-expanded={showDetails} className="mt-3 text-sm font-medium text-brand-700 hover:underline dark:text-brand-400">
         {showDetails ? t('imports.hideConnectionDetails') : connection.event_counts.processed === 0 ? t('imports.continueSetup') : t('imports.showConnectionDetails')}
@@ -212,7 +213,7 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
                 type="button"
                 onClick={() => toggleEnabled.mutate()}
                 disabled={toggleEnabled.isPending}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                className={buttonClasses('secondary', 'sm')}
               >
                 {connection.enabled ? t('imports.grow.disable') : t('imports.grow.enable')}
               </button>
@@ -226,7 +227,7 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
               <button
                 type="button"
                 onClick={() => setConfirmingDelete(true)}
-                className="rounded-md border border-danger-400/50 px-3 py-1.5 text-xs font-medium text-danger-700 hover:bg-danger-50 dark:border-danger-500/40 dark:text-danger-400 dark:hover:bg-danger-500/10"
+                className="rounded-md border border-danger-500/40 px-3 py-1.5 text-xs font-medium text-danger-700 hover:bg-danger-50 dark:border-danger-500/40 dark:text-danger-500 dark:hover:bg-danger-500/10"
               >
                 {t('imports.grow.delete')}
               </button>
@@ -238,7 +239,7 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
           {showActivity ? t('imports.grow.hideActivity') : t('imports.grow.showActivity')}
         </button>
 
-        {actionError && <p className="mt-2 text-xs text-danger-600 dark:text-danger-400">{actionError}</p>}
+        {actionError && <p className="mt-2 text-xs text-danger-600 dark:text-danger-500">{actionError}</p>}
 
         {showActivity && <ConnectionActivity connectionId={connection.id} />}
         <details className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
@@ -254,12 +255,12 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
       {confirmingRotate && (
         <Modal title={t('imports.grow.rotateUrlTitle')} onClose={() => setConfirmingRotate(false)}>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('imports.grow.rotateUrlWarning')}</p>
-          {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-400">{actionError}</p>}
+          {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-500">{actionError}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setConfirmingRotate(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClasses('secondary')}
             >
               {t('common.cancel')}
             </button>
@@ -280,12 +281,12 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {t('imports.grow.deleteWarning', { name: connection.name })}
           </p>
-          {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-400">{actionError}</p>}
+          {actionError && <p className="mt-2 text-sm text-danger-600 dark:text-danger-500">{actionError}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setConfirmingDelete(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClasses('secondary')}
             >
               {t('common.cancel')}
             </button>
@@ -293,7 +294,7 @@ function ConnectionCard({ connection, startExpanded = false }: { connection: Con
               type="button"
               disabled={remove.isPending}
               onClick={() => remove.mutate()}
-              className="rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white hover:bg-danger-700 disabled:opacity-60"
+              className={buttonClasses('danger')}
             >
               {remove.isPending ? t('common.deleting') : t('imports.grow.confirmDelete')}
             </button>
@@ -341,11 +342,11 @@ function CreateConnectionForm({ onCreated }: { onCreated: (id: string) => void }
       <button
         type="submit"
         disabled={create.isPending || name.trim().length < 2}
-        className="shrink-0 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        className={buttonClasses('primary', 'md', 'shrink-0')}
       >
         {create.isPending ? t('common.saving') : t('imports.grow.addConnection')}
       </button>
-      {error && <p className="w-full text-sm text-danger-600 dark:text-danger-400">{error}</p>}
+      {error && <p className="w-full text-sm text-danger-600 dark:text-danger-500">{error}</p>}
     </form>
   )
 }
@@ -357,19 +358,19 @@ export function GrowConnectionPanel() {
   const [showCreate, setShowCreate] = useState(false)
   const [newConnectionId, setNewConnectionId] = useState<string | null>(null)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending: isLoading, isError } = useQuery({
     queryKey: CONNECTIONS_QUERY_KEY,
     queryFn: listConnections,
   })
   const growConnections = (data ?? []).filter((connection) => connection.provider === 'grow')
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-card dark:border-zinc-800 dark:bg-zinc-900">
       <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t('imports.grow.heading')}</h2>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.description')}</p>
 
       {isLoading && <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>}
-      {isError && <p className="mt-4 text-sm text-danger-600 dark:text-danger-400">{t('errors.generic')}</p>}
+      {isError && <p className="mt-4 text-sm text-danger-600 dark:text-danger-500">{t('errors.generic')}</p>}
 
       {!isLoading && !isError && (
         <div className="mt-4 space-y-3">
@@ -382,7 +383,7 @@ export function GrowConnectionPanel() {
 
       {isOwner ? (
         <div className="mt-4">
-          <button type="button" onClick={() => setShowCreate((value) => !value)} aria-expanded={showCreate} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          <button type="button" onClick={() => setShowCreate((value) => !value)} aria-expanded={showCreate} className={buttonClasses('primary')}>
             {showCreate ? t('imports.cancelNewConnection') : t('imports.startConnection')}
           </button>
           {showCreate && <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/30">
@@ -392,7 +393,7 @@ export function GrowConnectionPanel() {
           </div>}
         </div>
       ) : (
-        <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">{t('imports.grow.ownerOnlyNote')}</p>
+        <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t('imports.grow.ownerOnlyNote')}</p>
       )}
     </div>
   )
