@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.core.config import get_settings
 from app.core.rate_limit import RateLimiter, client_ip
+from app.core.staff_identity import is_regular_email, is_staff_login, public_staff_login, staff_auth_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 ACCESS_COOKIE = "sydney_access"
@@ -30,8 +31,8 @@ class Credentials(BaseModel):
     @classmethod
     def email_format(cls, value: str) -> str:
         value = value.strip().lower()
-        if "@" not in value or "." not in value.rsplit("@", 1)[1]:
-            raise ValueError("כתובת האימייל אינה תקינה")
+        if not is_regular_email(value) and not is_staff_login(value):
+            raise ValueError("הזינו כתובת אימייל או שם התחברות תקין")
         return value
 
 async def auth_request(method: str, path: str, payload=None, token: str | None = None):
@@ -56,7 +57,7 @@ def user_view(user):
     from app.database import SessionLocal
     from app.models.business import AppAccount, BusinessMember, Business
     from sqlalchemy import select
-    email = (user.get("email") or "").lower()
+    auth_email = (user.get("email") or "").lower()
     verified = bool(user.get("email_confirmed_at"))
     with SessionLocal() as db:
         account = db.get(AppAccount, user["id"]) if verified else None
@@ -65,15 +66,16 @@ def user_view(user):
         if verified:
             display_name = user.get("user_metadata", {}).get("full_name", "")
             if account is None:
-                account = AppAccount(user_id=user["id"], email=email, display_name=display_name)
+                account = AppAccount(user_id=user["id"], email=auth_email, display_name=display_name)
                 db.add(account)
             else:
-                account.email = email
+                account.email = public_staff_login(auth_email)
                 account.display_name = display_name
             db.commit()
         member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == user["id"])) if verified else None
         business = db.get(Business, member.business_id) if member else None
-        return {"id": user["id"], "email": email, "name": user.get("user_metadata", {}).get("full_name", ""),
+        visible_email = account.email if account else public_staff_login(auth_email)
+        return {"id": user["id"], "email": visible_email, "name": user.get("user_metadata", {}).get("full_name", ""),
                 "email_verified": verified, "has_workspace": member is not None,
                 "business_name": business.name if business else None, "business_id": member.business_id if member else None,
                 "role": member.role if member else None, "system_role": account.system_role if account else "user"}
@@ -98,6 +100,8 @@ async def current_user(request: Request):
 @router.post("/signup")
 async def signup(payload: Credentials, response: Response, request: Request):
     _signup_by_ip.check(f"signup:{client_ip(request)}")
+    if is_staff_login(payload.email):
+        raise HTTPException(422, "שם התחברות לצוות ניתן ליצור רק דרך ממשק הסופר אדמין")
     if len(payload.password) < 8:
         raise HTTPException(422, "הסיסמה צריכה להכיל לפחות שמונה תווים")
     redirect = request.headers.get("origin", "") + "/login"
@@ -111,7 +115,8 @@ async def signup(payload: Credentials, response: Response, request: Request):
 async def login(payload: Credentials, response: Response, request: Request):
     _login_by_ip.check(f"login-ip:{client_ip(request)}")
     _login_by_email.check(f"login-email:{payload.email}")
-    data = await auth_request("POST", "token?grant_type=password", {"email": payload.email, "password": payload.password})
+    auth_email = staff_auth_email(payload.email) if is_staff_login(payload.email) else payload.email
+    data = await auth_request("POST", "token?grant_type=password", {"email": auth_email, "password": payload.password})
     set_session(response, data)
     return {"user": user_view(data["user"])}
 

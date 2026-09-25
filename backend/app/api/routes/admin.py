@@ -4,7 +4,7 @@ from typing import Literal
 import httpx
 from collections.abc import Generator
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.models.business import AppAccount, Business, BusinessMember, BusinessPa
 from app.models.integration_connection import IntegrationConnection
 from app.models.sale import Sale
 from app.core.config import get_settings
+from app.core.staff_identity import is_regular_email, is_staff_login, staff_auth_email
 
 router = APIRouter(prefix="/support/staff", tags=["support-staff"])
 
@@ -94,10 +95,17 @@ class StaffUserCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
-        value = value.strip().lower()
-        if "@" not in value or "." not in value.rsplit("@", 1)[1]:
-            raise ValueError("כתובת האימייל אינה תקינה")
-        return value
+        return value.strip().lower()
+
+    @model_validator(mode="after")
+    def validate_login(self):
+        if is_staff_login(self.email):
+            if self.system_role not in ("support", "admin"):
+                raise ValueError("שם התחברות שמסתיים ב־@support מיועד לחשבון תמיכה או אדמין")
+            return self
+        if not is_regular_email(self.email):
+            raise ValueError("הזינו שם התחברות כמו liad@support או כתובת אימייל תקינה")
+        return self
 
 
 class StaffRoleUpdate(BaseModel):
@@ -123,7 +131,8 @@ async def create_user(payload: StaffUserCreate, request: Request, db: Session = 
     _require_superadmin(request, db)
     if db.scalar(select(AppAccount).where(func.lower(AppAccount.email) == payload.email)) is not None:
         raise HTTPException(409, "כתובת האימייל כבר קיימת")
-    identity = await create_auth_identity(payload.email, payload.password, payload.name.strip())
+    auth_email = staff_auth_email(payload.email) if is_staff_login(payload.email) else payload.email
+    identity = await create_auth_identity(auth_email, payload.password, payload.name.strip())
     user_id = identity.get("id")
     if not user_id:
         raise HTTPException(503, "שירות ההתחברות החזיר תשובה לא תקינה")

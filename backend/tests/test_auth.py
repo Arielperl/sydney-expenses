@@ -56,6 +56,24 @@ def test_login_refresh_logout(client,secured,origin,monkeypatch):
     assert client.get('/api/auth/session').status_code==401
     assert 'logout' in calls
 
+def test_staff_login_alias_is_mapped_to_private_auth_email(client, secured, origin, monkeypatch):
+    staff = {**OWNER, "id": "staff-id", "email": "liad@support.sydneyexpenses.com"}
+    from app.database import SessionLocal
+    from app.models.business import AppAccount
+    with SessionLocal() as db:
+        db.add(AppAccount(user_id="staff-id", email="liad@support", system_role="support"))
+        db.commit()
+
+    async def fake(method, path, payload=None, token=None):
+        assert payload["email"] == "liad@support.sydneyexpenses.com"
+        return {"user": staff, "access_token": "access", "refresh_token": "refresh", "expires_in": 3600}
+
+    monkeypatch.setattr(auth, "auth_request", fake)
+    response = client.post('/api/auth/login', json={'email':'liad@support','password':'password'}, headers=origin)
+    assert response.status_code == 200
+    assert response.json()["user"]["email"] == "liad@support"
+    assert response.json()["user"]["system_role"] == "support"
+
 def test_other_user_denied(client,secured,monkeypatch):
     async def fake(*args,**kwargs): return {**OWNER,'id':'other-id','email':'other@example.com'}
     monkeypatch.setattr(auth,'auth_request',fake)

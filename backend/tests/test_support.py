@@ -92,6 +92,7 @@ def test_superadmin_creates_account_and_changes_its_role(client, support_setup, 
     from app.api.routes import admin
 
     async def fake_create(email, password, name):
+        assert email == "new-support@support.sydneyexpenses.com"
         assert password == "temporary-pass-123"
         return {"id": "new-staff"}
 
@@ -101,7 +102,7 @@ def test_superadmin_creates_account_and_changes_its_role(client, support_setup, 
     created = client.post(
         "/api/support/staff/users",
         json={
-            "email": "new-support@example.com",
+            "email": "new-support@support",
             "password": "temporary-pass-123",
             "name": "New Support",
             "system_role": "support",
@@ -109,6 +110,7 @@ def test_superadmin_creates_account_and_changes_its_role(client, support_setup, 
         headers=headers,
     )
     assert created.status_code == 201
+    assert created.json()["email"] == "new-support@support"
     assert created.json()["system_role"] == "support"
     changed = client.patch(
         "/api/support/staff/users/new-staff/role",
@@ -119,6 +121,22 @@ def test_superadmin_creates_account_and_changes_its_role(client, support_setup, 
     assert changed.json()["system_role"] == "admin"
     with SessionLocal() as db:
         assert db.get(AppAccount, "new-staff").system_role == "admin"
+        assert db.get(AppAccount, "new-staff").email == "new-support@support"
+
+
+def test_staff_login_name_is_rejected_for_regular_user(client, support_setup):
+    client.cookies.set("sydney_access", "root-admin")
+    response = client.post(
+        "/api/support/staff/users",
+        json={
+            "email": "customer@support",
+            "password": "temporary-pass-123",
+            "name": "Customer",
+            "system_role": "user",
+        },
+        headers={"origin": "http://localhost:5174"},
+    )
+    assert response.status_code == 422
 
 
 def test_superadmin_role_cannot_be_changed_or_deleted(client, support_setup, monkeypatch):
