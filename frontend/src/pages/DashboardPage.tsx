@@ -209,8 +209,6 @@ export function DashboardPage() {
             <div className="max-lg:contents lg:space-y-6">
               <NeedsAttentionPanel
                 className="max-lg:order-1"
-                pendingDocumentsCount={data.pending_documents_count}
-                documentFailuresCount={data.document_failures_count}
                 incompleteDetailsCount={data.incomplete_details_count}
               />
 

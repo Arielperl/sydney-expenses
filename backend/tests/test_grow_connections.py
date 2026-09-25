@@ -606,16 +606,13 @@ class TestInvoiceDocumentSync:
         assert body["document_failures"] == []
         assert body["pending_documents"] == []
 
-    def test_waiting_automatic_sale_past_the_grace_period_is_surfaced(self, client, secured_businesses):
-        # GROW_REGULAR_PAYMENT's fixed 2021 paymentDate is already years
-        # past the grace period — no manipulation needed.
+    def test_waiting_automatic_sale_past_the_grace_period_is_not_an_attention_task(self, client, secured_businesses):
         client.cookies.set("sydney_access", "owner-a")
         connection = _create_grow_connection(client).json()
-        payment = _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
-        sale_id = payment.json()["sale_id"]
+        _post_grow_event(client, connection["webhook_path"], GROW_REGULAR_PAYMENT)
 
         response = client.get("/api/exceptions")
         assert response.status_code == 200
         body = response.json()
-        assert body["attention_count"] == 1
-        assert [s["id"] for s in body["document_failures"]] == [sale_id]
+        assert body["attention_count"] == 0
+        assert body["document_failures"] == []

@@ -51,7 +51,7 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Dana Cohen')).toBeInTheDocument()
     })
     expect(screen.getByText(/50\.0%/)).toBeInTheDocument()
-    expect(screen.getByText('2 מכירות ממתינות למסמך')).toBeInTheDocument()
+    expect(screen.queryByText('2 מכירות ממתינות למסמך')).not.toBeInTheDocument()
     expect(screen.queryByText('1 זיכויים דורשים טיפול')).not.toBeInTheDocument()
   })
 

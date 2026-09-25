@@ -24,23 +24,18 @@ def _add_sale(db_session, **overrides):
     return sale
 
 
-def test_pending_documents_only_includes_succeeded_sales(db_session):
-    pending = _add_sale(db_session, document_status=DocumentStatus.PENDING)
-    _add_sale(db_session, document_status=DocumentStatus.PENDING, status=SaleStatus.PENDING)
-    _add_sale(db_session, document_status=DocumentStatus.ISSUED)
+def test_document_states_never_create_attention_tasks(db_session):
+    _add_sale(db_session, document_status=DocumentStatus.PENDING)
+    _add_sale(db_session, document_status=DocumentStatus.FAILED)
+    _add_sale(db_session, document_status=DocumentStatus.WAITING_AUTOMATIC)
 
     center = build_exception_center(db_session)
 
-    assert [s.id for s in center.pending_documents] == [pending.id]
-
-
-def test_document_failures(db_session):
-    failed = _add_sale(db_session, document_status=DocumentStatus.FAILED)
-    _add_sale(db_session, document_status=DocumentStatus.ISSUED)
-
-    center = build_exception_center(db_session)
-
-    assert [s.id for s in center.document_failures] == [failed.id]
+    assert center.attention_count == 0
+    assert center.pending_documents_count == 0
+    assert center.document_failures_count == 0
+    assert center.pending_documents == []
+    assert center.document_failures == []
 
 
 def test_recorded_refunds_do_not_create_permanent_tasks(db_session):
@@ -88,8 +83,8 @@ def test_exception_center_route(client):
     assert body["incomplete_details"] == []
 
 
-def test_attention_count_is_unique_and_not_limited(db_session):
-    both_pending_and_incomplete = _add_sale(
+def test_attention_count_is_not_limited(db_session):
+    incomplete = _add_sale(
         db_session,
         tax_treatment_needs_review=True,
         document_status=DocumentStatus.PENDING,
@@ -98,14 +93,14 @@ def test_attention_count_is_unique_and_not_limited(db_session):
         _add_sale(
             db_session,
             customer_name=f"Customer {index}",
-            document_status=DocumentStatus.PENDING,
+            tax_treatment_needs_review=True,
         )
 
     center = build_exception_center(db_session, limit=20)
 
-    assert len(center.pending_documents) == 20
-    assert len(center.incomplete_details) == 1
-    assert center.incomplete_details[0].id == both_pending_and_incomplete.id
+    assert center.pending_documents == []
+    assert len(center.incomplete_details) == 20
+    assert incomplete.id in {sale.id for sale in center.incomplete_details}
     assert center.attention_count == 26
-    assert center.pending_documents_count == 26
-    assert center.incomplete_details_count == 1
+    assert center.pending_documents_count == 0
+    assert center.incomplete_details_count == 26

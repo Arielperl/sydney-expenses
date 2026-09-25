@@ -1,4 +1,4 @@
-import { ChevronLeft, CircleCheck, FileClock, FileWarning, ReceiptText } from 'lucide-react'
+import { ChevronLeft, CircleCheck, ReceiptText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
@@ -11,7 +11,7 @@ interface AttentionItem {
   label: string
   severity: 'danger' | 'amber'
   to: string
-  icon: typeof FileClock
+  icon: typeof ReceiptText
 }
 
 const SEVERITY_STYLES: Record<AttentionItem['severity'], { icon: string; count: string }> = {
@@ -21,34 +21,14 @@ const SEVERITY_STYLES: Record<AttentionItem['severity'], { icon: string; count: 
 
 export function NeedsAttentionPanel({
   className,
-  pendingDocumentsCount,
-  documentFailuresCount,
   incompleteDetailsCount,
 }: {
   className?: string
-  pendingDocumentsCount: number
-  documentFailuresCount: number
   incompleteDetailsCount: number
 }) {
   const { t } = useTranslation()
 
   const items = ([
-    {
-      key: 'pendingDocuments',
-      count: pendingDocumentsCount,
-      label: t('dashboard.attention.pendingDocuments', { count: pendingDocumentsCount }),
-      severity: 'amber',
-      to: '/exceptions?category=pendingDocuments',
-      icon: FileClock,
-    },
-    {
-      key: 'documentFailures',
-      count: documentFailuresCount,
-      label: t('dashboard.attention.documentFailures', { count: documentFailuresCount }),
-      severity: 'danger',
-      to: '/exceptions?category=documentFailures',
-      icon: FileWarning,
-    },
     {
       key: 'incompleteDetails',
       count: incompleteDetailsCount,

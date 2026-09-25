@@ -32,16 +32,15 @@ describe('ExceptionCenterPage', () => {
     expect(screen.getByText('כל מכירה נספרת פעם אחת, גם אם יש בה יותר מבעיה אחת.')).toBeInTheDocument()
   })
 
-  it('gives a sale without an automatic document path a direct import action', async () => {
+  it('does not show missing or failed documents as attention tasks', async () => {
     const sale = makeSale({ id: 'sale-pending', document_status: 'pending', status: 'succeeded' })
     server.use(http.get(EXCEPTIONS_URL, () => HttpResponse.json({
       ...emptyExceptionCenter(), attention_count: 1, pending_documents_count: 1, pending_documents: [sale],
     })))
     renderWithProviders(<ExceptionCenterPage />)
 
-    expect(await screen.findByText('Dana Cohen')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'ייבוא מסמך' })).toHaveAttribute('href', '/import-document?saleId=sale-pending')
-    expect(screen.getByRole('link', { name: 'Dana Cohen' })).toHaveAttribute('href', '/sales/sale-pending')
+    expect(await screen.findByText('אין מכירות שממתינות לטיפול בסינון הזה')).toBeInTheDocument()
+    expect(screen.queryByText('Dana Cohen')).not.toBeInTheDocument()
   })
 
   it('does not turn an already recorded refund into a permanent task', async () => {
@@ -67,40 +66,15 @@ describe('ExceptionCenterPage', () => {
     expect(screen.getByText(/לא ניתן היה לקבוע בבטחה את סוג המע״מ/)).toBeInTheDocument()
   })
 
-  it('shows an overdue provider document as a connection problem, not an upload task', async () => {
-    const sale = makeSale({ id: 'sale-overdue', document_status: 'waiting_automatic' })
-    server.use(http.get(EXCEPTIONS_URL, () => HttpResponse.json({
-      ...emptyExceptionCenter(), attention_count: 1, document_failures_count: 1, document_failures: [sale],
-    })))
-    renderWithProviders(<ExceptionCenterPage />)
-
-    expect(await screen.findByText(/המסמך מחברת הסליקה לא הגיע בזמן/)).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'ייבוא מסמך' })).not.toBeInTheDocument()
-  })
-
-  it('counts a sale once in the all view and can filter to either reason', async () => {
-    const sale = makeSale({ id: 'sale-two-issues', document_status: 'failed', tax_treatment_needs_review: true })
-    server.use(http.get(EXCEPTIONS_URL, () => HttpResponse.json({
-      ...emptyExceptionCenter(), attention_count: 1,
-      document_failures_count: 1, document_failures: [sale],
-      incomplete_details_count: 1, incomplete_details: [sale],
-    })))
-    renderWithProviders(<ExceptionCenterPage />)
-    expect(await screen.findByText('סיבות נוספות (1)')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Dana Cohen' })).toHaveLength(1)
-    await userEvent.click(screen.getByRole('button', { name: /בדיקת מע״מ 1/ }))
-    expect(screen.getByText(/לא ניתן היה לקבוע בבטחה את סוג המע״מ/)).toBeInTheDocument()
-  })
-
   it('loads more results in the selected list', async () => {
     const sales = Array.from({ length: 21 }, (_, index) => makeSale({
-      id: `sale-${index}`, customer_name: `Customer ${index}`, document_status: 'pending', status: 'succeeded',
+      id: `sale-${index}`, customer_name: `Customer ${index}`, tax_treatment_needs_review: true,
     }))
     server.use(http.get(EXCEPTIONS_URL, ({ request }) => {
       const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20)
       return HttpResponse.json({
-        ...emptyExceptionCenter(), attention_count: 21, pending_documents_count: 21,
-        pending_documents: sales.slice(0, limit),
+        ...emptyExceptionCenter(), attention_count: 21, incomplete_details_count: 21,
+        incomplete_details: sales.slice(0, limit),
       })
     }))
     renderWithProviders(<ExceptionCenterPage />)

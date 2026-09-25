@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, CircleCheck, FileUp, ListTodo } from 'lucide-react'
+import { ChevronLeft, CircleCheck, ListTodo } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -14,22 +14,18 @@ import type { ExceptionCenter } from '../types/exceptions'
 import type { Sale } from '../types/sale'
 import { buttonClasses, cardClasses, cx } from '../components/ui-classes'
 
-type Category = 'documentFailures' | 'pendingDocuments' | 'incompleteDetails'
+type Category = 'incompleteDetails'
 type Filter = 'all' | Category
 type Task = { sale: Sale; reasons: Category[] }
 
-const CATEGORIES: Category[] = ['documentFailures', 'pendingDocuments', 'incompleteDetails']
+const CATEGORIES: Category[] = ['incompleteDetails']
 const HASH_FILTERS: Record<string, Filter> = {
-  '#document-failures': 'documentFailures',
-  '#pending-documents': 'pendingDocuments',
   '#incomplete-details': 'incompleteDetails',
 }
 
 function tasksFromResponse(data: ExceptionCenter): Task[] {
   const tasks = new Map<string, Task>()
   const groups: Record<Category, Sale[]> = {
-    documentFailures: data.document_failures,
-    pendingDocuments: data.pending_documents,
     incompleteDetails: data.incomplete_details,
   }
   for (const category of CATEGORIES) {
@@ -49,19 +45,14 @@ function TaskRow({ task, selected }: { task: Task; selected: Filter }) {
   const { t, i18n } = useTranslation()
   const { sale, reasons } = task
   const category = selected === 'all' ? reasons[0] : selected
-  const isAutomatic = category === 'documentFailures' && sale.document_status === 'waiting_automatic'
-  const description = isAutomatic
-    ? t('exceptions.reasons.automaticDocumentLate')
-    : t(`exceptions.reasons.${category}`)
-  const action = category === 'pendingDocuments'
-    ? { to: `/import-document?saleId=${sale.id}`, label: t('exceptions.importDocument'), icon: FileUp }
-    : { to: `/sales/${sale.id}`, label: t('exceptions.reviewSale'), icon: ChevronLeft }
+  const description = t(`exceptions.reasons.${category}`)
+  const action = { to: `/sales/${sale.id}`, label: t('exceptions.reviewSale'), icon: ChevronLeft }
 
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="min-w-0 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={category === 'documentFailures' ? 'danger' : 'warning'}>{t(`exceptions.filters.${category}`)}</Badge>
+          <Badge tone="warning">{t(`exceptions.filters.${category}`)}</Badge>
           <Link to={`/sales/${sale.id}`} className="font-semibold break-words text-zinc-900 underline-offset-2 hover:text-brand-700 hover:underline dark:text-zinc-100 dark:hover:text-brand-300">
             {sale.customer_name}
           </Link>
@@ -104,8 +95,6 @@ export function ExceptionCenterPage() {
   const visible = selected === 'all' ? tasks : tasks.filter((task) => task.reasons.includes(selected))
   const totals: Record<Filter, number> = {
     all: data.attention_count,
-    documentFailures: data.document_failures_count,
-    pendingDocuments: data.pending_documents_count,
     incompleteDetails: data.incomplete_details_count,
   }
   const total = totals[selected]
