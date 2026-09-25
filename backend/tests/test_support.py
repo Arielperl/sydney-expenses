@@ -37,7 +37,9 @@ def test_owner_can_create_request_and_other_business_cannot_read_it(client, supp
     response = client.post("/api/support/requests", json={"subject": "Cardcom connection", "message": "Please connect our terminal to the dashboard.", "provider": "cardcom"}, headers={"origin": "http://localhost:5174"})
     assert response.status_code == 201
     assert response.json()["business_id"] == "one"
-    assert len(client.get("/api/support/requests").json()) == 1
+    listed = client.get("/api/support/requests")
+    assert len(listed.json()) == 1
+    assert "no-store" in listed.headers["cache-control"]
     client.cookies.set("sydney_access", "owner-two")
     assert client.get("/api/support/requests").json() == []
 

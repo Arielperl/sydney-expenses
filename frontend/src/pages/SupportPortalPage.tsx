@@ -34,7 +34,12 @@ export function SupportPortalPage() {
   const [account, setAccount] = useState<StaffUserCreate>(emptyAccount)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
 
-  const requests = useQuery({ queryKey: ['staff-requests'], queryFn: listStaffSupportRequests })
+  const requests = useQuery({
+    queryKey: ['staff-requests'],
+    queryFn: listStaffSupportRequests,
+    refetchInterval: selectedRequestId ? 3_000 : 15_000,
+    refetchOnWindowFocus: 'always',
+  })
   const businesses = useQuery({ queryKey: ['staff-businesses'], queryFn: listAdminBusinesses })
   const users = useQuery({ queryKey: ['staff-users'], queryFn: listStaffUsers, enabled: isSuperadmin })
   const refreshUsers = () => void queryClient.invalidateQueries({ queryKey: ['staff-users'] })

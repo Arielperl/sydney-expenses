@@ -35,7 +35,8 @@ export function SupportConversationDialog({
   const messages = useQuery({
     queryKey,
     queryFn: () => listSupportMessages(request.id, staff),
-    refetchInterval: 10_000,
+    refetchInterval: 3_000,
+    refetchOnWindowFocus: 'always',
   })
   const send = useMutation({
     mutationFn: (message: string) => sendSupportMessage(request.id, message, staff),

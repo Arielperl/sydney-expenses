@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -157,13 +157,15 @@ def create_request(payload: SupportRequestCreate, request: Request, db: Session 
 
 
 @router.get("/requests", response_model=list[SupportRequestRead])
-def own_requests(request: Request, db: Session = Depends(get_db)) -> list[SupportRequestRead]:
+def own_requests(request: Request, response: Response, db: Session = Depends(get_db)) -> list[SupportRequestRead]:
+    response.headers["Cache-Control"] = "private, no-store"
     rows = db.scalars(select(SupportRequest).order_by(SupportRequest.updated_at.desc()).limit(100)).all()
     return [_read(row, db) for row in rows]
 
 
 @router.get("/requests/{request_id}/messages", response_model=list[SupportMessageRead])
-def own_messages(request_id: str, db: Session = Depends(get_db)) -> list[SupportMessageRead]:
+def own_messages(request_id: str, response: Response, db: Session = Depends(get_db)) -> list[SupportMessageRead]:
+    response.headers["Cache-Control"] = "private, no-store"
     return _messages(_own_request(request_id, db), db)
 
 
@@ -182,7 +184,8 @@ def create_own_message(
 
 
 @router.get("/staff/requests", response_model=list[SupportRequestRead])
-def staff_requests(request: Request, db: Session = Depends(get_support_db)) -> list[SupportRequestRead]:
+def staff_requests(request: Request, response: Response, db: Session = Depends(get_support_db)) -> list[SupportRequestRead]:
+    response.headers["Cache-Control"] = "private, no-store"
     _require_support(request, db)
     rows = db.scalars(select(SupportRequest).order_by(SupportRequest.updated_at.desc()).limit(500)).all()
     return [_read(row, db, staff=True) for row in rows]
@@ -192,8 +195,10 @@ def staff_requests(request: Request, db: Session = Depends(get_support_db)) -> l
 def staff_messages(
     request_id: str,
     request: Request,
+    response: Response,
     db: Session = Depends(get_support_db),
 ) -> list[SupportMessageRead]:
+    response.headers["Cache-Control"] = "private, no-store"
     _require_support(request, db)
     row = db.get(SupportRequest, request_id)
     if row is None:

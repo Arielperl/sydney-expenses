@@ -18,7 +18,12 @@ export function SupportRequestPage() {
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
-  const requests = useQuery({ queryKey: ['support-requests-own'], queryFn: listOwnSupportRequests })
+  const requests = useQuery({
+    queryKey: ['support-requests-own'],
+    queryFn: listOwnSupportRequests,
+    refetchInterval: selectedRequestId ? 3_000 : 15_000,
+    refetchOnWindowFocus: 'always',
+  })
   const create = useMutation({ mutationFn: createSupportRequest, onSuccess: () => {
     setSubject(''); setMessage(''); setProvider('')
     void queryClient.invalidateQueries({ queryKey: ['support-requests-own'] })
