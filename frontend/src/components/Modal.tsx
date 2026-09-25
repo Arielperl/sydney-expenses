@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useId, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { useDialogA11y } from '../hooks/useDialogA11y'
@@ -27,7 +28,7 @@ export function Modal({
     }
   }, [])
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden p-0 sm:items-center sm:p-4">
       <button
         aria-label={t('common.closeDialog')}
@@ -59,6 +60,7 @@ export function Modal({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

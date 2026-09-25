@@ -591,7 +591,7 @@
     "noProvidersTitle": "No payment provider is configured",
     "noProvidersDescription": "CSV import is still available. Contact support to add an automatic payment-provider connection.",
     "addProviderSupport": "Need another payment provider? Send a request to support.",
-    "contactSupportButton": "Contact support"
+    "contactSupportButton": "Support and requests"
   },
   "admin": {
     "eyebrow": "Platform admin",

@@ -591,7 +591,7 @@
     "noProvidersTitle": "לא הוגדרה חברת סליקה לעסק",
     "noProvidersDescription": "ייבוא CSV עדיין זמין. כדי להוסיף חיבור אוטומטי לחברת סליקה, פנו לתמיכה.",
     "addProviderSupport": "צריכים להוסיף חברת סליקה נוספת? שלחו בקשה לצוות התמיכה.",
-    "contactSupportButton": "שליחת בקשה לתמיכה"
+    "contactSupportButton": "תמיכה ופניות"
   },
   "admin": {
     "eyebrow": "ניהול מערכת",
