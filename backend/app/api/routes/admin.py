@@ -104,7 +104,7 @@ class StaffUserCreate(BaseModel):
                 raise ValueError("שם התחברות שמסתיים ב־@support מיועד לחשבון תמיכה או אדמין")
             return self
         if not is_regular_email(self.email):
-            raise ValueError("הזינו שם התחברות כמו liad@support או כתובת אימייל תקינה")
+            raise ValueError("הזינו שם התחברות שמסתיים ב־@support או כתובת אימייל תקינה")
         return self
 
 
