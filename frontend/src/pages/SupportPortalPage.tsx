@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Maximize2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { FormField, inputClasses } from '../components/FormField'
+import { SupportConversationDialog } from '../components/SupportConversationDialog'
 import { Card } from '../components/ui'
 import { buttonClasses } from '../components/ui-classes'
 import { useAuth } from '../contexts/AuthContext'
@@ -30,6 +32,7 @@ export function SupportPortalPage() {
   const [confirmEmail, setConfirmEmail] = useState('')
   const [showCreateAccount, setShowCreateAccount] = useState(false)
   const [account, setAccount] = useState<StaffUserCreate>(emptyAccount)
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
 
   const requests = useQuery({ queryKey: ['staff-requests'], queryFn: listStaffSupportRequests })
   const businesses = useQuery({ queryKey: ['staff-businesses'], queryFn: listAdminBusinesses })
@@ -42,6 +45,7 @@ export function SupportPortalPage() {
   const createUser = useMutation({ mutationFn: createStaffUser, onSuccess: () => { setAccount(emptyAccount); setShowCreateAccount(false); refreshUsers() } })
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: ManagedRole }) => updateStaffUserRole(id, role), onSuccess: refreshUsers })
   const shownBusinesses = businesses.data?.filter(item => [item.name, ...item.owner_emails].some(value => value.toLowerCase().includes(search.toLowerCase()))) ?? []
+  const selectedRequest = requests.data?.find(item => item.id === selectedRequestId)
 
   function submitAccount(event: FormEvent) {
     event.preventDefault()
@@ -53,7 +57,7 @@ export function SupportPortalPage() {
 
     <section aria-labelledby="requests-heading" className="space-y-4"><div className="flex items-center justify-between"><h2 id="requests-heading" className="text-xl font-semibold">פניות מבעלי עסקים</h2><span className="text-sm text-zinc-500">{requests.data?.filter(item => item.status === 'open').length ?? 0} פתוחות</span></div>
       {requests.isLoading && <p>טוענים פניות…</p>}{requests.isError && <p role="alert">לא ניתן לטעון פניות.</p>}{requests.data?.length === 0 && <Card className="p-5">אין פניות כרגע.</Card>}
-      <div className="grid gap-3">{requests.data?.map(item => <Card key={item.id} className="p-5"><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-semibold">{item.subject}</h3><p className="text-sm text-zinc-500">{item.business_name} · <span dir="ltr">{item.requester_email}</span> · {new Date(item.created_at).toLocaleString('he-IL')}</p></div><span className="text-sm">{item.status === 'open' ? 'פתוחה' : 'טופלה'}</span></div>{item.provider && <p className="mt-2 text-sm">חברה: {item.provider}</p>}<p className="my-3 whitespace-pre-wrap text-sm leading-6">{item.message}</p><button className={buttonClasses('secondary', 'sm')} disabled={changeStatus.isPending} onClick={() => changeStatus.mutate({ id: item.id, status: item.status === 'open' ? 'resolved' : 'open' })}>{item.status === 'open' ? 'סימון כטופלה' : 'פתיחה מחדש'}</button></Card>)}</div>
+      <div className="grid gap-3">{requests.data?.map(item => <Card key={item.id} className="p-5"><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-semibold">{item.subject}</h3><p className="text-sm text-zinc-500">{item.business_name} · <span dir="ltr">{item.requester_email}</span> · {new Date(item.updated_at).toLocaleString('he-IL')}</p></div><span className="text-sm">{item.status === 'open' ? 'פתוחה' : 'טופלה'}</span></div>{item.provider && <p className="mt-2 text-sm">חברה: {item.provider}</p>}<p className="my-3 line-clamp-2 whitespace-pre-wrap text-sm leading-6">{item.message}</p><div className="flex flex-wrap gap-2"><button className={buttonClasses('primary', 'sm')} onClick={() => setSelectedRequestId(item.id)}><Maximize2 className="h-4 w-4" aria-hidden="true" />פתיחה במסך מלא</button><button className={buttonClasses('secondary', 'sm')} disabled={changeStatus.isPending} onClick={() => changeStatus.mutate({ id: item.id, status: item.status === 'open' ? 'resolved' : 'open' })}>{item.status === 'open' ? 'סימון כטופלה' : 'פתיחה מחדש'}</button></div></Card>)}</div>
     </section>
 
     <section aria-labelledby="businesses-heading" className="space-y-4"><h2 id="businesses-heading" className="text-xl font-semibold">עסקים וחברות סליקה</h2><input type="search" aria-label="חיפוש עסק או בעלים" className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900" value={search} onChange={event => setSearch(event.target.value)} />{businesses.isLoading && <p>טוענים עסקים…</p>}{businesses.isError && <p role="alert">לא ניתן לטעון עסקים.</p>}
@@ -70,5 +74,6 @@ export function SupportPortalPage() {
     {showCreateAccount && <Modal title="יצירת חשבון" onClose={() => { setShowCreateAccount(false); createUser.reset() }}><form className="space-y-4" onSubmit={submitAccount}><FormField label="שם" htmlFor="new-account-name"><input id="new-account-name" className={inputClasses} value={account.name} onChange={event => setAccount({ ...account, name: event.target.value })} /></FormField><FormField label="שם התחברות" htmlFor="new-account-email" hint={account.system_role === 'user' ? 'למשתמש רגיל הזינו כתובת אימייל מלאה.' : undefined}><input id="new-account-email" dir="ltr" type="text" autoComplete="off" required className={inputClasses} value={account.email} onChange={event => setAccount({ ...account, email: event.target.value })} /></FormField><FormField label="סיסמה זמנית — לפחות 12 תווים" htmlFor="new-account-password"><input id="new-account-password" dir="ltr" type="password" autoComplete="new-password" required minLength={12} className={inputClasses} value={account.password} onChange={event => setAccount({ ...account, password: event.target.value })} /></FormField><FormField label="תפקיד" htmlFor="new-account-role"><select id="new-account-role" className={inputClasses} value={account.system_role} onChange={event => setAccount({ ...account, system_role: event.target.value as ManagedRole })}><option value="support">תמיכה</option><option value="admin">אדמין</option><option value="user">משתמש</option></select></FormField>{createUser.isError && <p role="alert" className="text-sm text-danger-700">{createUser.error.message}</p>}<div className="flex gap-2"><button type="button" className={buttonClasses('secondary')} onClick={() => setShowCreateAccount(false)}>ביטול</button><button type="submit" className={buttonClasses('primary')} disabled={createUser.isPending}>{createUser.isPending ? 'יוצרים…' : 'יצירת חשבון'}</button></div></form></Modal>}
     {removal && <ConfirmDialog title={`הסרת ${removal.provider}`} description={`החיבור הפעיל של ${removal.businessName} יושבת. האם להמשיך?`} confirmLabel="הסרה" isLoading={removeProvider.isPending} error={removeProvider.isError ? 'ההסרה נכשלה' : null} onClose={() => setRemoval(null)} onConfirm={() => removeProvider.mutate({ businessId: removal.businessId, provider: removal.provider })} />}
     {userRemoval && <Modal title={`מחיקת ${userRemoval.email}`} onClose={() => setUserRemoval(null)}><p className="text-sm text-zinc-600 dark:text-zinc-400">הפעולה תבטל את גישת המשתמש ותסיר את שיוכו לעסק. נתוני העסק והמכירות יישמרו.</p><div className="mt-4"><FormField label="להמשך, הקלידו את שם ההתחברות של המשתמש" htmlFor="confirm-delete-user"><input id="confirm-delete-user" dir="ltr" className={inputClasses} value={confirmEmail} onChange={event => setConfirmEmail(event.target.value)} /></FormField></div>{removeUser.isError && <p role="alert" className="mt-3 text-sm text-danger-700">{removeUser.error.message}</p>}<div className="mt-5 flex gap-2"><button className={buttonClasses('secondary')} onClick={() => setUserRemoval(null)}>ביטול</button><button className={buttonClasses('danger')} disabled={confirmEmail !== userRemoval.email || removeUser.isPending} onClick={() => removeUser.mutate(userRemoval.id)}>{removeUser.isPending ? 'מוחקים…' : 'מחיקת משתמש'}</button></div></Modal>}
+    {selectedRequest && <SupportConversationDialog request={selectedRequest} staff onClose={() => setSelectedRequestId(null)} actions={<button className={buttonClasses('secondary', 'sm')} disabled={changeStatus.isPending} onClick={() => changeStatus.mutate({ id: selectedRequest.id, status: selectedRequest.status === 'open' ? 'resolved' : 'open' })}>{selectedRequest.status === 'open' ? 'סימון כטופלה' : 'פתיחה מחדש'}</button>} />}
   </div></main>
 }

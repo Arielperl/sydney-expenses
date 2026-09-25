@@ -5,7 +5,7 @@ from app.core.config import get_settings
 from app.database import SessionLocal
 from app.models.business import AppAccount, Business, BusinessMember, BusinessPaymentProvider
 from app.models.integration_connection import IntegrationConnection
-from app.models.support_request import SupportRequest
+from app.models.support_request import SupportMessage, SupportRequest
 
 
 @pytest.fixture
@@ -53,6 +53,52 @@ def test_staff_sees_all_requests_and_changes_status(client, support_setup):
     changed = client.patch("/api/support/staff/requests/ticket-1", json={"status": "resolved"}, headers={"origin": "http://localhost:5174"})
     assert changed.status_code == 200
     assert changed.json()["status"] == "resolved"
+
+
+def test_customer_and_staff_can_exchange_messages_without_cross_business_access(client, support_setup):
+    headers = {"origin": "http://localhost:5174"}
+    with SessionLocal() as db:
+        db.add(SupportRequest(
+            id="thread-1",
+            business_id="one",
+            requester_user_id="owner-one",
+            subject="Connection help",
+            message="Please help us connect our payment provider.",
+            status="resolved",
+        ))
+        db.commit()
+
+    client.cookies.set("sydney_access", "owner-one")
+    customer_reply = client.post(
+        "/api/support/requests/thread-1/messages",
+        json={"body": "Here are the missing business details."},
+        headers=headers,
+    )
+    assert customer_reply.status_code == 201
+    assert customer_reply.json()["author_type"] == "customer"
+    assert len(client.get("/api/support/requests/thread-1/messages").json()) == 2
+    assert client.get("/api/support/requests").json()[0]["status"] == "open"
+
+    client.cookies.set("sydney_access", "owner-two")
+    assert client.get("/api/support/requests/thread-1/messages").status_code == 404
+    assert client.post(
+        "/api/support/requests/thread-1/messages",
+        json={"body": "I should not be able to reply."},
+        headers=headers,
+    ).status_code == 404
+
+    client.cookies.set("sydney_access", "staff")
+    staff_reply = client.post(
+        "/api/support/staff/requests/thread-1/messages",
+        json={"body": "Thanks, the connection is now ready."},
+        headers=headers,
+    )
+    assert staff_reply.status_code == 201
+    assert staff_reply.json()["author_type"] == "staff"
+    messages = client.get("/api/support/staff/requests/thread-1/messages").json()
+    assert [message["author_type"] for message in messages] == ["customer", "customer", "staff"]
+    with SessionLocal() as db:
+        assert db.query(SupportMessage).filter_by(request_id="thread-1").count() == 2
 
 
 def test_support_role_is_required_for_cross_business_operations(client, support_setup):

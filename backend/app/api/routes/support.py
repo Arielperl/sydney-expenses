@@ -10,10 +10,11 @@ from app.api.routes.admin import get_support_db, _require_support
 from app.core.rate_limit import RateLimiter
 from app.database import get_db
 from app.models.business import AppAccount, Business
-from app.models.support_request import SupportRequest
+from app.models.support_request import SupportMessage, SupportRequest
 
 router = APIRouter(prefix="/support", tags=["support"])
 _requests_by_user = RateLimiter(max_requests=10, window_seconds=3600)
+_messages_by_user = RateLimiter(max_requests=60, window_seconds=3600)
 
 
 class SupportRequestCreate(BaseModel):
@@ -33,6 +34,20 @@ class SupportRequestRead(BaseModel):
     provider: str | None
     status: Literal["open", "resolved"]
     created_at: datetime
+    updated_at: datetime
+
+
+class SupportMessageCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    body: str = Field(min_length=1, max_length=5000)
+
+
+class SupportMessageRead(BaseModel):
+    id: str
+    author_type: Literal["customer", "staff"]
+    author_name: str | None
+    body: str
+    created_at: datetime
 
 
 class StatusUpdate(BaseModel):
@@ -48,7 +63,77 @@ def _read(row: SupportRequest, db: Session, *, staff: bool = False) -> SupportRe
         business_name=business.name if business else None,
         requester_email=account.email if account else None,
         subject=row.subject, message=row.message, provider=row.provider,
-        status=row.status, created_at=row.created_at,
+        status=row.status, created_at=row.created_at, updated_at=row.updated_at,
+    )
+
+
+def _author_name(db: Session, user_id: str, author_type: str) -> str:
+    account = db.get(AppAccount, user_id)
+    if author_type == "staff":
+        return account.display_name.strip() if account and account.display_name.strip() else "צוות התמיכה"
+    if account:
+        return account.display_name.strip() or account.email
+    return "בעל העסק"
+
+
+def _messages(row: SupportRequest, db: Session) -> list[SupportMessageRead]:
+    result = [SupportMessageRead(
+        id=f"initial-{row.id}",
+        author_type="customer",
+        author_name=_author_name(db, row.requester_user_id, "customer"),
+        body=row.message,
+        created_at=row.created_at,
+    )]
+    replies = db.scalars(
+        select(SupportMessage)
+        .where(SupportMessage.request_id == row.id)
+        .order_by(SupportMessage.created_at, SupportMessage.id)
+    ).all()
+    result.extend(SupportMessageRead(
+        id=message.id,
+        author_type=message.author_type,
+        author_name=_author_name(db, message.author_user_id, message.author_type),
+        body=message.body,
+        created_at=message.created_at,
+    ) for message in replies)
+    return result
+
+
+def _own_request(request_id: str, db: Session) -> SupportRequest:
+    row = db.get(SupportRequest, request_id)
+    if row is None:
+        raise HTTPException(404, "הפנייה לא נמצאה")
+    return row
+
+
+def _add_message(
+    row: SupportRequest,
+    payload: SupportMessageCreate,
+    user_id: str,
+    author_type: Literal["customer", "staff"],
+    db: Session,
+) -> SupportMessageRead:
+    body = payload.body.strip()
+    if not body:
+        raise HTTPException(422, "לא ניתן לשלוח הודעה ריקה")
+    message = SupportMessage(
+        business_id=row.business_id,
+        request_id=row.id,
+        author_user_id=user_id,
+        author_type=author_type,
+        body=body,
+    )
+    row.status = "open"
+    row.updated_at = datetime.utcnow()
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return SupportMessageRead(
+        id=message.id,
+        author_type=message.author_type,
+        author_name=_author_name(db, message.author_user_id, message.author_type),
+        body=message.body,
+        created_at=message.created_at,
     )
 
 
@@ -73,15 +158,62 @@ def create_request(payload: SupportRequestCreate, request: Request, db: Session 
 
 @router.get("/requests", response_model=list[SupportRequestRead])
 def own_requests(request: Request, db: Session = Depends(get_db)) -> list[SupportRequestRead]:
-    rows = db.scalars(select(SupportRequest).order_by(SupportRequest.created_at.desc()).limit(100)).all()
+    rows = db.scalars(select(SupportRequest).order_by(SupportRequest.updated_at.desc()).limit(100)).all()
     return [_read(row, db) for row in rows]
+
+
+@router.get("/requests/{request_id}/messages", response_model=list[SupportMessageRead])
+def own_messages(request_id: str, db: Session = Depends(get_db)) -> list[SupportMessageRead]:
+    return _messages(_own_request(request_id, db), db)
+
+
+@router.post("/requests/{request_id}/messages", response_model=SupportMessageRead, status_code=201)
+def create_own_message(
+    request_id: str,
+    payload: SupportMessageCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> SupportMessageRead:
+    user = request.state.user
+    if user["role"] not in ("owner", "manager"):
+        raise HTTPException(403, "נדרשת הרשאת בעלים או מנהל")
+    _messages_by_user.check(f"support-message:{user['id']}")
+    return _add_message(_own_request(request_id, db), payload, user["id"], "customer", db)
 
 
 @router.get("/staff/requests", response_model=list[SupportRequestRead])
 def staff_requests(request: Request, db: Session = Depends(get_support_db)) -> list[SupportRequestRead]:
     _require_support(request, db)
-    rows = db.scalars(select(SupportRequest).order_by(SupportRequest.created_at.desc()).limit(500)).all()
+    rows = db.scalars(select(SupportRequest).order_by(SupportRequest.updated_at.desc()).limit(500)).all()
     return [_read(row, db, staff=True) for row in rows]
+
+
+@router.get("/staff/requests/{request_id}/messages", response_model=list[SupportMessageRead])
+def staff_messages(
+    request_id: str,
+    request: Request,
+    db: Session = Depends(get_support_db),
+) -> list[SupportMessageRead]:
+    _require_support(request, db)
+    row = db.get(SupportRequest, request_id)
+    if row is None:
+        raise HTTPException(404, "הפנייה לא נמצאה")
+    return _messages(row, db)
+
+
+@router.post("/staff/requests/{request_id}/messages", response_model=SupportMessageRead, status_code=201)
+def create_staff_message(
+    request_id: str,
+    payload: SupportMessageCreate,
+    request: Request,
+    db: Session = Depends(get_support_db),
+) -> SupportMessageRead:
+    account = _require_support(request, db)
+    _messages_by_user.check(f"support-message:{account.user_id}")
+    row = db.get(SupportRequest, request_id)
+    if row is None:
+        raise HTTPException(404, "הפנייה לא נמצאה")
+    return _add_message(row, payload, account.user_id, "staff", db)
 
 
 @router.patch("/staff/requests/{request_id}", response_model=SupportRequestRead)

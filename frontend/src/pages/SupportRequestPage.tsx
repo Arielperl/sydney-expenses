@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Maximize2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { FormField, inputClasses } from '../components/FormField'
+import { SupportConversationDialog } from '../components/SupportConversationDialog'
 import { Card, PageHeader } from '../components/ui'
 import { buttonClasses } from '../components/ui-classes'
 import { createSupportRequest, listOwnSupportRequests } from '../services/supportService'
@@ -15,6 +17,7 @@ export function SupportRequestPage() {
   const [provider, setProvider] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
   const requests = useQuery({ queryKey: ['support-requests-own'], queryFn: listOwnSupportRequests })
   const create = useMutation({ mutationFn: createSupportRequest, onSuccess: () => {
     setSubject(''); setMessage(''); setProvider('')
@@ -24,6 +27,7 @@ export function SupportRequestPage() {
     event.preventDefault()
     create.mutate({ subject: subject.trim(), message: message.trim(), provider: provider || undefined })
   }
+  const selectedRequest = requests.data?.find(item => item.id === selectedRequestId)
   return <div className="max-w-3xl space-y-6">
     <PageHeader title={english ? 'Contact support' : 'פנייה לתמיכה'} description={english ? 'Tell us which payment provider you use and what you need. Your request is linked to your business automatically.' : 'ספרו לנו עם איזו חברת סליקה אתם עובדים ומה אתם צריכים. הפנייה תשויך לעסק שלכם אוטומטית.'} />
     <Card className="p-6"><form onSubmit={submit} className="space-y-5">
@@ -38,8 +42,9 @@ export function SupportRequestPage() {
       {requests.isLoading && <p>{english ? 'Loading…' : 'טוענים…'}</p>}
       {requests.isError && <p role="alert">{english ? 'Could not load requests.' : 'לא ניתן לטעון פניות.'}</p>}
       {requests.data?.length === 0 && <p className="text-sm text-zinc-500">{english ? 'No requests yet.' : 'עדיין אין פניות.'}</p>}
-      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">{requests.data?.map(item => <li key={item.id} className="py-3"><div className="flex justify-between gap-3"><strong>{item.subject}</strong><span className="text-sm">{item.status === 'open' ? (english ? 'Open' : 'פתוחה') : (english ? 'Resolved' : 'טופלה')}</span></div><p className="whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">{item.message}</p></li>)}</ul>
+      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">{requests.data?.map(item => <li key={item.id} className="py-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><strong>{item.subject}</strong><p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">{item.message}</p></div><div className="flex shrink-0 items-center gap-2"><span className="text-sm">{item.status === 'open' ? (english ? 'Open' : 'פתוחה') : (english ? 'Resolved' : 'טופלה')}</span><button type="button" className={buttonClasses('secondary', 'sm')} onClick={() => setSelectedRequestId(item.id)}><Maximize2 className="h-4 w-4" aria-hidden="true" />{english ? 'Open full screen' : 'פתיחה במסך מלא'}</button></div></div></li>)}</ul>
     </Card>
     <Link to="/imports" className={buttonClasses('secondary')}>{english ? 'Back to data import' : 'חזרה לייבוא נתונים'}</Link>
+    {selectedRequest && <SupportConversationDialog request={selectedRequest} staff={false} english={english} onClose={() => setSelectedRequestId(null)} />}
   </div>
 }
