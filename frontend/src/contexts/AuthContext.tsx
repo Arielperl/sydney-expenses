@@ -5,7 +5,7 @@ import { apiClient } from '../services/apiClient'
 import '../pages/PublicPages.css'
 import { CreateBusinessPage } from '../pages/CreateBusinessPage'
 
-type User = { id: string; email: string; name: string; has_workspace: boolean; business_name?: string; role?: string; system_role: 'user' | 'admin' | 'support' }
+type User = { id: string; email: string; name: string; has_workspace: boolean; business_name?: string; role?: string; system_role: 'user' | 'support' | 'admin' | 'superadmin' }
 type AuthState = { user: User | null; loading: boolean; error: boolean; reload: () => Promise<void>; logout: () => Promise<void>; setUser: (user: User | null) => void }
 const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,7 +38,7 @@ export function RequireAuth() {
   if (loading) return <div className="auth-state" dir="rtl" role="status">בודקים את מצב ההתחברות…</div>
   if (error) return <div className="auth-state" dir="rtl"><h1>לא הצלחנו להתחבר לשירות</h1><p>ייתכן שיש תקלה זמנית בחיבור. נסו שוב בעוד רגע.</p><button type="button" onClick={() => void reload()}>ניסיון נוסף</button><Link to="/">חזרה לדף הבית</Link></div>
   if (!user) return <Navigate to="/login" state={{ from: location.pathname + location.search + location.hash }} replace/>
-  if (user.system_role === 'support') return <Navigate to="/support" replace />
+  if (user.system_role === 'support' || user.system_role === 'admin') return <Navigate to="/support" replace />
   if (!user.has_workspace) return <CreateBusinessPage/>
   return <Outlet/>
 }
@@ -48,6 +48,6 @@ export function RequireSupport() {
   if (loading) return <div className="auth-state" dir="rtl" role="status">בודקים הרשאות…</div>
   if (error) return <div className="auth-state" dir="rtl"><p>לא ניתן לבדוק הרשאות כרגע.</p><button onClick={() => void reload()}>ניסיון נוסף</button></div>
   if (!user) return <Navigate to="/support/login" replace />
-  if (user.system_role !== 'support' && user.system_role !== 'admin') return <div className="auth-state" dir="rtl"><h1>אין גישה לממשק התמיכה</h1><Link to="/app">חזרה למערכת</Link></div>
+  if (!['support', 'admin', 'superadmin'].includes(user.system_role)) return <div className="auth-state" dir="rtl"><h1>אין גישה לממשק התמיכה</h1><Link to="/app">חזרה למערכת</Link></div>
   return <Outlet />
 }

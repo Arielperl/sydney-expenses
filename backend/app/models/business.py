@@ -36,7 +36,10 @@ class AppAccount(Base):
 
     __tablename__ = "app_accounts"
     __table_args__ = (
-        CheckConstraint("system_role in ('user','admin','support')", name="ck_app_account_system_role"),
+        CheckConstraint(
+            "system_role in ('user','support','admin','superadmin')",
+            name="ck_app_account_system_role",
+        ),
     )
 
     user_id: Mapped[str] = mapped_column(String(128), primary_key=True)

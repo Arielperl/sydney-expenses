@@ -30,13 +30,13 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
  }, [])
  const requestedPath = location.state?.from
  const target = typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//') && !requestedPath.includes('\\') && requestedPath !== '/' && !requestedPath.startsWith('/login') && !requestedPath.startsWith('/signup') ? requestedPath : '/app'
- if (user) return <Navigate to={user.system_role === 'support' ? '/support' : target} replace/>
+ if (user) return <Navigate to={user.system_role === 'support' || user.system_role === 'admin' ? '/support' : target} replace/>
  async function submit(event: FormEvent) {
   event.preventDefault(); setError(''); setBusy(true)
   try {
    const { data } = await apiClient.post(`/auth/${mode}`, { email: email.trim(), password, name: name.trim() })
    if (data.confirmation_required) { setConfirmation(true); setPassword('') }
-   else { queryClient.clear(); setUser(data.user); navigate(data.user.system_role === 'support' ? '/support' : target, { replace: true }) }
+   else { queryClient.clear(); setUser(data.user); navigate(data.user.system_role === 'support' || data.user.system_role === 'admin' ? '/support' : target, { replace: true }) }
   } catch (e) { setError(toApiError(e).message) }
   finally { setBusy(false) }
  }

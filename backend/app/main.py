@@ -73,7 +73,7 @@ async def protect_workspace(request: Request, call_next):
             try:
                 user = await current_user(request)
                 if path.startswith("/api/support/staff/"):
-                    if user["system_role"] not in ("support", "admin"):
+                    if user["system_role"] not in ("support", "admin", "superadmin"):
                         raise HTTPException(403, "נדרשת הרשאת תמיכה")
                     request.state.user = user
                     response = await call_next(request)

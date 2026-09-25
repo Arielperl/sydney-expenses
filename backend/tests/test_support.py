@@ -23,11 +23,12 @@ def support_setup(monkeypatch):
             AppAccount(user_id="owner-two", email="two@example.com", system_role="user"),
             AppAccount(user_id="staff", email="support@example.com", system_role="support"),
             AppAccount(user_id="legacy-admin", email="old@example.com", system_role="admin"),
+            AppAccount(user_id="root-admin", email="root@example.com", system_role="superadmin"),
         ])
         db.commit()
 
     async def fake_auth(method, path, payload=None, token=None):
-        return {"id": token, "email": {"staff": "support@example.com", "legacy-admin": "old@example.com"}.get(token, f"{token}@example.com"), "email_confirmed_at": "yes", "user_metadata": {}}
+        return {"id": token, "email": {"staff": "support@example.com", "legacy-admin": "old@example.com", "root-admin": "root@example.com"}.get(token, f"{token}@example.com"), "email_confirmed_at": "yes", "user_metadata": {}}
     monkeypatch.setattr(auth, "auth_request", fake_auth)
 
 
@@ -63,7 +64,7 @@ def test_support_role_is_required_for_cross_business_operations(client, support_
     assert client.get("/api/admin/businesses").status_code in (403, 404)
 
 
-def test_support_cannot_delete_users_but_admin_can(client, support_setup, monkeypatch):
+def test_only_superadmin_can_manage_accounts(client, support_setup, monkeypatch):
     from app.api.routes import admin
     called = []
 
@@ -75,6 +76,8 @@ def test_support_cannot_delete_users_but_admin_can(client, support_setup, monkey
     assert client.get("/api/support/staff/users").status_code == 403
     assert client.delete("/api/support/staff/users/owner-two", headers={"origin": "http://localhost:5174"}).status_code == 403
     client.cookies.set("sydney_access", "legacy-admin")
+    assert client.get("/api/support/staff/users").status_code == 403
+    client.cookies.set("sydney_access", "root-admin")
     assert client.get("/api/support/staff/users").status_code == 200
     assert client.delete("/api/support/staff/users/owner-two", headers={"origin": "http://localhost:5174"}).status_code == 409
     assert called == []
@@ -83,6 +86,52 @@ def test_support_cannot_delete_users_but_admin_can(client, support_setup, monkey
     with SessionLocal() as db:
         assert db.get(AppAccount, "staff").disabled_at is not None
         assert db.get(AppAccount, "staff").email.endswith("@invalid.local")
+
+
+def test_superadmin_creates_account_and_changes_its_role(client, support_setup, monkeypatch):
+    from app.api.routes import admin
+
+    async def fake_create(email, password, name):
+        assert password == "temporary-pass-123"
+        return {"id": "new-staff"}
+
+    monkeypatch.setattr(admin, "create_auth_identity", fake_create)
+    client.cookies.set("sydney_access", "root-admin")
+    headers = {"origin": "http://localhost:5174"}
+    created = client.post(
+        "/api/support/staff/users",
+        json={
+            "email": "new-support@example.com",
+            "password": "temporary-pass-123",
+            "name": "New Support",
+            "system_role": "support",
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201
+    assert created.json()["system_role"] == "support"
+    changed = client.patch(
+        "/api/support/staff/users/new-staff/role",
+        json={"system_role": "admin"},
+        headers=headers,
+    )
+    assert changed.status_code == 200
+    assert changed.json()["system_role"] == "admin"
+    with SessionLocal() as db:
+        assert db.get(AppAccount, "new-staff").system_role == "admin"
+
+
+def test_superadmin_role_cannot_be_changed_or_deleted(client, support_setup, monkeypatch):
+    from app.api.routes import admin
+
+    async def fake_delete(user_id):
+        raise AssertionError(f"must not delete {user_id}")
+
+    monkeypatch.setattr(admin, "delete_auth_identity", fake_delete)
+    client.cookies.set("sydney_access", "root-admin")
+    headers = {"origin": "http://localhost:5174"}
+    assert client.patch("/api/support/staff/users/root-admin/role", json={"system_role": "admin"}, headers=headers).status_code == 403
+    assert client.delete("/api/support/staff/users/root-admin", headers=headers).status_code == 409
 
 
 def test_staff_adds_and_removes_provider_disabling_connections(client, support_setup):

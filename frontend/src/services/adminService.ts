@@ -13,7 +13,9 @@ export interface AdminBusiness {
   connection_count: number
 }
 
-export interface StaffUser { id: string; email: string; name: string; system_role: 'user' | 'support' | 'admin'; business_name: string | null }
+export type ManagedRole = 'user' | 'support' | 'admin'
+export interface StaffUser { id: string; email: string; name: string; system_role: ManagedRole | 'superadmin'; business_name: string | null }
+export interface StaffUserCreate { email: string; password: string; name: string; system_role: ManagedRole }
 
 export async function listStaffUsers(): Promise<StaffUser[]> {
   try { return (await apiClient.get<StaffUser[]>('/support/staff/users')).data }
@@ -22,6 +24,16 @@ export async function listStaffUsers(): Promise<StaffUser[]> {
 
 export async function deleteStaffUser(id: string): Promise<void> {
   try { await apiClient.delete(`/support/staff/users/${id}`) }
+  catch (error) { throw toApiError(error) }
+}
+
+export async function createStaffUser(payload: StaffUserCreate): Promise<StaffUser> {
+  try { return (await apiClient.post<StaffUser>('/support/staff/users', payload)).data }
+  catch (error) { throw toApiError(error) }
+}
+
+export async function updateStaffUserRole(id: string, systemRole: ManagedRole): Promise<StaffUser> {
+  try { return (await apiClient.patch<StaffUser>(`/support/staff/users/${id}/role`, { system_role: systemRole })).data }
   catch (error) { throw toApiError(error) }
 }
 

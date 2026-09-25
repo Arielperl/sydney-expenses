@@ -15,12 +15,12 @@ export function SupportLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  if (user?.system_role === 'support' || user?.system_role === 'admin') return <Navigate to="/support" replace />
+  if (user && ['support', 'admin', 'superadmin'].includes(user.system_role)) return <Navigate to="/support" replace />
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('')
     try {
       const { data } = await apiClient.post('/auth/login', { email: email.trim(), password })
-      if (data.user.system_role !== 'support' && data.user.system_role !== 'admin') {
+      if (!['support', 'admin', 'superadmin'].includes(data.user.system_role)) {
         await apiClient.post('/auth/logout')
         setError('לחשבון הזה אין הרשאת תמיכה.')
         return

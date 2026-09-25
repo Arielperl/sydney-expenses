@@ -4,7 +4,7 @@ from typing import Literal
 import httpx
 from collections.abc import Generator
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -25,15 +25,15 @@ def get_support_db() -> Generator[Session, None, None]:
 def _require_support(request: Request, db: Session) -> AppAccount:
     user = getattr(request.state, "user", None) or {}
     account = db.get(AppAccount, user.get("id")) if user.get("id") else None
-    if account is None or account.system_role not in ("support", "admin") or account.disabled_at is not None:
+    if account is None or account.system_role not in ("support", "admin", "superadmin") or account.disabled_at is not None:
         raise HTTPException(status_code=403, detail="נדרשת הרשאת תמיכה")
     return account
 
 
-def _require_admin(request: Request, db: Session) -> AppAccount:
+def _require_superadmin(request: Request, db: Session) -> AppAccount:
     account = _require_support(request, db)
-    if account.system_role != "admin":
-        raise HTTPException(status_code=403, detail="נדרשת הרשאת אדמין")
+    if account.system_role != "superadmin":
+        raise HTTPException(status_code=403, detail="נדרשת הרשאת סופר אדמין")
     return account
 
 
@@ -52,6 +52,29 @@ async def delete_auth_identity(user_id: str) -> None:
         raise HTTPException(503, "מחיקת החשבון נכשלה בשירות ההתחברות")
 
 
+async def create_auth_identity(email: str, password: str, name: str) -> dict:
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_secret_key:
+        raise HTTPException(503, "שירות ההתחברות אינו מוגדר")
+    url = settings.supabase_url.rstrip("/") + "/auth/v1/admin/users"
+    headers = {"apikey": settings.supabase_secret_key, "Authorization": f"Bearer {settings.supabase_secret_key}"}
+    payload = {
+        "email": email,
+        "password": password,
+        "email_confirm": True,
+        "user_metadata": {"full_name": name},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(url, headers=headers, json=payload)
+    except httpx.RequestError:
+        raise HTTPException(503, "יצירת החשבון נכשלה בשירות ההתחברות")
+    if response.status_code >= 400:
+        detail = "כתובת האימייל כבר קיימת" if response.status_code in (400, 422) else "יצירת החשבון נכשלה בשירות ההתחברות"
+        raise HTTPException(409 if response.status_code in (400, 422) else 503, detail)
+    return response.json()
+
+
 class StaffUserRead(BaseModel):
     id: str
     email: str
@@ -60,9 +83,31 @@ class StaffUserRead(BaseModel):
     business_name: str | None
 
 
+class StaffUserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=12, max_length=128)
+    name: str = Field(default="", max_length=100)
+    system_role: Literal["user", "support", "admin"]
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if "@" not in value or "." not in value.rsplit("@", 1)[1]:
+            raise ValueError("כתובת האימייל אינה תקינה")
+        return value
+
+
+class StaffRoleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    system_role: Literal["user", "support", "admin"]
+
+
 @router.get("/users", response_model=list[StaffUserRead])
 def list_users(request: Request, db: Session = Depends(get_support_db)) -> list[StaffUserRead]:
-    _require_admin(request, db)
+    _require_superadmin(request, db)
     rows = db.scalars(select(AppAccount).where(AppAccount.disabled_at.is_(None)).order_by(AppAccount.created_at.desc())).all()
     result = []
     for account in rows:
@@ -73,16 +118,73 @@ def list_users(request: Request, db: Session = Depends(get_support_db)) -> list[
     return result
 
 
+@router.post("/users", response_model=StaffUserRead, status_code=201)
+async def create_user(payload: StaffUserCreate, request: Request, db: Session = Depends(get_support_db)) -> StaffUserRead:
+    _require_superadmin(request, db)
+    if db.scalar(select(AppAccount).where(func.lower(AppAccount.email) == payload.email)) is not None:
+        raise HTTPException(409, "כתובת האימייל כבר קיימת")
+    identity = await create_auth_identity(payload.email, payload.password, payload.name.strip())
+    user_id = identity.get("id")
+    if not user_id:
+        raise HTTPException(503, "שירות ההתחברות החזיר תשובה לא תקינה")
+    account = AppAccount(
+        user_id=user_id,
+        email=payload.email,
+        display_name=payload.name.strip(),
+        system_role=payload.system_role,
+    )
+    try:
+        db.add(account)
+        db.commit()
+    except Exception:
+        db.rollback()
+        await delete_auth_identity(user_id)
+        raise
+    return StaffUserRead(
+        id=account.user_id,
+        email=account.email,
+        name=account.display_name,
+        system_role=account.system_role,
+        business_name=None,
+    )
+
+
+@router.patch("/users/{user_id}/role", response_model=StaffUserRead)
+def update_user_role(
+    user_id: str,
+    payload: StaffRoleUpdate,
+    request: Request,
+    db: Session = Depends(get_support_db),
+) -> StaffUserRead:
+    actor = _require_superadmin(request, db)
+    target = db.get(AppAccount, user_id)
+    if target is None or target.disabled_at is not None:
+        raise HTTPException(404, "המשתמש לא נמצא")
+    if target.user_id == actor.user_id or target.system_role == "superadmin":
+        raise HTTPException(403, "לא ניתן לשנות את תפקיד הסופר אדמין")
+    target.system_role = payload.system_role
+    db.commit()
+    member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == target.user_id))
+    business = db.get(Business, member.business_id) if member else None
+    return StaffUserRead(
+        id=target.user_id,
+        email=target.email,
+        name=target.display_name,
+        system_role=target.system_role,
+        business_name=business.name if business else None,
+    )
+
+
 @router.delete("/users/{user_id}", status_code=204)
 async def delete_user(user_id: str, request: Request, db: Session = Depends(get_support_db)) -> None:
-    admin = _require_admin(request, db)
+    admin = _require_superadmin(request, db)
     if user_id == admin.user_id:
         raise HTTPException(409, "לא ניתן למחוק את החשבון של עצמך")
     target = db.get(AppAccount, user_id)
     if target is None or target.disabled_at is not None:
         raise HTTPException(404, "המשתמש לא נמצא")
-    if target.system_role == "admin":
-        raise HTTPException(403, "לא ניתן למחוק אדמין אחר דרך ממשק התמיכה")
+    if target.system_role == "superadmin":
+        raise HTTPException(403, "לא ניתן למחוק סופר אדמין")
     member = db.scalar(select(BusinessMember).where(BusinessMember.user_id == user_id))
     if member and member.role == "owner":
         owners = db.scalar(select(func.count()).select_from(BusinessMember).where(
