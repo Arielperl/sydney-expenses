@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import {
@@ -61,8 +62,8 @@ export function SupportConversationDialog({
     if (message) send.mutate(message)
   }
 
-  return <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950">
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="flex h-[100dvh] flex-col">
+  return createPortal(<div className="fixed inset-0 z-50 h-[100dvh] w-screen overflow-hidden bg-white dark:bg-zinc-950">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="flex h-full min-h-0 flex-col overflow-hidden">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-zinc-200 px-4 py-3 sm:px-6 dark:border-zinc-800">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -74,7 +75,7 @@ export function SupportConversationDialog({
         <div className="flex shrink-0 items-center gap-2">{actions}<button type="button" aria-label={english ? 'Close conversation' : 'סגירת השיחה'} onClick={onClose} className="grid h-10 w-10 place-items-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"><X className="h-5 w-5" aria-hidden="true" /></button></div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50 px-4 py-6 sm:px-8 dark:bg-zinc-950">
+      <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto bg-zinc-50 px-4 py-6 sm:px-8 dark:bg-zinc-950">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
           {messages.isLoading && <p role="status" className="text-center text-sm text-zinc-500">{english ? 'Loading conversation…' : 'טוענים את השיחה…'}</p>}
           {messages.isError && <p role="alert" className="text-center text-sm text-danger-700">{english ? 'Could not load the conversation.' : 'לא ניתן לטעון את השיחה.'}</p>}
@@ -91,15 +92,15 @@ export function SupportConversationDialog({
         </div>
       </div>
 
-      <form onSubmit={submit} className="shrink-0 border-t border-zinc-200 bg-white px-4 py-3 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <form onSubmit={submit} className="shrink-0 border-t border-zinc-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mx-auto flex max-w-4xl items-end gap-2">
           <label htmlFor={`support-reply-${request.id}`} className="sr-only">{english ? 'Write a reply' : 'כתיבת תגובה'}</label>
-          <textarea id={`support-reply-${request.id}`} rows={1} maxLength={5000} value={body} onChange={event => setBody(event.target.value)} placeholder={english ? 'Write a message…' : 'כתבו הודעה…'} className="max-h-36 min-h-11 flex-1 resize-y rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100" onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
+          <textarea id={`support-reply-${request.id}`} rows={2} maxLength={5000} value={body} onChange={event => setBody(event.target.value)} placeholder={english ? 'Write a message…' : 'כתבו הודעה…'} className="max-h-36 min-h-14 flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 focus:outline-none sm:text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100" onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
           <button type="submit" disabled={!body.trim() || send.isPending} className={buttonClasses('primary')}><Send className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">{send.isPending ? (english ? 'Sending…' : 'שולחים…') : (english ? 'Send' : 'שליחה')}</span></button>
         </div>
         {send.isError && <p role="alert" className="mx-auto mt-2 max-w-4xl text-sm text-danger-700">{send.error.message}</p>}
         {request.status === 'resolved' && <p className="mx-auto mt-2 max-w-4xl text-xs text-zinc-500">{english ? 'Sending a new message will reopen this request.' : 'שליחת הודעה חדשה תפתח את הפנייה מחדש.'}</p>}
       </form>
     </div>
-  </div>
+  </div>, document.body)
 }
