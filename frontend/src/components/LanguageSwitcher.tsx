@@ -9,7 +9,7 @@ const LABEL_KEY: Record<SupportedLanguage, 'hebrew' | 'english'> = {
   en: 'english',
 }
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ placement = 'top' }: { placement?: 'top' | 'bottom' } = {}) {
   const { t, i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -81,7 +81,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t('language.switcherLabel')}
-          className="absolute start-0 bottom-full z-20 mb-2 w-44 animate-pop-in overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-raised dark:border-zinc-700 dark:bg-zinc-900"
+          className={`absolute z-20 w-44 animate-pop-in ${placement === 'top' ? 'start-0 bottom-full mb-2' : 'end-0 top-full mt-2'} overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-raised dark:border-zinc-700 dark:bg-zinc-900`}
         >
           {SUPPORTED_LANGUAGES.map((language, index) => {
             const isSelected = currentLanguage === language
