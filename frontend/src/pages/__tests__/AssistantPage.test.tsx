@@ -31,6 +31,27 @@ describe('AssistantPage', () => {
     })
   })
 
+  it('renders assistant Markdown as formatted content instead of showing its markers', async () => {
+    server.use(
+      http.post(CHAT_URL, () =>
+        HttpResponse.json({
+          reply: '1. **ניתוח נתונים**: בדקו אילו שירותים מצליחים.\n2. **שיפור השירות**: הקשיבו ללקוחות.',
+          conversation_id: 'chat-1',
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderWithProviders(<AssistantPage />)
+
+    await user.type(screen.getByPlaceholderText('שאל שאלה...'), 'איך לשפר מכירות?')
+    await user.click(screen.getByRole('button', { name: 'שלח' }))
+
+    const firstHeading = await screen.findByText('ניתוח נתונים')
+    expect(firstHeading.tagName).toBe('STRONG')
+    expect(firstHeading.closest('ol')).toBeInTheDocument()
+    expect(screen.queryByText(/\*\*ניתוח נתונים\*\*/)).not.toBeInTheDocument()
+  })
+
   it('loads the latest persisted conversation', async () => {
     server.use(
       http.get('http://localhost:8000/api/assistant/conversations', () =>

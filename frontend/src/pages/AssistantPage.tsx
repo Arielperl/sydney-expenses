@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, Pencil, Plus, Trash2, Bot, SendHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -16,6 +17,58 @@ import type { AssistantConversation, AssistantConversationDetail, ChatMessage } 
 import { buttonClasses, cardClasses, cx } from '../components/ui-classes'
 import { PageHeader } from '../components/ui'
 import { inputClasses } from '../components/FormField'
+
+const ASSISTANT_MARKDOWN_ELEMENTS = [
+  'p',
+  'strong',
+  'em',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'code',
+  'pre',
+  'a',
+  'br',
+] as const
+
+function AssistantMessage({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      skipHtml
+      allowedElements={[...ASSISTANT_MARKDOWN_ELEMENTS]}
+      components={{
+        p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold text-zinc-950 dark:text-white">{children}</strong>,
+        ul: ({ children }) => <ul className="my-2 list-disc space-y-1 ps-5">{children}</ul>,
+        ol: ({ children }) => <ol className="my-2 list-decimal space-y-2 ps-5">{children}</ol>,
+        li: ({ children }) => <li className="ps-1">{children}</li>,
+        blockquote: ({ children }) => (
+          <blockquote className="my-2 border-s-2 border-brand-400 ps-3 text-zinc-600 dark:text-zinc-300">
+            {children}
+          </blockquote>
+        ),
+        code: ({ children }) => (
+          <code className="rounded bg-zinc-200/70 px-1 py-0.5 font-mono text-[0.85em] dark:bg-zinc-700">
+            {children}
+          </code>
+        ),
+        pre: ({ children }) => (
+          <pre className="my-2 overflow-x-auto rounded-lg bg-zinc-900 p-3 text-start text-xs text-zinc-100">
+            {children}
+          </pre>
+        ),
+        a: ({ children, href }) => (
+          <a href={href} target="_blank" rel="noreferrer" className="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-300">
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  )
+}
 
 export function AssistantPage() {
   const { t } = useTranslation()
@@ -270,7 +323,7 @@ export function AssistantPage() {
                       <Bot className="h-3.5 w-3.5" />
                     </span>
                   )}
-                  <p
+                  <div
                     dir="auto"
                     className={
                       message.role === 'user'
@@ -278,8 +331,8 @@ export function AssistantPage() {
                         : 'max-w-[80%] rounded-2xl rounded-es-md bg-zinc-100 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
                     }
                   >
-                    {message.content}
-                  </p>
+                    {message.role === 'user' ? message.content : <AssistantMessage content={message.content} />}
+                  </div>
                 </div>
               ))
             )}
