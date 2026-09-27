@@ -3,9 +3,9 @@ import type { BillingOverview, BillingPlan, PlanCatalog } from '../../services/b
 // Mirrors GET /api/billing/plans for tests only; the app itself always reads the server's catalog.
 export const plans: BillingPlan[] = [
   {
-    code: 'starter', name: 'Starter', tagline: 'לעסק שרוצה סדר ושליטה בהכנסות', recommended: true,
+    code: 'starter', name: 'Starter', tagline: 'לעסק קטן שרוצה לראות ולנהל את ההכנסות במקום אחד', recommended: true,
     prices: { month: 6_900, year: 69_000 }, max_connections: 1, max_members: 1, ai_questions_per_month: 300,
-    features: ['תמונה ברורה של ההכנסות, המע״מ והעמלות', 'ריכוז המכירות ופרטי הלקוחות במקום אחד', 'אפשרות להוסיף מכירות גם ממערכות אחרות', 'התראות כשעסקה דורשת בדיקה', 'שליחת פניות ומעקב אחריהן מתוך המערכת'],
+    features: ['לוח בקרה של הכנסות, מע״מ, עמלות וזיכויים', 'פירוט המכירות ופרטי הלקוחות במקום אחד', 'זיהוי עסקאות שנכשלו או שחסר בהן מידע', 'עוזר עסקי שעונה על שאלות לפי נתוני המכירות'],
   },
   {
     code: 'business', name: 'Business', tagline: 'לעסק שמקבל תשלומים מכמה מקומות', recommended: false,

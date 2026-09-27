@@ -867,7 +867,7 @@
     "perYear": "/ year",
     "excludingVat": "Excl. VAT",
     "insteadOf": "instead of {{amount}}",
-    "recommended": "Recommended",
+    "recommended": "Best place to start",
     "currentPlan": "Current plan",
     "limits": {
       "connections": "Up to {{count}} sales connections",

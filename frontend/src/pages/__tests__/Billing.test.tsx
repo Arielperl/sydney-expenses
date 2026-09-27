@@ -26,11 +26,12 @@ describe('public pricing page', () => {
     renderWithProviders(<PricingPage />, { route: '/pricing' })
     expect(await screen.getByRole('heading', { level: 1, name: /30 יום להכיר את Sydney/ })).toBeInTheDocument()
     const starter = (await screen.findByRole('heading', { name: 'Starter' })).closest('article')!
-    expect(within(starter).getByText('המומלץ ביותר')).toBeInTheDocument()
+    expect(within(starter).getByText('הכי מתאים להתחלה')).toBeInTheDocument()
     expect(within(starter).getByText(price('69'))).toBeInTheDocument()
-    expect(within(starter).getByText('אפשרות לקליטת מכירות אוטומטית ממקור אחד')).toBeInTheDocument()
-    expect(within(starter).getByText('אפשרות להוסיף מכירות גם ממערכות אחרות')).toBeInTheDocument()
-    expect(screen.getAllByText('המומלץ ביותר')).toHaveLength(1)
+    expect(within(starter).getByText('חיבור אוטומטי לחברת סליקה אחת')).toBeInTheDocument()
+    expect(within(starter).getByText('עוזר עסקי שעונה על שאלות לפי נתוני המכירות')).toBeInTheDocument()
+    expect(within(starter).getByText('עד 300 שאלות לעוזר העסקי בכל חודש')).toHaveClass('text-xs')
+    expect(screen.getAllByText('הכי מתאים להתחלה')).toHaveLength(1)
     expect(screen.getAllByText(/לפני מע״מ/).length).toBeGreaterThanOrEqual(3)
     expect(screen.getByText('לא נבקש כרטיס אשראי במהלך תקופת הניסיון.', { exact: false })).toBeInTheDocument()
     // Member limits are not advertised while members cannot be invited.

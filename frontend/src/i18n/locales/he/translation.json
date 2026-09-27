@@ -868,11 +868,11 @@
     "perYear": "/ לשנה",
     "excludingVat": "לפני מע״מ",
     "insteadOf": "במקום {{amount}}",
-    "recommended": "המומלץ ביותר",
+    "recommended": "הכי מתאים להתחלה",
     "currentPlan": "המסלול הנוכחי",
     "limits": {
-      "connections": "אפשרות לקליטת מכירות אוטומטית מעד {{count}} מקורות",
-      "connections_one": "אפשרות לקליטת מכירות אוטומטית ממקור אחד",
+      "connections": "חיבור אוטומטי לעד {{count}} מקורות מכירה",
+      "connections_one": "חיבור אוטומטי לחברת סליקה אחת",
       "aiQuestions": "עד {{amount}} שאלות לעוזר העסקי בכל חודש",
       "members": "עד {{count}} משתמשים",
       "members_one": "משתמש אחד"

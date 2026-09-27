@@ -114,11 +114,9 @@ function PlanPrice({ plan, interval, surface }: { plan: BillingPlan; interval: B
 }
 
 function PlanLimits({ plan, surface, showMembers }: { plan: BillingPlan; surface: PlanSurface; showMembers: boolean }) {
-  const { t, i18n } = useTranslation(undefined, { lng: surface === 'public' ? 'he' : undefined })
-  const language = surface === 'public' ? 'he' : i18n.language
+  const { t } = useTranslation(undefined, { lng: surface === 'public' ? 'he' : undefined })
   const limits = [
     t('billing.limits.connections', { count: plan.max_connections }),
-    t('billing.limits.aiQuestions', { amount: formatCount(plan.ai_questions_per_month, language) }),
     ...(showMembers ? [t('billing.limits.members', { count: plan.max_members })] : []),
   ]
   return (
@@ -153,7 +151,8 @@ export function PlanCards({
   renderAction?: (plan: BillingPlan) => ReactNode
   headingLevel?: 'h2' | 'h3'
 }) {
-  const { t } = useTranslation(undefined, { lng: surface === 'public' ? 'he' : undefined })
+  const { t, i18n } = useTranslation(undefined, { lng: surface === 'public' ? 'he' : undefined })
+  const language = surface === 'public' ? 'he' : i18n.language
   const Heading = headingLevel
   const selectable = Boolean(selection)
 
@@ -214,6 +213,9 @@ export function PlanCards({
             </li>
           ))}
         </ul>
+        <p className={cx('mt-4 text-xs text-zinc-500', dark(surface, 'dark:text-zinc-400'))}>
+          {t('billing.limits.aiQuestions', { amount: formatCount(plan.ai_questions_per_month, language) })}
+        </p>
         {renderAction && <div className="mt-auto pt-7">{renderAction(plan)}</div>}
       </>
     )
