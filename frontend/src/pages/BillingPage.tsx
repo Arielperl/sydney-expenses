@@ -349,9 +349,6 @@ export function BillingPage() {
                   </SubscriptionFact>
                 )}
               </dl>
-              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
-                {t('billing.dates.timezone', { zone: data.business_timezone === 'Asia/Jerusalem' ? (i18n.language === 'he' ? 'ישראל' : 'Israel') : data.business_timezone })}
-              </p>
             </Card>
           )}
         </div>

@@ -929,7 +929,6 @@
       "periodStart": "Period started",
       "nextRenewal": "Next renewal",
       "periodEnd": "Period ends",
-      "timezone": "Dates are shown in {{zone}} time.",
       "none": "—"
     },
     "payment": {

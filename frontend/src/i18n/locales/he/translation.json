@@ -931,7 +931,6 @@
       "periodStart": "תחילת התקופה",
       "nextRenewal": "החידוש הבא",
       "periodEnd": "סיום התקופה",
-      "timezone": "התאריכים מוצגים לפי שעון {{zone}}.",
       "none": "—"
     },
     "payment": {
