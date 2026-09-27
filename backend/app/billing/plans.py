@@ -32,7 +32,6 @@ class PlanDefinition:
     max_connections: int
     max_members: int
     ai_questions_per_month: int
-    priority_support: bool
     features: tuple[str, ...]
 
 
@@ -56,7 +55,6 @@ PLANS: tuple[PlanDefinition, ...] = (
         max_connections=1,
         max_members=1,
         ai_questions_per_month=300,
-        priority_support=False,
         features=_STARTER_FEATURES,
     ),
     PlanDefinition(
@@ -70,8 +68,7 @@ PLANS: tuple[PlanDefinition, ...] = (
         max_connections=3,
         max_members=5,
         ai_questions_per_month=1_500,
-        priority_support=True,
-        features=("כל מה שיש ב־Starter", "סימון עדיפות בפניות לתמיכה"),
+        features=("כל מה שיש ב־Starter", "תמונה מאוחדת מכמה מקורות מכירה"),
     ),
     PlanDefinition(
         code="pro",
@@ -84,7 +81,6 @@ PLANS: tuple[PlanDefinition, ...] = (
         max_connections=10,
         max_members=15,
         ai_questions_per_month=5_000,
-        priority_support=True,
         features=("כל מה שיש ב־Business", "מתאים לעסקים עם כמה מקורות מכירה"),
     ),
 )
@@ -114,7 +110,7 @@ def seed_plan_catalog(db) -> None:
             code=plan.code, name=plan.name, tagline=plan.tagline, sort_order=plan.sort_order,
             recommended=plan.recommended, active=True, max_connections=plan.max_connections,
             max_members=plan.max_members, ai_questions_per_month=plan.ai_questions_per_month,
-            priority_support=plan.priority_support, features=list(plan.features),
+            priority_support=False, features=list(plan.features),
         ))
         db.flush()
         for interval in INTERVALS:

@@ -712,16 +712,17 @@ def test_billing_webhook_endpoint_is_separate_and_verified(http, monkeypatch, wo
     assert http.post("/api/webhooks/connections/" + "a" * 32, content=body).status_code != 200
 
 
-def test_staff_inbox_marks_priority_support(http):
+def test_support_is_not_ranked_by_subscription_plan(http):
     call(http, "POST", "/api/billing/trial", "owner-a", json={"plan_code": "business"})
     call(http, "POST", "/api/billing/trial", "owner-b", json={"plan_code": "starter"})
     for user in ("owner-a", "owner-b"):
         assert call(http, "POST", "/api/support/requests", user,
                     json={"subject": "עזרה בחיבור", "message": "צריך עזרה בחיבור של הקופה"}).status_code == 201
     rows = call(http, "GET", "/api/support/staff/requests", "staff-2").json()
-    assert {r["business_id"]: r["priority"] for r in rows} == {A: True, B: False}
+    assert {r["business_id"] for r in rows} == {A, B}
+    assert all("priority" not in r for r in rows)
     own = call(http, "GET", "/api/support/requests", "owner-a").json()
-    assert all(r["priority"] is None for r in own)
+    assert all("priority" not in r for r in own)
 
 
 def test_plans_in_code_match_the_seeded_catalog(world):

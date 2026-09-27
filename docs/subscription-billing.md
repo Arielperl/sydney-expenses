@@ -61,7 +61,8 @@ of `past_due` before access ends. Reminders start 7 days before the trial ends.
 | Sales connections | 1 | 3 | 10 | `POST /api/connections` (403 with details) |
 | AI questions / billing month | 300 | 1,500 | 5,000 | `POST /api/assistant/chat` (429), atomic reservation, released if no answer |
 | Members | 1 | 5 | 15 | enforced centrally; **not advertised** (see below) |
-| Priority support flag | — | ✓ | ✓ | staff inbox badge |
+All plans receive the same support treatment. Subscription tier never changes
+the ordering or visibility of a support request.
 | Dashboard, sales, CSV import, Needs Attention, support | ✓ | ✓ | ✓ | — |
 
 Downgrades that would exceed a limit are refused with the reason.

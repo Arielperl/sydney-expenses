@@ -693,8 +693,7 @@
       "shortcut": "Enter to send · Shift+Enter for a new line",
       "resolvedNotice": "This request is marked as resolved. A new message will reopen it.",
       "sendError": "The message wasn't sent. Please try again."
-    },
-    "priority": "Priority"
+    }
   },
   "supportPortal": {
     "brand": "Sydney Support",

@@ -149,7 +149,7 @@ def plan_catalog(db: Session) -> list[dict]:
             "code": plan.code, "name": plan.name, "tagline": plan.tagline, "recommended": plan.recommended,
             "prices": by_plan.get(plan.code, {}), "max_connections": plan.max_connections,
             "max_members": plan.max_members, "ai_questions_per_month": plan.ai_questions_per_month,
-            "priority_support": plan.priority_support, "features": list(plan.features),
+            "features": list(plan.features),
         }
         for plan in plans
     ]

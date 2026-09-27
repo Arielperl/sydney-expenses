@@ -4,17 +4,17 @@ import type { BillingOverview, BillingPlan, PlanCatalog } from '../../services/b
 export const plans: BillingPlan[] = [
   {
     code: 'starter', name: 'Starter', tagline: 'לעסק שמתחיל לעבוד עם מקור מכירות אחד', recommended: false,
-    prices: { month: 6_900, year: 69_000 }, max_connections: 1, max_members: 1, ai_questions_per_month: 300, priority_support: false,
+    prices: { month: 6_900, year: 69_000 }, max_connections: 1, max_members: 1, ai_questions_per_month: 300,
     features: ['לוח בקרה ותמונת הכנסות מלאה', 'רשימת מכירות וחיפוש', 'ייבוא מכירות מקובץ CSV', 'מרכז ״דורש טיפול״', 'פניות לתמיכה'],
   },
   {
     code: 'business', name: 'Business', tagline: 'המסלול המומלץ לרוב העסקים', recommended: true,
-    prices: { month: 11_900, year: 119_000 }, max_connections: 3, max_members: 5, ai_questions_per_month: 1_500, priority_support: true,
-    features: ['כל מה שיש ב־Starter', 'סימון עדיפות בפניות לתמיכה'],
+    prices: { month: 11_900, year: 119_000 }, max_connections: 3, max_members: 5, ai_questions_per_month: 1_500,
+    features: ['כל מה שיש ב־Starter', 'תמונה מאוחדת מכמה מקורות מכירה'],
   },
   {
     code: 'pro', name: 'Pro', tagline: 'לעסק שמוכר דרך כמה מקורות מכירה', recommended: false,
-    prices: { month: 24_900, year: 249_000 }, max_connections: 10, max_members: 15, ai_questions_per_month: 5_000, priority_support: true,
+    prices: { month: 24_900, year: 249_000 }, max_connections: 10, max_members: 15, ai_questions_per_month: 5_000,
     features: ['כל מה שיש ב־Business', 'מתאים לעסקים עם כמה מקורות מכירה'],
   },
 ]

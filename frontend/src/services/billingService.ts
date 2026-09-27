@@ -23,7 +23,6 @@ export type BillingPlan = {
   max_connections: number
   max_members: number
   ai_questions_per_month: number
-  priority_support: boolean
   features: string[]
 }
 

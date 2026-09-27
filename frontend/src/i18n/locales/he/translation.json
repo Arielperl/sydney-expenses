@@ -693,8 +693,7 @@
       "shortcut": "Enter לשליחה · Shift+Enter לשורה חדשה",
       "resolvedNotice": "הפנייה סומנה כטופלה. הודעה חדשה תפתח אותה מחדש.",
       "sendError": "ההודעה לא נשלחה. נסו שוב."
-    },
-    "priority": "עדיפות"
+    }
   },
   "supportPortal": {
     "brand": "Sydney Support",
