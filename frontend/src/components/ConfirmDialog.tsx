@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowLeftRight } from 'lucide-react'
 import { useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,6 +11,8 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   isLoading = false,
+  loadingLabel,
+  tone = 'danger',
   error,
   onConfirm,
   onClose,
@@ -20,6 +22,10 @@ export function ConfirmDialog({
   confirmLabel: string
   cancelLabel?: string
   isLoading?: boolean
+  /** Shown on the confirm button while working; defaults to the delete wording. */
+  loadingLabel?: string
+  /** `primary` for consequential but non-destructive changes (e.g. switching plans). */
+  tone?: 'danger' | 'primary'
   error?: string | null
   onConfirm: () => void
   onClose: () => void
@@ -63,9 +69,15 @@ export function ConfirmDialog({
         className="relative w-full max-w-md animate-pop-in rounded-2xl border border-zinc-200 bg-white p-6 shadow-raised dark:border-zinc-800 dark:bg-zinc-900"
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-50 ring-1 ring-danger-600/10 dark:bg-danger-500/10">
-            <AlertTriangle size={18} className="text-danger-600 dark:text-danger-500" aria-hidden="true" />
-          </div>
+          {tone === 'danger' ? (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-50 ring-1 ring-danger-600/10 dark:bg-danger-500/10">
+              <AlertTriangle size={18} className="text-danger-600 dark:text-danger-500" aria-hidden="true" />
+            </div>
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:ring-brand-500/20">
+              <ArrowLeftRight size={18} className="text-brand-700 dark:text-brand-300" aria-hidden="true" />
+            </div>
+          )}
           <div className="min-w-0 flex-1 pt-1">
             <h2 id={titleId} className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
               {title}
@@ -96,9 +108,9 @@ export function ConfirmDialog({
             type="button"
             disabled={isLoading}
             onClick={handleConfirm}
-            className={buttonClasses('danger')}
+            className={buttonClasses(tone)}
           >
-            {isLoading ? t('common.deleting') : confirmLabel}
+            {isLoading ? (loadingLabel ?? t('common.deleting')) : confirmLabel}
           </button>
         </div>
       </div>

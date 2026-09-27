@@ -75,6 +75,34 @@ export function IntervalToggle({
   )
 }
 
+/** Digits, separators and decimals stay one run; only the currency sign is set apart. */
+function groupPriceParts(parts: { text: string; currency: boolean }[]) {
+  return parts.reduce<{ text: string; currency: boolean }[]>((runs, part) => {
+    const last = runs[runs.length - 1]
+    if (last && !last.currency && !part.currency) last.text += part.text
+    else runs.push({ ...part })
+    return runs
+  }, []).map((run) => ({ ...run, text: run.text.trim() })).filter((run) => run.text !== '')
+}
+
+/**
+ * A plan price as a figure: digits in the dedicated figure style, the currency
+ * sign smaller and quieter. Laid out left-to-right inside an isolate so RTL
+ * text never reorders it ("1,190 ₪", never "190,1").
+ */
+export function PriceFigure({ minor, language, className, currencyClassName }: { minor: number; language: string; className?: string; currencyClassName?: string }) {
+  return (
+    <bdi dir="ltr" className={cx('figure inline-flex items-baseline gap-1 leading-none font-medium', className)}>
+      <span className="sr-only">{formatPlanPrice(minor, language)}</span>
+      {groupPriceParts(planPriceParts(minor, language)).map((part, index) => (
+        <span key={index} aria-hidden="true" className={part.currency ? cx('font-normal', currencyClassName) : undefined}>
+          {part.text}
+        </span>
+      ))}
+    </bdi>
+  )
+}
+
 function PlanPrice({ plan, interval, surface }: { plan: BillingPlan; interval: BillingInterval; surface: PlanSurface }) {
   const { t, i18n } = useTranslation(undefined, { lng: surface === 'public' ? 'he' : undefined })
   const language = surface === 'public' ? 'he' : i18n.language
@@ -84,21 +112,12 @@ function PlanPrice({ plan, interval, surface }: { plan: BillingPlan; interval: B
   return (
     <div className="mt-6">
       <p className="flex flex-wrap items-baseline gap-x-1.5">
-        <bdi
-          dir="ltr"
-          className={cx('figure inline-flex items-baseline gap-1 text-[2.5rem] leading-none font-medium tracking-[-0.02em] text-zinc-900', dark(surface, 'dark:text-zinc-50'))}
-        >
-          <span className="sr-only">{formatPlanPrice(minor, language)}</span>
-          {planPriceParts(minor, language).map((part, index) => (
-            <span
-              key={index}
-              aria-hidden="true"
-              className={part.currency ? cx('text-[1.375rem] font-normal text-zinc-500', dark(surface, 'dark:text-zinc-400')) : undefined}
-            >
-              {part.text}
-            </span>
-          ))}
-        </bdi>
+        <PriceFigure
+          minor={minor}
+          language={language}
+          className={cx('text-[2.5rem] tracking-[-0.02em] text-zinc-900', dark(surface, 'dark:text-zinc-50'))}
+          currencyClassName={cx('text-[1.375rem] text-zinc-500', dark(surface, 'dark:text-zinc-400'))}
+        />
         <span className={cx('text-sm text-zinc-600', dark(surface, 'dark:text-zinc-400'))}>
           {t(interval === 'month' ? 'billing.perMonth' : 'billing.perYear')}
         </span>

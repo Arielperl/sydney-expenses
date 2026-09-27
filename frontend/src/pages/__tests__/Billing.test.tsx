@@ -162,18 +162,45 @@ describe('subscription gate', () => {
 })
 
 describe('billing page', () => {
-  it('presents the trial, dates in the business timezone, usage and an honest payment state', async () => {
+  it('leads with the plan, its status in plain words and only the facts that exist', async () => {
     serve(activeTrialOverview)
     renderWithProviders(<BillingPage />, { route: '/billing' })
-    expect(await screen.findByText('תקופת הניסיון שלך פעילה עד 20 באוקטובר 2026')).toBeInTheDocument()
+    const current = await screen.findByRole('region', { name: 'Business' })
     expect(screen.getByRole('heading', { level: 1, name: 'מנוי וחיוב' })).toBeInTheDocument()
-    expect(screen.getByRole('progressbar', { name: 'התקדמות תקופת הניסיון' })).toHaveAttribute('aria-valuetext', 'נותרו 24 ימים')
-    expect(screen.getByRole('progressbar', { name: 'שאלות לעוזר ה־AI החודש' })).toHaveAttribute('aria-valuenow', '212')
-    expect(screen.getByText('לא נוסף אמצעי תשלום')).toBeInTheDocument()
-    // No provider yet: the button is visibly unavailable and explains why, instead of failing on click.
-    expect(screen.getByRole('button', { name: /הוספת אמצעי תשלום/ })).toBeDisabled()
-    expect(screen.getByText('תשלום מקוון יתאפשר בקרוב')).toBeInTheDocument()
+    expect(within(current).getByText('תקופת ניסיון')).toBeInTheDocument()
+    const facts = current.querySelector('dl')!
+    expect(within(facts).getByText('סיום הניסיון')).toBeInTheDocument()
+    expect(within(facts).getByText('20 באוקטובר 2026')).toBeInTheDocument()
+    expect(within(facts).getByRole('progressbar', { name: 'התקדמות תקופת הניסיון' })).toHaveAttribute('aria-valuetext', 'נותרו 24 ימים')
+    // A trial has no renewal or end-of-period date yet, so none is shown.
+    expect(within(facts).queryByText('החידוש הבא')).not.toBeInTheDocument()
+    expect(within(facts).queryByText('המנוי יסתיים ב־')).not.toBeInTheDocument()
+  })
+
+  it('never offers a payment button that cannot work', async () => {
+    serve(activeTrialOverview)
+    renderWithProviders(<BillingPage />)
+    expect(await screen.findByText('אין צורך לעשות דבר כרגע. תשלום מקוון עדיין לא זמין, ולכן לא יתבצע שום חיוב.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /אמצעי תשלום/ })).not.toBeInTheDocument()
+    expect(screen.getByText('לא זמין עדיין')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'ביטול החידוש' })).not.toBeInTheDocument()
+  })
+
+  it('explains usage in plain words, without alarming colours at a normal limit', async () => {
+    serve(overviewWith({ usage: { ...activeTrialOverview.usage!, connections: { used: 3, limit: 3 } } }))
+    renderWithProviders(<BillingPage />)
+    const connections = await screen.findByRole('progressbar', { name: 'מקורות מכירה מחוברים' })
+    expect(connections).toHaveAttribute('aria-valuetext', '3 מתוך 3')
+    expect(connections.firstElementChild).toHaveClass('bg-brand-500')
+    expect(screen.getByText('זה המספר שהמסלול כולל. כדי לחבר מקור נוסף אפשר לעבור ל־Pro.')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'שאלות לעוזר העסקי' })).toHaveAttribute('aria-valuenow', '212')
+    expect(screen.getByText('מתאפס ב־20 באוקטובר 2026.')).toBeInTheDocument()
+  })
+
+  it('warns quietly when the assistant allowance is used up', async () => {
+    serve(overviewWith({ usage: { ...activeTrialOverview.usage!, ai_questions: { ...activeTrialOverview.usage!.ai_questions, used: 1_500 } } }))
+    renderWithProviders(<BillingPage />)
+    expect(await screen.findByText('הגעתם למכסה החודשית. היא תתאפס ב־20 באוקטובר 2026.')).toBeInTheDocument()
   })
 
   it('opens hosted checkout with an idempotency key when a provider is available', async () => {
@@ -200,6 +227,7 @@ describe('billing page', () => {
     serve(overviewWith({ subscription: { payment_method_on_file: true } }))
     renderWithProviders(<BillingPage />, { route: '/billing?checkout=success' })
     expect(await screen.findByText('התשלום אושר')).toBeInTheDocument()
+    expect(screen.getByText('שמור אצל ספק החיוב')).toBeInTheDocument()
   })
 
   it('says plainly that nothing was charged when checkout was abandoned', async () => {
@@ -215,11 +243,25 @@ describe('billing page', () => {
       access: { allowed: true, reason: 'past_due' },
     }))
     renderWithProviders(<BillingPage />)
-    expect(await screen.findByText('התשלום נכשל')).toBeInTheDocument()
+    expect(await screen.findByText('החיוב האחרון לא הצליח.')).toBeInTheDocument()
+    expect(screen.getAllByText('התשלום נכשל').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /עדכון אמצעי תשלום/ })).toBeEnabled()
+    expect(screen.getByText('סוף התקופה הנוכחית')).toBeInTheDocument()
   })
 
-  it('cancels renewal at the end of the paid period, after confirmation', async () => {
+  it('points to support, not to a dead payment button, when a lapsed business cannot pay online', async () => {
+    serve(overviewWith({
+      subscription: { status: 'expired', trial_days_remaining: null, trial_ends_at: '2026-09-20T09:00:00Z' },
+      access: { allowed: false, reason: 'trial_expired' },
+    }))
+    renderWithProviders(<BillingPage />)
+    expect(await screen.findByText('תקופת הניסיון הסתיימה ב־20 בספטמבר 2026.')).toBeInTheDocument()
+    expect(screen.getByText(/הנתונים שלכם שמורים/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /פנייה לתמיכה/ })).toHaveAttribute('href', '/support/request')
+    expect(screen.queryByRole('button', { name: /מעבר לתשלום/ })).not.toBeInTheDocument()
+  })
+
+  it('cancels renewal at the end of the paid period, after confirmation, and offers to resume', async () => {
     let active = overviewWith({
       subscription: { status: 'active', trial_days_remaining: null, current_period_start: '2026-09-20T09:00:00Z', current_period_end: '2026-10-20T09:00:00Z', payment_method_on_file: true },
       access: { allowed: true, reason: 'active' },
@@ -235,35 +277,75 @@ describe('billing page', () => {
     )
     const user = userEvent.setup()
     renderWithProviders(<BillingPage />)
-    await user.click(await screen.findByRole('button', { name: 'ביטול החידוש' }))
+    expect(await screen.findByText('החידוש הבא')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'ביטול החידוש' }))
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveTextContent('המנוי ימשיך לפעול עד 20 באוקטובר 2026')
     await user.click(within(dialog).getByRole('button', { name: 'ביטול החידוש' }))
     await waitFor(() => expect(cancelled).toBe(true))
-    expect(await screen.findByText(/החידוש בוטל. המנוי ימשיך לפעול עד 20 באוקטובר 2026/)).toBeInTheDocument()
+    expect(await screen.findByText('החידוש בוטל. המנוי פעיל עד 20 באוקטובר 2026.')).toBeInTheDocument()
+    expect(screen.getByText('המנוי יסתיים ב־')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'חידוש המנוי' })).toBeInTheDocument()
   })
 
-  it('changes plan through a dialog with no plan preselected', async () => {
+  it('compares plans on the page and switches only after confirmation', async () => {
     serve(activeTrialOverview)
     let body: unknown = null
     server.use(http.post(`${API}/billing/plan`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ status: 'trialing', plan_code: 'pro' }) }))
     const user = userEvent.setup()
     renderWithProviders(<BillingPage />)
-    await user.click(await screen.findByRole('button', { name: 'החלפת מסלול' }))
-    const dialog = screen.getByRole('dialog', { name: 'החלפת מסלול' })
-    expect(within(dialog).getByText('המסלול הנוכחי')).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'בחרו מסלול' })).toBeDisabled()
-    await user.click(within(dialog).getByRole('radio', { name: 'Pro' }))
-    await user.click(within(dialog).getByRole('button', { name: 'מעבר למסלול Pro' }))
+    const group = await screen.findByRole('radiogroup', { name: 'בחירת מסלול' })
+    // Nothing is preselected; the current plan on the current cycle cannot be "switched to".
+    expect(within(group).getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).checked)).toBe(true)
+    expect(within(group).getByRole('radio', { name: 'Business' })).toBeDisabled()
+    expect(within(group).getByText('הכי מתאים להתחלה')).toBeInTheDocument()
+    expect(within(group).getByText('מקור מכירה אחד')).toBeInTheDocument()
+    expect(within(group).getByText('עד 10 מקורות מכירה')).toBeInTheDocument()
+    await user.click(within(group).getByRole('radio', { name: 'Pro' }))
+    expect(screen.getByText('השינוי יחול מיד. תאריך סיום הניסיון לא משתנה ולא יתבצע חיוב.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'מעבר ל־Pro' }))
+    const dialog = screen.getByRole('dialog', { name: 'לעבור למסלול Pro?' })
+    expect(body).toBeNull()
+    await user.click(within(dialog).getByRole('button', { name: 'אישור המעבר' }))
     await waitFor(() => expect(body).toEqual({ plan_code: 'pro', interval: 'month' }))
+  })
+
+  it('shows yearly prices in the right reading order and lets the current plan move to yearly', async () => {
+    serve(activeTrialOverview)
+    let body: unknown = null
+    server.use(http.post(`${API}/billing/plan`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ status: 'trialing' }) }))
+    const user = userEvent.setup()
+    renderWithProviders(<BillingPage />)
+    await user.click(await screen.findByRole('radio', { name: /שנתי/ }))
+    const yearly = screen.getByText(price('1,190'))
+    expect(yearly.parentElement).toHaveAttribute('dir', 'ltr')
+    // One run of digits, never split around the group separator.
+    expect([...yearly.parentElement!.querySelectorAll('[aria-hidden="true"]')].map((part) => part.textContent)).toEqual(['1,190', '₪'])
+    expect(screen.getByText(price('2,490'))).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Business' }))
+    await user.click(screen.getByRole('button', { name: 'מעבר לחיוב שנתי' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'אישור המעבר' }))
+    await waitFor(() => expect(body).toEqual({ plan_code: 'business', interval: 'year' }))
+  })
+
+  it('explains that a paid downgrade waits for the next period', async () => {
+    serve(overviewWith({
+      subscription: { status: 'active', trial_days_remaining: null, current_period_end: '2026-10-20T09:00:00Z', payment_method_on_file: true },
+      access: { allowed: true, reason: 'active' },
+    }))
+    const user = userEvent.setup()
+    renderWithProviders(<BillingPage />)
+    await user.click(await screen.findByRole('radio', { name: 'Starter' }))
+    expect(screen.getByText('השינוי ייכנס לתוקף בתחילת התקופה הבאה, ב־20 באוקטובר 2026.')).toBeInTheDocument()
   })
 
   it('lets members see the plan but only owners manage it', async () => {
     serve(overviewWith({ can_manage: false }))
     renderWithProviders(<BillingPage />)
-    expect(await screen.findByText(/רק בעלי העסק יכולים לנהל את המנוי/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'החלפת מסלול' })).not.toBeInTheDocument()
+    expect(await screen.findByText('רק בעלי העסק יכולים לנהל את המנוי ואת אמצעי התשלום.')).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'בחירת מסלול' })).not.toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'בחירת מסלול' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ביטול החידוש' })).not.toBeInTheDocument()
   })
 })
 

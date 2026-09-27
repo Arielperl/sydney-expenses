@@ -116,6 +116,33 @@ export function catalogSavingsMonths(plans: BillingPlan[]): number | null {
   return values.length > 0 && values.every((value) => value !== null && value === values[0]) ? values[0] : null
 }
 
+export type PlanChangeImpact = 'trial' | 'upgrade' | 'downgrade' | 'immediate'
+
+/**
+ * When a plan change takes effect, mirroring SubscriptionService.change_plan:
+ * a paid subscription upgrades now only for a pricier plan on the same cycle;
+ * every other paid change waits for the period end. Unpaid ones apply at once.
+ */
+export function planChangeImpact(overview: BillingOverview, target: BillingPlan, interval: BillingInterval): PlanChangeImpact {
+  const sub = overview.subscription
+  if (!sub) return 'immediate'
+  if (sub.status === 'trialing') return 'trial'
+  const paid = (sub.status === 'active' || sub.status === 'past_due') && sub.payment_method_on_file
+  if (!paid) return 'immediate'
+  const current = planByCode(overview.plans, sub.plan_code)
+  const currentPrice = current ? priceFor(current, sub.billing_interval) : null
+  const targetPrice = priceFor(target, interval)
+  const upgrade = interval === sub.billing_interval && currentPrice !== null && targetPrice !== null && targetPrice > currentPrice
+  return upgrade ? 'upgrade' : 'downgrade'
+}
+
+/** The next plan up that allows more sales sources than the given one, if any. */
+export function nextPlanWithMoreConnections(plans: BillingPlan[], code: string | null | undefined): BillingPlan | undefined {
+  const current = planByCode(plans, code)
+  if (!current) return undefined
+  return plans.filter((plan) => plan.max_connections > current.max_connections).sort((a, b) => a.max_connections - b.max_connections)[0]
+}
+
 /** Server timestamps are naive-UTC ISO strings ending in Z. */
 export function parseBillingDate(iso: string): Date {
   return new Date(iso)
