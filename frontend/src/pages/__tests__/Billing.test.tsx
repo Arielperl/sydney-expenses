@@ -28,7 +28,7 @@ describe('public pricing page', () => {
     const starter = (await screen.findByRole('heading', { name: 'Starter' })).closest('article')!
     expect(within(starter).getByText('המומלץ ביותר')).toBeInTheDocument()
     expect(within(starter).getByText(price('69'))).toBeInTheDocument()
-    expect(within(starter).getByText('קליטת מכירות אוטומטית ממקור אחד')).toBeInTheDocument()
+    expect(within(starter).getByText('אפשרות לקליטת מכירות אוטומטית ממקור אחד')).toBeInTheDocument()
     expect(within(starter).getByText('אפשרות להוסיף מכירות גם ממערכות אחרות')).toBeInTheDocument()
     expect(screen.getAllByText('המומלץ ביותר')).toHaveLength(1)
     expect(screen.getAllByText(/לפני מע״מ/).length).toBeGreaterThanOrEqual(3)

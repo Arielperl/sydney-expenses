@@ -871,8 +871,8 @@
     "recommended": "המומלץ ביותר",
     "currentPlan": "המסלול הנוכחי",
     "limits": {
-      "connections": "קליטת מכירות אוטומטית מעד {{count}} מקורות",
-      "connections_one": "קליטת מכירות אוטומטית ממקור אחד",
+      "connections": "אפשרות לקליטת מכירות אוטומטית מעד {{count}} מקורות",
+      "connections_one": "אפשרות לקליטת מכירות אוטומטית ממקור אחד",
       "aiQuestions": "עד {{amount}} שאלות לעוזר העסקי בכל חודש",
       "members": "עד {{count}} משתמשים",
       "members_one": "משתמש אחד"
