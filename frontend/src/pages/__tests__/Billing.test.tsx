@@ -22,13 +22,14 @@ const price = (amount: string) => (_: string, element: Element | null) =>
 const serve = (overview: BillingOverview) => server.use(http.get(`${API}/billing/subscription`, () => HttpResponse.json(overview)))
 
 describe('public pricing page', () => {
-  it('renders the server catalog with Business recommended and prices excluding VAT', async () => {
+  it('renders the server catalog with Starter recommended and customer-friendly copy', async () => {
     renderWithProviders(<PricingPage />, { route: '/pricing' })
     expect(await screen.getByRole('heading', { level: 1, name: /30 יום להכיר את Sydney/ })).toBeInTheDocument()
-    const business = (await screen.findByRole('heading', { name: 'Business' })).closest('article')!
-    expect(within(business).getByText('המומלץ ביותר')).toBeInTheDocument()
-    expect(within(business).getByText(price('119'))).toBeInTheDocument()
-    expect(within(business).getByText('עד 3 חיבורי מכירות')).toBeInTheDocument()
+    const starter = (await screen.findByRole('heading', { name: 'Starter' })).closest('article')!
+    expect(within(starter).getByText('המומלץ ביותר')).toBeInTheDocument()
+    expect(within(starter).getByText(price('69'))).toBeInTheDocument()
+    expect(within(starter).getByText('קליטת מכירות אוטומטית ממקור אחד')).toBeInTheDocument()
+    expect(within(starter).getByText('אפשרות להוסיף מכירות גם ממערכות אחרות')).toBeInTheDocument()
     expect(screen.getAllByText('המומלץ ביותר')).toHaveLength(1)
     expect(screen.getAllByText(/לפני מע״מ/).length).toBeGreaterThanOrEqual(3)
     expect(screen.getByText('לא נבקש כרטיס אשראי במהלך תקופת הניסיון.', { exact: false })).toBeInTheDocument()

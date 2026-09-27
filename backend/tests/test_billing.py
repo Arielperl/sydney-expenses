@@ -621,8 +621,9 @@ def test_public_plan_catalog_needs_no_login(http):
     assert response.status_code == 200
     body = response.json()
     assert [p["code"] for p in body["plans"]] == ["starter", "business", "pro"]
-    business = body["plans"][1]
-    assert business["recommended"] and business["prices"] == {"month": 11_900, "year": 119_000}
+    starter, business = body["plans"][:2]
+    assert starter["recommended"] and starter["prices"] == {"month": 6_900, "year": 69_000}
+    assert not business["recommended"] and business["prices"] == {"month": 11_900, "year": 119_000}
     assert body["prices_exclude_vat"] is True and body["member_limits_available"] is False
 
 

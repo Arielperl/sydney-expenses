@@ -36,20 +36,20 @@ class PlanDefinition:
 
 
 _STARTER_FEATURES = (
-    "לוח בקרה ותמונת הכנסות מלאה",
-    "רשימת מכירות וחיפוש",
-    "ייבוא מכירות מקובץ CSV",
-    "מרכז ״דורש טיפול״",
-    "פניות לתמיכה",
+    "תמונה ברורה של ההכנסות, המע״מ והעמלות",
+    "כל המכירות והלקוחות במקום אחד",
+    "אפשרות להוסיף מכירות גם ממערכות אחרות",
+    "התראות כשעסקה דורשת בדיקה",
+    "תמיכה אנושית בכל שלב",
 )
 
 PLANS: tuple[PlanDefinition, ...] = (
     PlanDefinition(
         code="starter",
         name="Starter",
-        tagline="לעסק שמתחיל לעבוד עם מקור מכירות אחד",
+        tagline="לעסק שרוצה סדר ושליטה בהכנסות",
         sort_order=1,
-        recommended=False,
+        recommended=True,
         monthly_price_minor=6_900,
         yearly_price_minor=69_000,
         max_connections=1,
@@ -60,9 +60,9 @@ PLANS: tuple[PlanDefinition, ...] = (
     PlanDefinition(
         code="business",
         name="Business",
-        tagline="המסלול המומלץ לרוב העסקים",
+        tagline="לעסק שמקבל תשלומים מכמה מקומות",
         sort_order=2,
-        recommended=True,
+        recommended=False,
         monthly_price_minor=11_900,
         yearly_price_minor=119_000,
         max_connections=3,
@@ -73,7 +73,7 @@ PLANS: tuple[PlanDefinition, ...] = (
     PlanDefinition(
         code="pro",
         name="Pro",
-        tagline="לעסק שמוכר דרך כמה מקורות מכירה",
+        tagline="לעסק עם פעילות רחבה ומספר מערכות מכירה",
         sort_order=3,
         recommended=False,
         monthly_price_minor=24_900,

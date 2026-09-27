@@ -3,17 +3,17 @@ import type { BillingOverview, BillingPlan, PlanCatalog } from '../../services/b
 // Mirrors GET /api/billing/plans for tests only; the app itself always reads the server's catalog.
 export const plans: BillingPlan[] = [
   {
-    code: 'starter', name: 'Starter', tagline: 'לעסק שמתחיל לעבוד עם מקור מכירות אחד', recommended: false,
+    code: 'starter', name: 'Starter', tagline: 'לעסק שרוצה סדר ושליטה בהכנסות', recommended: true,
     prices: { month: 6_900, year: 69_000 }, max_connections: 1, max_members: 1, ai_questions_per_month: 300,
-    features: ['לוח בקרה ותמונת הכנסות מלאה', 'רשימת מכירות וחיפוש', 'ייבוא מכירות מקובץ CSV', 'מרכז ״דורש טיפול״', 'פניות לתמיכה'],
+    features: ['תמונה ברורה של ההכנסות, המע״מ והעמלות', 'כל המכירות והלקוחות במקום אחד', 'אפשרות להוסיף מכירות גם ממערכות אחרות', 'התראות כשעסקה דורשת בדיקה', 'תמיכה אנושית בכל שלב'],
   },
   {
-    code: 'business', name: 'Business', tagline: 'המסלול המומלץ לרוב העסקים', recommended: true,
+    code: 'business', name: 'Business', tagline: 'לעסק שמקבל תשלומים מכמה מקומות', recommended: false,
     prices: { month: 11_900, year: 119_000 }, max_connections: 3, max_members: 5, ai_questions_per_month: 1_500,
     features: ['כל מה שיש ב־Starter', 'תמונה מאוחדת מכמה מקורות מכירה'],
   },
   {
-    code: 'pro', name: 'Pro', tagline: 'לעסק שמוכר דרך כמה מקורות מכירה', recommended: false,
+    code: 'pro', name: 'Pro', tagline: 'לעסק עם פעילות רחבה ומספר מערכות מכירה', recommended: false,
     prices: { month: 24_900, year: 249_000 }, max_connections: 10, max_members: 15, ai_questions_per_month: 5_000,
     features: ['כל מה שיש ב־Business', 'מתאים לעסקים עם כמה מקורות מכירה'],
   },
