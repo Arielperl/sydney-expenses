@@ -84,7 +84,10 @@ function PlanPrice({ plan, interval, surface }: { plan: BillingPlan; interval: B
   return (
     <div className="mt-6">
       <p className="flex flex-wrap items-baseline gap-x-1.5">
-        <bdi className={cx('figure inline-flex items-baseline gap-1 text-[2.5rem] leading-none font-medium tracking-[-0.02em] text-zinc-900', dark(surface, 'dark:text-zinc-50'))}>
+        <bdi
+          dir="ltr"
+          className={cx('figure inline-flex items-baseline gap-1 text-[2.5rem] leading-none font-medium tracking-[-0.02em] text-zinc-900', dark(surface, 'dark:text-zinc-50'))}
+        >
           <span className="sr-only">{formatPlanPrice(minor, language)}</span>
           {planPriceParts(minor, language).map((part, index) => (
             <span
