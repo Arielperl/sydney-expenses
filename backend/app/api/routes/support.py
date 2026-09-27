@@ -35,6 +35,8 @@ class SupportRequestRead(BaseModel):
     status: Literal["open", "resolved"]
     created_at: datetime
     updated_at: datetime
+    # Staff view only: the business's plan includes priority support right now.
+    priority: bool | None = None
 
 
 class SupportMessageCreate(BaseModel):
@@ -64,7 +66,19 @@ def _read(row: SupportRequest, db: Session, *, staff: bool = False) -> SupportRe
         requester_email=account.email if account else None,
         subject=row.subject, message=row.message, provider=row.provider,
         status=row.status, created_at=row.created_at, updated_at=row.updated_at,
+        priority=_has_priority_support(db, row.business_id) if staff else None,
     )
+
+
+def _has_priority_support(db: Session, business_id: str) -> bool:
+    from app.billing.access import evaluate_access
+    from app.billing.models import BusinessSubscription, SubscriptionPlan
+
+    sub = db.scalar(select(BusinessSubscription).where(BusinessSubscription.business_id == business_id))
+    if sub is None or not evaluate_access(sub, datetime.utcnow()).allowed:
+        return False
+    plan = db.get(SubscriptionPlan, sub.plan_code)
+    return bool(plan and plan.priority_support)
 
 
 def _author_name(db: Session, user_id: str, author_type: str) -> str:

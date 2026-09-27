@@ -203,6 +203,42 @@ class Settings(BaseSettings):
     # real third-party payment credentials, not just an internal secret.
     cardcom_credential_encryption_key: str | None = None
 
+    # --- Sydney's own SaaS subscription billing (app/billing) ---------------
+    # Entirely separate from the sales a business receives from its own
+    # customers (connections, webhooks, Cardcom/Grow credentials above).
+    #
+    # BILLING_PROVIDER selects the adapter that charges businesses for their
+    # Sydney subscription. No real provider exists yet, so "none" is the only
+    # production value; "local_test" is a local/test double that production
+    # refuses to start with (see validate_billing_settings).
+    billing_provider: Literal["none", "local_test"] = "none"
+    # When true, businesses whose trial or subscription has ended are blocked
+    # from normal product use (billing, auth and support stay available).
+    # Production refuses to enable this without a working billing provider,
+    # so nobody can be locked out with no way to pay.
+    billing_enforcement_enabled: bool = False
+    # Signing secret for the local_test provider's simulated webhooks only.
+    billing_local_test_webhook_secret: str | None = None
+
+
+class BillingConfigurationError(RuntimeError):
+    """Raised at startup when subscription billing is configured in a way
+    that could charge incorrectly or lock businesses out without a way to
+    pay. Fails closed."""
+
+
+def validate_billing_settings(settings: Settings) -> None:
+    problems: list[str] = []
+    production = settings.app_environment == "production"
+    if production and settings.billing_provider == "local_test":
+        problems.append("BILLING_PROVIDER=local_test is a test double and is never allowed in production")
+    if production and settings.billing_enforcement_enabled and settings.billing_provider == "none":
+        problems.append("BILLING_ENFORCEMENT_ENABLED requires a configured billing provider in production")
+    if settings.billing_provider == "local_test" and len(settings.billing_local_test_webhook_secret or "") < 32:
+        problems.append("BILLING_LOCAL_TEST_WEBHOOK_SECRET must contain at least 32 characters")
+    if problems:
+        raise BillingConfigurationError("Refusing to start: " + "; ".join(problems))
+
 
 class StorageConfigurationError(RuntimeError):
     """Raised at startup when STORAGE_PROVIDER=supabase but required Supabase

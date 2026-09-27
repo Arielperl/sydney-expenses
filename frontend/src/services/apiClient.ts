@@ -41,7 +41,9 @@ export function toApiError(error: unknown): ApiError {
         ? detail
         : Array.isArray(detail)
           ? detail.map((item) => item.msg ?? String(item)).join('; ')
-          : error.message
+          : typeof detail?.message === 'string'
+            ? detail.message
+            : error.message
     return new ApiError(message, error.response?.status)
   }
   return new ApiError('An unexpected error occurred.')
@@ -50,6 +52,10 @@ export function toApiError(error: unknown): ApiError {
 // One refresh for concurrent failed requests; do not replay writes without a 401.
 let refreshInFlight: Promise<unknown> | null = null
 apiClient.interceptors.response.use(response => response, async error => {
+  // The server locked the product (trial ended, subscription lapsed): let the app show why.
+  if (error.response?.status === 402 && error.response?.data?.code === 'subscription_required') {
+    window.dispatchEvent(new Event('sydney:subscription-required'))
+  }
   const config = error.config
   if (error.response?.status !== 401 || !config || config._retried || (config.url?.startsWith('/auth/') && config.url !== '/auth/session')) return Promise.reject(error)
   config._retried = true

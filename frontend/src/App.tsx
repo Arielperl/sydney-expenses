@@ -5,6 +5,9 @@ import { AuthProvider, RequireAuth, RequireSupport } from './contexts/AuthContex
 import { AuthPage } from './pages/AuthPage'
 import { HomePage } from './pages/HomePage'
 import { Layout } from './components/Layout'
+import { RequirePlan, SubscriptionGate } from './components/billing/BillingGate'
+const BillingPage = lazy(() => import('./pages/BillingPage').then(module => ({ default: module.BillingPage })))
+const PricingPage = lazy(() => import('./pages/PricingPage').then(module => ({ default: module.PricingPage })))
 const AddSalePage = lazy(() => import('./pages/AddSalePage').then(module => ({ default: module.AddSalePage })))
 const AssistantPage = lazy(() => import('./pages/AssistantPage').then(module => ({ default: module.AssistantPage })))
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })))
@@ -40,16 +43,22 @@ function App() {
         <Route path="signup" element={<AuthPage key="signup" mode="signup" />} />
         {!import.meta.env.PROD && <Route path="support/login" element={<SupportLoginPage />} />}
         {!import.meta.env.PROD && <Route element={<RequireSupport />}><Route path="support" element={<SupportPortalPage />} /></Route>}
+        <Route path="pricing" element={<PricingPage />} />
         <Route element={<RequireAuth />}>
+        <Route element={<RequirePlan />}>
         <Route element={<Layout />}>
-          <Route path="app" element={<DashboardPage />} />
-          <Route path="sales" element={<SalesPage />} />
-          <Route path="sales/:id" element={<SaleDetailsPage />} />
-          <Route path="add-sale" element={<AddSalePage />} />
-          <Route path="import-document" element={<ImportDocumentPage />} />
-          <Route path="exceptions" element={<ExceptionCenterPage />} />
-          <Route path="imports" element={<ImportsPage />} />
-          <Route path="assistant" element={<AssistantPage />} />
+          {/* Product screens. Billing and support stay outside the gate so a lapsed business can always reach them. */}
+          <Route element={<SubscriptionGate />}>
+            <Route path="app" element={<DashboardPage />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="sales/:id" element={<SaleDetailsPage />} />
+            <Route path="add-sale" element={<AddSalePage />} />
+            <Route path="import-document" element={<ImportDocumentPage />} />
+            <Route path="exceptions" element={<ExceptionCenterPage />} />
+            <Route path="imports" element={<ImportsPage />} />
+            <Route path="assistant" element={<AssistantPage />} />
+          </Route>
+          <Route path="billing" element={<BillingPage />} />
           <Route path="support/request" element={<SupportRequestPage />} />
           <Route path="admin" element={<Navigate to="/app" replace />} />
 
@@ -58,6 +67,7 @@ function App() {
           <Route path="add-expense" element={<Navigate to="/add-sale" replace />} />
           <Route path="upload-receipt" element={<Navigate to="/import-document" replace />} />
           <Route path="reconciliation" element={<Navigate to="/exceptions" replace />} />
+        </Route>
         </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,7 +9,8 @@
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu",
     "admin": "System Admin",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "billing": "Plan & billing"
   },
   "account": {
     "myAccount": "My account",
@@ -692,7 +693,8 @@
       "shortcut": "Enter to send · Shift+Enter for a new line",
       "resolvedNotice": "This request is marked as resolved. A new message will reopen it.",
       "sendError": "The message wasn't sent. Please try again."
-    }
+    },
+    "priority": "Priority"
   },
   "supportPortal": {
     "brand": "Sydney Support",
@@ -703,12 +705,14 @@
     "sections": {
       "inbox": "Requests",
       "businesses": "Businesses and providers",
-      "accounts": "Accounts and permissions"
+      "accounts": "Accounts and permissions",
+      "subscriptions": "Subscriptions"
     },
     "sectionsShort": {
       "inbox": "Requests",
       "businesses": "Businesses",
-      "accounts": "Accounts"
+      "accounts": "Accounts",
+      "subscriptions": "Plans"
     },
     "inbox": {
       "title": "Request inbox",
@@ -792,6 +796,211 @@
       "submit": "Sign in",
       "submitting": "Signing in…",
       "noPermission": "This account doesn't have support access."
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "description": "Each business's subscription status and change history. Manual changes are available to superadmins only.",
+      "descriptionSuperadmin": "Each business's subscription status. Every manual change requires a reason and is written to a log that cannot be edited.",
+      "searchLabel": "Search businesses",
+      "searchPlaceholder": "Search by business name",
+      "loading": "Loading subscriptions…",
+      "loadError": "We couldn't load subscriptions.",
+      "empty": "No businesses found",
+      "noPlan": "No plan",
+      "trialEnds": "Trial until {{date}}",
+      "periodEnds": "Period until {{date}}",
+      "paymentOnFile": "Payment method saved",
+      "noPayment": "No payment method",
+      "cancelScheduled": "Renewal canceled",
+      "history": "History",
+      "override": "Manual change",
+      "historyTitle": "Subscription history · {{business}}",
+      "noEvents": "No events yet.",
+      "overrideTitle": "Manual change · {{business}}",
+      "auditNotice": "This change is logged against the subscription with your name and reason, and can't be deleted or edited.",
+      "actionLabel": "Action",
+      "days": "Days (1–90)",
+      "plan": "Plan",
+      "until": "Access until",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. Extension after a Grow connection outage, ticket #…",
+      "reasonHint": "5–500 characters. Never include payment details.",
+      "apply": "Apply change",
+      "applying": "Applying…",
+      "actions": {
+        "extend_trial": "Extend trial",
+        "change_plan": "Change plan",
+        "grant_access": "Grant access until a date",
+        "end_now": "End subscription now"
+      },
+      "actionHints": {
+        "extend_trial": "Extends the trial with no charge.",
+        "change_plan": "Changes the plan and its limits immediately.",
+        "grant_access": "Free access until the date, without automatic renewal.",
+        "end_now": "Stops access immediately. Data is kept."
+      },
+      "source": {
+        "owner": "Owner",
+        "provider": "Billing provider",
+        "system": "System",
+        "admin": "Superadmin"
+      },
+      "status": {
+        "trialing": "Trial",
+        "active": "Active",
+        "past_due": "Payment failed",
+        "canceled": "Ended",
+        "expired": "Trial ended"
+      }
+    }
+  },
+  "billing": {
+    "title": "Plan & billing",
+    "description": "Your business's plan, trial and usage. All prices exclude VAT.",
+    "intervalLabel": "Billing cycle",
+    "interval": {
+      "month": "Monthly",
+      "year": "Yearly"
+    },
+    "yearlySavings": "{{count}} months free",
+    "yearlySavings_one": "1 month free",
+    "perMonth": "/ month",
+    "perYear": "/ year",
+    "excludingVat": "Excl. VAT",
+    "insteadOf": "instead of {{amount}}",
+    "recommended": "Recommended",
+    "currentPlan": "Current plan",
+    "limits": {
+      "connections": "Up to {{count}} sales connections",
+      "connections_one": "1 sales connection",
+      "aiQuestions": "{{amount}} AI assistant questions a month",
+      "members": "Up to {{count}} users",
+      "members_one": "1 user"
+    },
+    "state": {
+      "plan_required": "No plan chosen",
+      "trialing": "Free trial",
+      "trial_ending": "Trial ending soon",
+      "payment_processing": "Confirming payment",
+      "active": "Active",
+      "canceling": "Renewal canceled",
+      "renewal_processing": "Renewing",
+      "past_due": "Payment failed",
+      "trial_expired": "Trial ended",
+      "trial_unavailable": "Subscription required",
+      "canceled": "Subscription ended"
+    },
+    "summary": {
+      "trialing": "Your trial is active until {{date}}",
+      "trialingWithPayment": "Your trial is active until {{date}}. Your payment method is saved and the first charge happens when it ends.",
+      "trial_ending": "Your trial is active until {{date}}. Add a payment method before then to continue without interruption.",
+      "payment_processing": "Your trial ended on {{date}}. We're confirming the first charge with the billing provider; everything keeps working meanwhile.",
+      "active": "Your subscription is active. Next renewal on {{date}}.",
+      "canceling": "Renewal canceled. Your subscription stays active until {{date}}, with no further charges after that.",
+      "renewal_processing": "We're renewing your subscription with the billing provider. Everything keeps working meanwhile.",
+      "past_due": "The last payment didn't go through. Update your payment method to continue without interruption.",
+      "trial_expired": "Your trial ended on {{date}}. Your data is kept.",
+      "trial_unavailable": "The free trial was already used for these business or account details. Choose a plan and complete payment to start.",
+      "canceled": "Your subscription has ended. Your data is kept and you can resume at any time.",
+      "pendingPlan": "The switch to {{plan}} takes effect on {{date}}."
+    },
+    "daysLeft": "{{count}} days left",
+    "daysLeft_one": "1 day left",
+    "trialProgress": "Trial progress",
+    "actions": {
+      "addPayment": "Add payment method",
+      "pay": "Continue to payment",
+      "updatePayment": "Update payment method",
+      "changePlan": "Change plan",
+      "cancelRenewal": "Cancel renewal",
+      "resumeRenewal": "Resume subscription",
+      "choosePlan": "Choose a plan",
+      "redirecting": "Opening secure payment…"
+    },
+    "ownerOnly": "Only the business owner can manage the subscription.",
+    "paymentUnavailable": {
+      "title": "Online payment is coming soon",
+      "text": "No billing provider is connected yet. You can keep working, and nothing will be charged."
+    },
+    "dates": {
+      "title": "Dates",
+      "trialStart": "Trial started",
+      "trialEnd": "Trial ends",
+      "interval": "Billing cycle",
+      "periodStart": "Period started",
+      "nextRenewal": "Next renewal",
+      "periodEnd": "Period ends",
+      "timezone": "Dates are shown in {{zone}} time.",
+      "none": "—"
+    },
+    "payment": {
+      "title": "Payment method",
+      "onFile": "Payment method saved with the billing provider",
+      "none": "No payment method added",
+      "pending": "Payment awaiting confirmation",
+      "note": "Card details are stored only by the billing provider. Sydney never stores card numbers."
+    },
+    "usage": {
+      "title": "Plan usage",
+      "aiQuestions": "AI assistant questions this month",
+      "connections": "Sales connections",
+      "resets": "Resets on {{date}}",
+      "of": "{{used}} of {{limit}}",
+      "atLimit": "You've reached your plan's limit"
+    },
+    "checkout": {
+      "pendingTitle": "Confirming your payment with the billing provider",
+      "pendingText": "This usually takes less than a minute. No need to refresh.",
+      "slowTitle": "Confirmation is taking longer than usual",
+      "slowText": "As soon as the billing provider confirms, it will show here. You won't be charged twice.",
+      "successTitle": "Payment confirmed",
+      "successText": "Your payment method is saved and your subscription is up to date.",
+      "canceledTitle": "Payment not completed",
+      "canceledText": "Nothing was charged. You can try again at any time.",
+      "failedTitle": "We couldn't open the payment page",
+      "dismiss": "Dismiss"
+    },
+    "changePlan": {
+      "title": "Change plan",
+      "trialNote": "During the trial the change is immediate, and your trial end date stays the same.",
+      "paidNote": "Upgrades apply immediately. Downgrades apply at the start of the next period.",
+      "confirm": "Switch to {{plan}}",
+      "select": "Choose a plan",
+      "cancel": "Cancel",
+      "saving": "Updating…",
+      "error": "We couldn't change your plan. Please try again."
+    },
+    "cancel": {
+      "title": "Cancel renewal?",
+      "description": "Your subscription stays active until {{date}}. After that nothing more is charged and access to the tools stops. Your data is kept and you can resume at any time.",
+      "confirm": "Cancel renewal",
+      "error": "We couldn't cancel the renewal. Please try again."
+    },
+    "resumeError": "We couldn't resume the subscription. Please try again.",
+    "loadError": "We couldn't load your subscription details.",
+    "loading": "Loading subscription details…",
+    "banner": {
+      "trialing": "Your trial is active until {{date}}",
+      "trial_ending": "Your trial ends on {{date}}. Add a payment method to continue without interruption.",
+      "past_due": "The last payment didn't go through. Update your payment method to continue without interruption.",
+      "notEnforced": "Your trial has ended. Your data is kept. To continue, choose a plan and complete payment.",
+      "manage": "Plan & billing"
+    },
+    "locked": {
+      "trial_expired": "Your trial has ended",
+      "trial_unavailable": "An active subscription is required",
+      "canceled": "Your subscription has ended",
+      "text": "Your data is kept. To keep using Sydney, choose a plan and complete payment.",
+      "memberText": "The business's data is kept. To continue, the owner needs to choose a plan and complete payment.",
+      "kept": "Nothing was deleted: your sales, connections and conversations are exactly as you left them.",
+      "choosePlan": "Choose a plan",
+      "contactSupport": "Contact support",
+      "endedOn": "Ended on {{date}}"
+    },
+    "sidebar": {
+      "label": "Subscription status",
+      "trialDays": "Trial · {{count}} days",
+      "trialDays_one": "Trial · 1 day"
     }
   }
 }

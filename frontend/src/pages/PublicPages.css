@@ -5,7 +5,8 @@
  * light surfaces use brand-600 for contrast.
  */
 .public-site,
-.auth-shell {
+.auth-shell,
+.plan-step {
   --mint: #41d7b2;
   --mint-hover: #6ce3c5;
   --ink: var(--color-zinc-900);
@@ -19,9 +20,11 @@
   background: #fff;
 }
 .public-site *,
-.auth-shell * { box-sizing: border-box; }
+.auth-shell *,
+.plan-step * { box-sizing: border-box; }
 .public-site a,
-.auth-shell a { text-decoration: none; }
+.auth-shell a,
+.plan-step a { text-decoration: none; }
 .public-site h1,
 .public-site h2,
 .auth-shell h1,
@@ -65,7 +68,8 @@
 .public-button.ghost { background: transparent; border-color: rgb(255 255 255 / .28); color: #fff !important; box-shadow: none; }
 .public-button.ghost:hover { background: rgb(255 255 255 / .08); border-color: rgb(255 255 255 / .45); }
 .public-site :focus-visible,
-.auth-shell :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 3px; }
+.auth-shell :focus-visible,
+.plan-step :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 3px; }
 .public-hero :focus-visible,
 .public-cta :focus-visible { outline-color: var(--mint); }
 
@@ -162,6 +166,26 @@
 .public-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 36px max(5%, calc((100vw - 1200px) / 2)); font-size: 13px; color: var(--color-zinc-500); border-top: 1px solid var(--line); }
 .public-footer a:last-child { color: var(--color-brand-700); font-weight: 500; }
 
+/* ---------- Pricing ----------
+ * Deliberately not a .public-section: those rules are unlayered and would
+ * override the plan cards' Tailwind utilities. Everything here is scoped. */
+.public-header nav a[aria-current='page'] { color: var(--ink); font-weight: 500; }
+.public-button.outline { background: #fff; color: var(--ink) !important; border-color: var(--color-zinc-300); box-shadow: 0 1px 2px rgb(21 26 25 / .04); }
+.public-button.outline:hover { background: var(--color-zinc-50); border-color: var(--color-zinc-400); }
+.pricing-cta { width: 100%; }
+.pricing-section { max-width: 1200px; margin: 0 auto; padding: 88px 5% 104px; }
+.pricing-section .section-heading h1 { margin: 12px 0 0; font-size: clamp(30px, 3.2vw, 42px); line-height: 1.2; font-weight: 600; letter-spacing: -.01em; }
+.pricing-section .section-heading > p { max-width: 460px; font-size: 17px; line-height: 1.8; color: var(--muted); }
+.pricing-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 48px 0 32px; }
+.pricing-vat-note { font-size: 13px; color: var(--color-zinc-500); }
+.pricing-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--color-zinc-50); color: var(--color-zinc-700); }
+.pricing-error p { margin: 0; }
+.pricing-assurances { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 32px; margin: 64px 0 0; padding: 32px 0 0; list-style: none; border-top: 1px solid var(--line); }
+.pricing-assurances li { display: flex; align-items: flex-start; gap: 14px; }
+.pricing-assurances .feature-icon { flex-shrink: 0; width: 36px; height: 36px; margin: 2px 0 0; }
+.pricing-assurances h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; line-height: 1.5; }
+.pricing-assurances p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--muted); }
+
 /* ---------- Sign in / sign up / onboarding ---------- */
 .auth-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .auth-form-side { display: flex; flex-direction: column; justify-content: space-between; gap: 40px; padding: 36px clamp(24px, 6vw, 96px); }
@@ -203,6 +227,35 @@
 .auth-art > p { max-width: 380px; margin-bottom: 36px; color: #bcd3ca; }
 .auth-art .product-preview { width: 100%; max-width: 460px; }
 
+/* Onboarding step 2: plan selection. Full width so three plans sit side by side. */
+.plan-step { min-height: 100vh; background: var(--color-zinc-50); }
+.plan-step-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 72px; padding: 0 max(5%, calc((100vw - 1200px) / 2)); background: #fff; border-bottom: 1px solid var(--line); }
+.plan-step-progress { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--color-zinc-600); }
+.plan-step-progress span { width: 22px; height: 4px; border-radius: 999px; background: var(--color-zinc-200); }
+.plan-step-progress span.done { background: var(--color-brand-600); }
+.plan-step-progress span:last-of-type { margin-inline-end: 6px; }
+.plan-step-main { max-width: 1200px; margin: 0 auto; padding: 48px 5% 64px; }
+.plan-step-heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 40px; margin-bottom: 36px; }
+.plan-step-heading h1 { margin: 0 0 8px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.3; font-weight: 600; letter-spacing: -.01em; }
+.plan-step-heading p { max-width: 560px; margin: 0; color: var(--muted); }
+.plan-step-summary { position: sticky; bottom: 16px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; margin-top: 32px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 12px 32px -12px rgb(21 26 25 / .18), 0 2px 6px rgb(21 26 25 / .05); }
+.plan-step-summary .feature-icon { flex-shrink: 0; width: 38px; height: 38px; margin: 0; }
+.plan-step-summary-text { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.plan-step-summary-text strong { font-size: 15px; font-weight: 600; line-height: 1.5; }
+.plan-step-summary-text span { font-size: 13px; line-height: 1.6; color: var(--muted); }
+.plan-step-summary .public-button { min-width: 220px; }
+.plan-step .auth-forgot { margin-top: 28px; }
+@media (max-width: 860px) {
+  .plan-step-header { height: 64px; }
+  .plan-step-main { padding: 32px 6% 48px; }
+  .plan-step-summary { bottom: 8px; gap: 10px; padding: 12px 14px; }
+  .plan-step-summary .feature-icon { display: none; }
+  .plan-step-summary-text { flex-basis: 100%; }
+  .plan-step-summary-text strong { font-size: 14px; }
+  .plan-step-summary-text span { font-size: 12px; }
+  .plan-step-summary .public-button { flex: 1 1 100%; min-width: 0; }
+}
+
 /* Full-screen status (session check, workspace loading, connection error) — follows the app theme. */
 .auth-state { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 16px; padding: 32px; text-align: center; font-family: var(--font-sans); background: var(--color-zinc-50); color: var(--color-zinc-700); }
 .auth-state::before { content: ''; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--color-zinc-300); border-top-color: var(--color-brand-600); animation: auth-spin .8s linear infinite; }
@@ -240,6 +293,10 @@
   .faq-section { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .connection-art { min-height: 210px; }
   .public-footer { justify-content: center; text-align: center; }
+  .pricing-section { padding: 56px 6% 72px; }
+  .pricing-section .section-heading > p { margin-top: 12px; font-size: 16px; }
+  .pricing-controls { margin: 32px 0 24px; }
+  .pricing-assurances { grid-template-columns: minmax(0, 1fr); margin-top: 44px; }
   .auth-shell { grid-template-columns: minmax(0, 1fr); }
   .auth-art { display: none; }
   .auth-form-side { min-height: 100vh; padding: 28px 6%; gap: 20px; }

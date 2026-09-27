@@ -1,4 +1,4 @@
-import { Building2, Inbox, LogOut, UsersRound } from 'lucide-react'
+import { Building2, CreditCard, Inbox, LogOut, UsersRound } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
@@ -10,10 +10,11 @@ import { buttonClasses, cx } from '../components/ui-classes'
 import { useAuth } from '../contexts/AuthContext'
 import { BusinessesPanel } from './support-portal/BusinessesPanel'
 import { StaffAccountsPanel } from './support-portal/StaffAccountsPanel'
+import { SubscriptionsPanel } from './support-portal/SubscriptionsPanel'
 import { SupportInbox } from './support-portal/SupportInbox'
 
-type Section = 'inbox' | 'businesses' | 'accounts'
-const SECTION_ICONS = { inbox: Inbox, businesses: Building2, accounts: UsersRound } as const
+type Section = 'inbox' | 'businesses' | 'subscriptions' | 'accounts'
+const SECTION_ICONS = { inbox: Inbox, businesses: Building2, subscriptions: CreditCard, accounts: UsersRound } as const
 
 export function SupportBrand() {
   const { t } = useTranslation()
@@ -35,7 +36,7 @@ export function SupportPortalPage() {
   const { user, logout } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const isSuperadmin = user?.system_role === 'superadmin'
-  const sections: Section[] = isSuperadmin ? ['inbox', 'businesses', 'accounts'] : ['inbox', 'businesses']
+  const sections: Section[] = isSuperadmin ? ['inbox', 'businesses', 'subscriptions', 'accounts'] : ['inbox', 'businesses', 'subscriptions']
   const requested = searchParams.get('section') as Section | null
   const section: Section = requested && sections.includes(requested) ? requested : 'inbox'
 
@@ -114,6 +115,7 @@ export function SupportPortalPage() {
         <div id={`support-panel-${section}`} role="tabpanel" aria-labelledby={`support-tab-${section}`} key={section} className="animate-page-enter">
           {section === 'inbox' && <SupportInbox />}
           {section === 'businesses' && <BusinessesPanel />}
+          {section === 'subscriptions' && <SubscriptionsPanel canOverride={isSuperadmin} />}
           {section === 'accounts' && user && <StaffAccountsPanel currentUserId={user.id} />}
         </div>
       </main>

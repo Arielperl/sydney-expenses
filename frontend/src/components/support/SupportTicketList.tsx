@@ -68,6 +68,11 @@ function TicketRow({
             </span>
             <span className="mt-2 flex flex-wrap items-center gap-1.5">
               <SupportStatusBadge status={request.status} />
+              {staff && request.priority && (
+                <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-800 ring-1 ring-brand-200 ring-inset dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/25">
+                  {t('support.priority')}
+                </span>
+              )}
               {request.provider && (
                 <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                   <span className="sr-only">{t('support.provider')}: </span>

@@ -106,38 +106,67 @@ def rename_conversation(
     return conversation
 
 
+def _billing_session(business_id: str) -> Session:
+    from app.database import SessionLocal
+
+    session = SessionLocal()
+    session.info["business_id"] = business_id
+    return session
+
+
 @router.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest, request: Request, db: Session = Depends(get_db)) -> ChatResponse:
     user_id = _user_id(request)
     business_id = getattr(request.state, "business_id", "unknown-business")
     _chat_by_ip.check(f"assistant-chat:{business_id}:{user_id}:{client_ip(request)}")
+    # Plan entitlement: assistant questions per billing month. Counted atomically in
+    # its own transaction before anything else is written, and released if no answer is produced.
+    from app.billing.service import QuotaExceededError, SubscriptionService
 
-    if payload.conversation_id:
-        conversation = _conversation_or_404(db, payload.conversation_id, user_id)
-        recent_desc = db.scalars(
-            select(AssistantMessage)
-            .where(AssistantMessage.conversation_id == conversation.id)
-            .order_by(AssistantMessage.sequence.desc())
-            .limit(_HISTORY_LIMIT)
-        ).all()
-        recent = list(reversed(recent_desc))
-        next_sequence = recent[-1].sequence + 1 if recent else 1
-    else:
-        conversation = AssistantConversation(user_id=user_id, title=_title_from_message(payload.message))
-        db.add(conversation)
-        db.flush()
-        recent = []
-        next_sequence = 1
-
-    history = [{"role": message.role, "content": message.content} for message in recent]
-    settings = get_settings()
+    quota = SubscriptionService(_billing_session(business_id))
     try:
-        reply = answer_question(settings, db, payload.message, history)
+        counter_id = quota.reserve_ai_question(business_id)
+    except QuotaExceededError as error:
+        quota.db.close()
+        raise HTTPException(status_code=429, detail=str(error)) from None
+    except Exception:
+        quota.db.close()
+        raise
+
+    try:
+        if payload.conversation_id:
+            conversation = _conversation_or_404(db, payload.conversation_id, user_id)
+            recent_desc = db.scalars(
+                select(AssistantMessage)
+                .where(AssistantMessage.conversation_id == conversation.id)
+                .order_by(AssistantMessage.sequence.desc())
+                .limit(_HISTORY_LIMIT)
+            ).all()
+            recent = list(reversed(recent_desc))
+            next_sequence = recent[-1].sequence + 1 if recent else 1
+        else:
+            conversation = AssistantConversation(user_id=user_id, title=_title_from_message(payload.message))
+            db.add(conversation)
+            db.flush()
+            recent = []
+            next_sequence = 1
+
+        history = [{"role": message.role, "content": message.content} for message in recent]
+        reply = answer_question(get_settings(), db, payload.message, history)
     except (AssistantConfigError, AssistantProviderError) as exc:
         db.rollback()
+        quota.release_ai_question(counter_id)
+        quota.db.close()
         raise HTTPException(
             status_code=503, detail="Could not get an answer right now. Please try again."
         ) from exc
+    except Exception:
+        # No answer was produced (e.g. unknown conversation): the question is not counted.
+        db.rollback()
+        quota.release_ai_question(counter_id)
+        quota.db.close()
+        raise
+    quota.db.close()
 
     now = datetime.utcnow()
     db.add_all(

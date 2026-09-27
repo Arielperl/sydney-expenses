@@ -13,9 +13,38 @@ export function PublicBrand() {
   )
 }
 
+/** Site header. Section links are anchors on the home page and `/#…` links elsewhere. */
+export function PublicHeader({ current }: { current?: 'pricing' }) {
+  const prefix = current ? '/' : ''
+  return (
+    <header className="public-header">
+      <PublicBrand />
+      <nav aria-label="ניווט באתר">
+        <a href={`${prefix}#features`}>יכולות</a>
+        <a href={`${prefix}#how`}>איך זה עובד</a>
+        <Link to="/pricing" aria-current={current === 'pricing' ? 'page' : undefined}>מחירים</Link>
+        <a href={`${prefix}#faq`}>שאלות נפוצות</a>
+      </nav>
+      <div className="header-actions">
+        <Link to="/login" className="header-login">התחברות</Link>
+        <Link className="public-button small" to="/signup">פתיחת חשבון <ArrowLeft size={16} aria-hidden="true" /></Link>
+      </div>
+    </header>
+  )
+}
+
+export function PublicFooter() {
+  return (
+    <footer className="public-footer">
+      <PublicBrand />
+      <span>© {new Date().getFullYear()} Sydney · מנהל הכנסות</span>
+      <Link to="/login">כבר יש חשבון? מתחברים</Link>
+    </footer>
+  )
+}
+
 /*
- * Illustrative product preview. Every figure is labelled as illustrative and
- * the breakdown reconciles exactly: 30,620.00 − 4,670.85 − 643.02 − 456.13 =
+ * Illustrative product preview. The breakdown reconciles exactly: 30,620.00 − 4,670.85 − 643.02 − 456.13 =
  * 24,850.00. No growth claims or invented comparisons.
  */
 const PREVIEW_ROWS: [string, string][] = [
@@ -82,19 +111,7 @@ export function HomePage() {
   const motionRef = useLandingMotion()
   return (
     <div ref={motionRef} className="public-site" dir="rtl">
-      <header className="public-header">
-        <PublicBrand />
-        <nav aria-label="ניווט באתר">
-          <a href="#features">יכולות</a>
-          <a href="#how">איך זה עובד</a>
-          <a href="#connections">חיבורים</a>
-          <a href="#faq">שאלות נפוצות</a>
-        </nav>
-        <div className="header-actions">
-          <Link to="/login" className="header-login">התחברות</Link>
-          <Link className="public-button small" to="/signup">פתיחת חשבון <ArrowLeft size={16} aria-hidden="true" /></Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
         <section className="public-hero">
@@ -116,7 +133,6 @@ export function HomePage() {
             </div>
             <div className="hero-product" id="preview">
               <ProductPreview />
-              <p className="preview-caption">המחשת המוצר · הנתונים אינם נתוני עסק אמיתי</p>
             </div>
           </div>
           <div className="hero-bottom">
@@ -193,11 +209,7 @@ export function HomePage() {
         </section>
       </main>
 
-      <footer className="public-footer">
-        <PublicBrand />
-        <span>© {new Date().getFullYear()} Sydney · מנהל הכנסות</span>
-        <Link to="/login">כבר יש חשבון? מתחברים</Link>
-      </footer>
+      <PublicFooter />
     </div>
   )
 }

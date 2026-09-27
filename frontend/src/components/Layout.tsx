@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { Bot, ChevronsUpDown, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
+import { Bot, ChevronsUpDown, CreditCard, Home, LayoutDashboard, ListTodo, LogOut, Menu, PlugZap, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import logoUrl from '../assets/investment-logo.svg'
 import { useAuth } from '../contexts/AuthContext'
+import { useBillingOverview } from '../hooks/useBillingOverview'
+import { billingState, planByCode, STATE_TONE } from '../lib/billing'
 import { getExceptionCenter } from '../services/exceptionService'
 import { BusinessBadge } from './BusinessBadge'
 import { LanguageSwitcher } from './LanguageSwitcher'
@@ -66,6 +68,45 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
         </NavLink>
       ))}
     </nav>
+  )
+}
+
+const STATUS_DOT: Record<string, string> = {
+  neutral: 'bg-zinc-400', brand: 'bg-brand-500', success: 'bg-success-500', warning: 'bg-amber-500', danger: 'bg-danger-500', info: 'bg-sky-500',
+}
+
+/** The plan at a glance, linking to billing. Quiet unless something needs the owner. */
+function SidebarPlanStatus({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation()
+  const { data } = useBillingOverview()
+  if (!data?.subscription) return null
+  const state = billingState(data)
+  const plan = planByCode(data.plans, data.subscription.plan_code)
+  const days = data.subscription.trial_days_remaining
+  const label = (state === 'trialing' || state === 'trial_ending') && typeof days === 'number'
+    ? t('billing.sidebar.trialDays', { count: days })
+    : t(`billing.state.${state}`)
+  return (
+    <NavLink
+      to="/billing"
+      onClick={onNavigate}
+      aria-label={`${t('billing.sidebar.label')}: ${plan?.name ?? ''}, ${label}`}
+      className={({ isActive }) => cx(
+        'flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors',
+        isActive
+          ? 'border-brand-200 bg-brand-50/70 dark:border-brand-500/25 dark:bg-brand-500/10'
+          : 'border-zinc-200/80 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50',
+      )}
+    >
+      <CreditCard className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" aria-hidden="true" />
+      <span className="min-w-0 flex-1 leading-tight">
+        <span className="block truncate text-sm font-medium text-zinc-800 dark:text-zinc-100" dir="ltr">{plan?.name}</span>
+        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+          <span className={cx('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[STATE_TONE[state]])} aria-hidden="true" />
+          <span className="figure truncate">{label}</span>
+        </span>
+      </span>
+    </NavLink>
   )
 }
 
@@ -139,6 +180,15 @@ function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <Home className="h-4 w-4" aria-hidden="true" />
             {t('account.backToWebsite')}
           </NavLink>
+          <NavLink
+            to="/billing"
+            role="menuitem"
+            onClick={() => { setIsOpen(false); onNavigate?.() }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+          >
+            <CreditCard className="h-4 w-4" aria-hidden="true" />
+            {t('nav.billing')}
+          </NavLink>
           <button
             type="button"
             role="menuitem"
@@ -183,6 +233,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <NavLinks onNavigate={onNavigate} />
       </div>
       <div className="mt-3 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+        <SidebarPlanStatus onNavigate={onNavigate} />
         <div className="flex items-center gap-1.5 px-1">
           <LanguageSwitcher />
           <ThemeSwitcher />

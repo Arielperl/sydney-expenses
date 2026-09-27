@@ -108,6 +108,14 @@ def create_connection(
     _require_owner(request, settings)
     if not _visible_in_environment(payload.provider, settings):
         raise HTTPException(status_code=422, detail="ספק זה אינו זמין בסביבת הייצור")
+    # Plan entitlement: the number of sales connections a subscription includes.
+    from app.billing.service import PlanLimitError, SubscriptionService
+
+    try:
+        SubscriptionService(db).ensure_connection_capacity(db.info["business_id"])
+    except PlanLimitError as error:
+        raise HTTPException(status_code=403, detail={"message": str(error), "limit": error.limit,
+                                                     "allowed": error.allowed, "current": error.current}) from None
     if payload.provider in PRODUCTION_ALLOWED_PROVIDERS:
         approved = db.get(BusinessPaymentProvider, (db.info["business_id"], payload.provider))
         if approved is None:

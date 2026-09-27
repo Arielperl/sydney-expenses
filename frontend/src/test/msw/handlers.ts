@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
 import type { Sale } from '../../types/sale'
+import { activeTrialOverview, planCatalog } from './billingFixtures'
 
 const API_BASE = 'http://localhost:8000/api'
 
@@ -67,6 +68,8 @@ export function makeSale(overrides: Partial<Sale> = {}): Sale {
 
 export const handlers = [
   http.get(`${API_BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
+  http.get(`${API_BASE}/billing/subscription`, () => HttpResponse.json(activeTrialOverview)),
+  http.get(`${API_BASE}/billing/plans`, () => HttpResponse.json(planCatalog)),
   http.get(`${API_BASE}/sales`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/connections`, () => HttpResponse.json([])),
   http.get(`${API_BASE}/assistant/conversations`, () => HttpResponse.json([])),

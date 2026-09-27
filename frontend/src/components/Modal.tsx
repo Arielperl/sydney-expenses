@@ -10,10 +10,12 @@ export function Modal({
   title,
   onClose,
   children,
+  size = 'md',
 }: {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'md' | 'xl'
 }) {
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -41,7 +43,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-lg animate-pop-in flex-col overflow-hidden rounded-t-2xl border border-zinc-200 bg-white shadow-raised sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl dark:border-zinc-800 dark:bg-zinc-900"
+        className={`relative flex max-h-[calc(100dvh-1rem)] w-full ${size === 'xl' ? 'max-w-5xl' : 'max-w-lg'} animate-pop-in flex-col overflow-hidden rounded-t-2xl border border-zinc-200 bg-white shadow-raised sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl dark:border-zinc-800 dark:bg-zinc-900`}
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4 sm:px-6 dark:border-zinc-800">
           <h2 id={titleId} className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">

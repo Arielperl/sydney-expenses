@@ -5,6 +5,8 @@ export interface SupportRequest {
   business_id: string
   business_name: string | null
   requester_email: string | null
+  /** Staff views only: the business's plan includes priority support. */
+  priority?: boolean | null
   subject: string
   message: string
   provider: string | null

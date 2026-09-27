@@ -9,13 +9,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.router import api_router
-from app.core.config import get_settings, validate_auth_settings, validate_storage_settings
+from app.core.config import get_settings, validate_auth_settings, validate_billing_settings, validate_storage_settings
 
 settings = get_settings()
 if settings.app_environment == "production" and "https://support.sydneyexpenses.com" not in settings.cors_allowed_origins:
     settings.cors_allowed_origins.append("https://support.sydneyexpenses.com")
 validate_storage_settings(settings)
 validate_auth_settings(settings)
+validate_billing_settings(settings)
 
 Path(settings.uploads_dir).mkdir(parents=True, exist_ok=True)
 
@@ -54,11 +55,14 @@ async def protect_workspace(request: Request, call_next):
     webhook = path == "/api/webhooks/payments" or bool(
         re.fullmatch(r"/api/webhooks/connections/[0-9a-zA-Z_-]{20,64}", path)
     )
+    # Sydney's own subscription-billing provider: a separate endpoint with its
+    # own signature verification (app/billing), never a customer-sale webhook.
+    billing_webhook = bool(re.fullmatch(r"/api/billing/webhooks/[a-z0-9_]{2,40}", path))
     if webhook:
         from app.models.business import LEGACY_BUSINESS_ID
         request.state.business_id = LEGACY_BUSINESS_ID
     if config.auth_required and request.method != "OPTIONS":
-        if request.method not in ("GET", "HEAD") and not webhook:
+        if request.method not in ("GET", "HEAD") and not webhook and not billing_webhook:
             if request.headers.get("origin") not in config.cors_allowed_origins:
                 return JSONResponse({"detail": "מקור הבקשה אינו מורשה"}, status_code=403)
         onboarding = path == "/api/businesses" and request.method == "POST"
@@ -67,6 +71,8 @@ async def protect_workspace(request: Request, call_next):
             and path != "/api/health"
             and not path.startswith("/api/auth/")
             and not webhook
+            and not billing_webhook
+            and path != "/api/billing/plans"
             and not onboarding
         ) or path.startswith("/uploads/")
         if protected:
@@ -87,6 +93,18 @@ async def protect_workspace(request: Request, call_next):
                 request.state.business_id = user["business_id"]
                 if user["role"] == "viewer" and request.method not in ("GET", "HEAD") and path != "/api/assistant/chat":
                     raise HTTPException(403, "ההרשאה שלך מאפשרת צפייה בלבד")
+                if config.billing_enforcement_enabled:
+                    from app.billing.gating import access_for_business, is_exempt
+
+                    if not is_exempt(path):
+                        decision = access_for_business(user["business_id"])
+                        if not decision.allowed:
+                            return JSONResponse(
+                                {"detail": "נדרש מנוי פעיל כדי להמשיך", "code": "subscription_required",
+                                 "reason": decision.reason},
+                                status_code=402,
+                                headers={"Cache-Control": "no-store"},
+                            )
                 if path.startswith("/uploads/"):
                     from app.database import SessionLocal
                     from app.models.sale import Sale
