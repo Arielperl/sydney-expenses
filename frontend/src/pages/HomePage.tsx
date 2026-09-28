@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Check, ChartNoAxesCombined, Zap, ShieldCheck, MessageSquare, PlugZap, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Check, ChartNoAxesCombined, Zap, ShieldCheck, MessageSquare, PlugZap, ChevronDown, Play } from 'lucide-react'
 import logo from '../assets/investment-logo.svg'
+import { DemoVideoDialog } from '../components/DemoVideoDialog'
 import './PublicPages.css'
 import { useLandingMotion } from '../hooks/useLandingMotion'
 
@@ -109,6 +111,7 @@ const faq: [string, string][] = [
 
 export function HomePage() {
   const motionRef = useLandingMotion()
+  const [isDemoOpen, setIsDemoOpen] = useState(false)
   return (
     <div ref={motionRef} className="public-site" dir="rtl">
       <PublicHeader />
@@ -123,7 +126,10 @@ export function HomePage() {
               <p>מרכזים עסקאות ממקורות מחוברים, עוקבים אחרי הנתונים הכספיים ורואים אילו מכירות צריכות פעולה.</p>
               <div className="hero-actions">
                 <Link to="/signup" className="public-button on-dark">מתחילים לנהל הכנסות <ArrowLeft size={18} aria-hidden="true" /></Link>
-                <a className="public-button ghost" href="#preview">לראות איך זה עובד</a>
+                <button type="button" className="public-button ghost" onClick={() => setIsDemoOpen(true)}>
+                  <Play size={17} fill="currentColor" aria-hidden="true" />
+                  צפו בהדגמה · 30 שניות
+                </button>
               </div>
               <ul className="hero-notes">
                 <li><Check size={15} aria-hidden="true" /> מותאם לעברית</li>
@@ -210,6 +216,7 @@ export function HomePage() {
       </main>
 
       <PublicFooter />
+      {isDemoOpen && <DemoVideoDialog onClose={() => setIsDemoOpen(false)} />}
     </div>
   )
 }

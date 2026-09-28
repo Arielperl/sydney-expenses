@@ -95,6 +95,19 @@
 .hero-bottom a { color: inherit; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; }
 .hero-bottom a:hover { background: rgb(255 255 255 / .08); color: #fff; }
 
+/* The demo is requested explicitly, so the video never competes with or slows the hero. */
+.demo-video-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; font-family: var(--font-sans); }
+.demo-video-backdrop { position: absolute; inset: 0; border: 0; background: rgb(2 12 9 / .82); backdrop-filter: blur(10px); cursor: default; }
+.demo-video-dialog { position: relative; width: min(1120px, 100%); max-height: calc(100dvh - 48px); overflow: hidden; border: 1px solid rgb(255 255 255 / .14); border-radius: 20px; background: #071a15; color: #fff; box-shadow: 0 34px 100px rgb(0 0 0 / .5); }
+.demo-video-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid rgb(255 255 255 / .1); }
+.demo-video-header span { display: block; margin-bottom: 1px; color: #8fb0a4; font-size: 12px; font-weight: 500; }
+.demo-video-header h2 { margin: 0; color: #fff; font-size: 18px; font-weight: 600; line-height: 1.4; }
+.demo-video-close { display: grid; flex: 0 0 auto; place-items: center; width: 38px; height: 38px; border: 1px solid rgb(255 255 255 / .12); border-radius: 10px; background: rgb(255 255 255 / .06); color: #d7e6e0; cursor: pointer; transition: background-color .15s, color .15s; }
+.demo-video-close:hover { background: rgb(255 255 255 / .12); color: #fff; }
+.demo-video-close:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+.demo-video-frame { display: grid; place-items: center; max-height: calc(100dvh - 128px); overflow: hidden; background: #020807; }
+.demo-video-frame video { display: block; width: 100%; max-height: calc(100dvh - 128px); aspect-ratio: 16 / 9; object-fit: contain; background: #020807; }
+
 /* Product preview card (hero + sign-in art) */
 .product-preview {
   min-width: 0; text-align: start; color: #c8dbd3;
@@ -317,6 +330,11 @@
   .connection-art .sources span { min-width: 72px; font-size: 11.5px; padding: 5px 8px; }
   .connection-art i { width: 22px; }
   .hero-bottom { font-size: 12px; }
+  .demo-video-layer { padding: 0; }
+  .demo-video-dialog { width: 100%; max-height: 100dvh; border: 0; border-radius: 0; }
+  .demo-video-header { padding: 14px 16px; }
+  .demo-video-frame { min-height: calc(100dvh - 67px); max-height: calc(100dvh - 67px); }
+  .demo-video-frame video { width: auto; max-width: 100%; height: calc(100dvh - 67px); max-height: none; aspect-ratio: 9 / 16; }
 }
 
 /* ---------- Motion: opt-in, one-shot; static presentation is always fully visible ---------- */
