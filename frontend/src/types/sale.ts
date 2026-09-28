@@ -1,4 +1,4 @@
-export const DOCUMENT_CATEGORIES = [
+const DOCUMENT_CATEGORIES = [
   'groceries',
   'dining',
   'transport',
@@ -28,8 +28,8 @@ export type TransactionCurrency = (typeof TRANSACTION_CURRENCIES)[number]
 export const TAX_TREATMENTS = ['standard', 'zero_rate', 'exempt'] as const
 export type TaxTreatment = (typeof TAX_TREATMENTS)[number]
 
-export const SALE_SOURCES = ['manual', 'csv', 'webhook', 'demo'] as const
-export type SaleSource = (typeof SALE_SOURCES)[number]
+const SALE_SOURCES = ['manual', 'csv', 'webhook', 'demo'] as const
+type SaleSource = (typeof SALE_SOURCES)[number]
 
 export const SALE_STATUSES = ['succeeded', 'pending', 'failed', 'refunded', 'partially_refunded'] as const
 export type SaleStatus = (typeof SALE_STATUSES)[number]
@@ -40,7 +40,7 @@ export type SaleStatus = (typeof SALE_STATUSES)[number]
 // sale whose payment provider (Grow/Cardcom) is expected to supply a
 // document automatically and simply hasn't yet — see backend
 // app/models/sale.py's DocumentStatus docstring.
-export const DOCUMENT_STATUSES = ['pending', 'waiting_automatic', 'issued', 'failed', 'not_required'] as const
+const DOCUMENT_STATUSES = ['pending', 'waiting_automatic', 'issued', 'failed', 'not_required'] as const
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number]
 
 export interface Sale {

@@ -12,7 +12,7 @@ export const LANGUAGE_STORAGE_KEY = 'receiptly-language'
 
 const RTL_LANGUAGES: SupportedLanguage[] = ['he']
 
-export function directionForLanguage(language: string): 'rtl' | 'ltr' {
+function directionForLanguage(language: string): 'rtl' | 'ltr' {
   return RTL_LANGUAGES.includes(language as SupportedLanguage) ? 'rtl' : 'ltr'
 }
 
@@ -28,7 +28,7 @@ function readStoredLanguage(): SupportedLanguage {
   return DEFAULT_LANGUAGE
 }
 
-export function applyDocumentDirection(language: string): void {
+function applyDocumentDirection(language: string): void {
   document.documentElement.lang = language
   document.documentElement.dir = directionForLanguage(language)
 }

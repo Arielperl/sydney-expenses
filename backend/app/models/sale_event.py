@@ -20,7 +20,7 @@ from app.models.business import BusinessOwned
 
 
 class SaleEventType(str, enum.Enum):
-    SALE_RECEIVED = "sale_received"  # ingested automatically: webhook or demo simulator
+    SALE_RECEIVED = "sale_received"  # ingested automatically from a provider webhook
     SALE_CREATED_MANUALLY = "sale_created_manually"
     SALE_IMPORTED_FROM_CSV = "sale_imported_from_csv"
     PAYMENT_SUCCEEDED = "payment_succeeded"

@@ -1,4 +1,4 @@
-export interface CsvRowError {
+interface CsvRowError {
   row_number: number
   message: string
 }

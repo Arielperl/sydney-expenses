@@ -173,11 +173,8 @@ class PaymentEvent:
     tax_treatment: TaxTreatment
     vat_rate: Decimal | None
     description: str | None = None
-    # A real payment provider webhook vs. the in-product demo simulator
-    # (app/services/demo_simulator.py) — both flow through this same
-    # dataclass and `ingest_payment_event`, but must be labeled distinctly
-    # so demo data can always be identified (and safely reset) without
-    # touching a real webhook-ingested sale.
+    # Kept configurable for compatibility with historical demo rows while
+    # real provider events use the WEBHOOK defaults below.
     sale_source: SaleSource = SaleSource.WEBHOOK
     event_source: SaleEventSource = SaleEventSource.WEBHOOK
     # Provider-document sync (Grow's separate "Invoice creation" webhook,

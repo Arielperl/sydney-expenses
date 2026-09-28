@@ -100,7 +100,6 @@ Each verified account creates a private business workspace. The current release 
 The goal of this feature is that a human should not need to type in every sale by hand: a payment provider or POS system sends a webhook the moment a customer pays, and the app's job narrows to handling actionable document and VAT-review exceptions rather than data entry.
 
 **What's real today:**
-- **Development-only simulator** ([`app/services/demo_simulator.py`](backend/app/services/demo_simulator.py)) — retained as an internal testing utility. Its API is blocked in production and it has no route, navigation item, reset control, or bundle in the public frontend.
 - **CSV import** ([`app/services/ingestion/csv_import.py`](backend/app/services/ingestion/csv_import.py)) — upload a sales-export CSV, preview the parsed rows and any validation errors, then confirm to create sales. One documented format: `date,customer,service,amount,currency` with a header row. A sample file with fictional data is at [`backend/samples/sales-sample.csv`](backend/samples/sales-sample.csv).
 - **Grow connection** ([`app/services/ingestion/grow_provider.py`](backend/app/services/ingestion/grow_provider.py)) — a real, production payment integration. See "Grow connection (account-level webhook)" above for the full details.
 - **Cardcom connection** ([`app/services/ingestion/cardcom_provider.py`](backend/app/services/ingestion/cardcom_provider.py)) — a real, production payment integration, completely separate from Grow (its own adapter, its own connection type, its own credentials, its own status mapping). See "Cardcom connection (per-terminal webhook + server-to-server verification)" below for the full details.
@@ -108,7 +107,7 @@ The goal of this feature is that a human should not need to type in every sale b
 - **Document issuance boundary** ([`app/services/documents/`](backend/app/services/documents/)) — production defaults to `DOCUMENT_PROVIDER=disabled`. `MockDocumentProvider` is available only for development/tests, and production configuration explicitly rejects it.
 - **Exception Center** (`/exceptions`) and **Data Import** (`/imports`) — real production pages. Data Import currently exposes the working CSV flow only.
 
-**Development adapters are not product features:** `demo-pay`, the simulator, and `MockDocumentProvider` remain test tools in source code. None is exposed or accepted by the production application. No real invoicing/tax-receipt provider is connected yet.
+**Development adapters are not product features:** `demo-pay` and `MockDocumentProvider` remain test tools in source code. Neither is exposed or accepted by the production application. No real invoicing/tax-receipt provider is connected yet.
 
 **Only completed payments count as revenue.** A `pending` or `failed` sale contributes nothing to any revenue total; a `refunded` sale contributes nothing; a `partially_refunded` sale contributes only its remaining (post-refund) net amount. See `Sale.revenue_contribution()` in [`app/models/sale.py`](backend/app/models/sale.py) — every dashboard stat and every assistant tool routes through this one method, so the "what counts as revenue" rule is defined in exactly one place.
 
@@ -122,17 +121,9 @@ The goal of this feature is that a human should not need to type in every sale b
 
 Every transition (creating a sale from a webhook, recording a refund) uses an atomic conditional operation or a database uniqueness constraint rather than a check-then-write, so two concurrent webhook deliveries of the same event, or a refund applied twice, can never silently corrupt a total.
 
-### Try it end-to-end (fictional demo scenario)
+### Test the webhook foundation end to end
 
-**The easy way — no terminal, from the app itself:**
-
-1. Open the app → **Local Demo Area** (`/demo`). Pick or type a Hebrew customer/service name, an amount, a currency, and a scenario (e.g. "Successful purchase"), then run it.
-2. Open **Sales** — the new sale is there, clearly labeled as demo data, with its document already "issued." Click its name to open **Sale Details** — the full VAT/revenue breakdown and its real event timeline are both there.
-3. Record a partial refund from Sale Details — the status, remaining-revenue figure, and timeline all update together.
-4. Check the **Dashboard** — the revenue totals reflect it immediately. Ask the **AI Assistant** "כמה הכנסתי החודש?" / "How much revenue did I make this month?" — it reports the same figure, in the same currency.
-5. When you're done, use **Reset demo data** on the Demo Area page — it deletes only what the simulator created, never your manual/CSV/webhook sales, and reports exactly how many rows were removed.
-
-**The technical way — a real signed HTTP request, for developers:**
+Use a real signed HTTP request from the development helper:
 
 1. Start the backend with a webhook secret set (see below), and send one demo customer payment for **ILS 184.90**:
    ```bash
@@ -531,13 +522,13 @@ With both servers running (backend on :8000, frontend on :5173), open `http://lo
 
 ## Verification performed
 
-- `pytest` (backend, 576 tests) — including DB-backed platform-admin authorization, cross-business admin operations, per-business payment-provider approval and safe removal, business isolation, development-only integration gates, signed (demo-pay), source-IP-verified (Grow), and server-to-server-verified (Cardcom) webhook routing, the Grow and Cardcom payload adapters against each provider's own published examples, both Cardcom `LowProfileId` and `LowProfileCode` callback forms (body and query string), the durable webhook-event inbox (received/processed/duplicate/failed/rejected) and safe provider-aware reprocessing, encrypted Cardcom credential storage, persisted assistant conversations, general sales analytics and ranking, sale validation, VAT calculation, ingestion idempotency, CSV/document import, dashboard math, exception handling, security controls, and the complete Alembic migration chain. All passing.
-- `npm test` (frontend, 162 tests), `tsc -b`, `oxlint`, `npm run build` — all passing. Coverage includes authentication and provider selection during onboarding, provider-filtered imports, platform-admin provider management, the Grow connection panel and the separate Cardcom connection panel (owner/manager/viewer visibility, copy/rotate/delete, activity including rejected events, safe reprocessing, absence of demo/test wording), persisted assistant conversations, CSV import, sales, Sale Details, dashboard, exception center, and historical-document import. `oxlint` currently reports pre-existing, non-blocking React warnings (none introduced by this work) and no errors.
+- `pytest` (backend, 803 tests; 2 environment-dependent tests skipped) — including DB-backed platform-admin authorization, cross-business admin operations, per-business payment-provider approval and safe removal, business isolation, development-only integration gates, signed (demo-pay), source-IP-verified (Grow), and server-to-server-verified (Cardcom) webhook routing, the Grow and Cardcom payload adapters against each provider's own published examples, both Cardcom `LowProfileId` and `LowProfileCode` callback forms (body and query string), the durable webhook-event inbox (received/processed/duplicate/failed/rejected) and safe provider-aware reprocessing, encrypted Cardcom credential storage, persisted assistant conversations, general sales analytics and ranking, sale validation, VAT calculation, ingestion idempotency, CSV/document import, dashboard math, exception handling, security controls, and the complete Alembic migration chain. All passing.
+- `npm test` (frontend, 196 tests), `tsc -b`, `oxlint`, `npm run build` — all passing. Coverage includes authentication and provider selection during onboarding, provider-filtered imports, platform-admin provider management, the Grow connection panel and the separate Cardcom connection panel (owner/manager/viewer visibility, copy/rotate/delete, activity including rejected events, safe reprocessing, absence of demo/test wording), persisted assistant conversations, CSV import, sales, Sale Details, dashboard, exception center, and historical-document import. `oxlint` currently reports pre-existing, non-blocking React warnings (none introduced by this work) and no errors.
 - `npm audit --omit=dev` and `pip-audit` — both report no known vulnerabilities as of this change.
 - **Grow integration is structurally verified** (Grow's own published payload examples as test fixtures, full automated suite, production-config fail-fast checks) but **not live-verified** — no real Grow account has sent it a real transaction. See "Grow connection" above for what remains.
 - **Cardcom successful-payment ingestion is live-verified** against Cardcom's test account, including its production webhook, server-to-server verification, ILS/VAT mapping, display, idempotency, and deletion. Decline delivery is also live-confirmed, but Cardcom's test `GetLpResult` returned code `60000004` without trusted transaction details; that provider contract still needs Cardcom's confirmation before declined attempts can reliably become failed-sale records. See "Cardcom connection" above.
 - `alembic upgrade head` verified on a fresh temporary SQLite database (the entire migration chain, from the original `expenses` table through to `sale_events`) and separately as an incremental upgrade on the live development database carrying real prior data forward — this specifically caught and fixed a real bug (a data-backfill migration writing an enum value in the wrong case for how it's actually stored, which only surfaced on a genuine round-trip, not against the ORM-only test suite).
-- Manual end-to-end verification in the browser: local demo simulator → a realistic sale appears on the dashboard and sales list within seconds, clearly labeled as demo data → Sale Details shows the correct VAT/revenue breakdown and a real, persisted timeline → recording a partial refund updates the status, the remaining-revenue figure, and the timeline together → the dashboard total updates → the AI assistant correctly reports the same revenue, in the same currency.
+- Manual end-to-end verification in the browser: provider and manually entered sales appear on the dashboard and sales list, Sale Details shows the correct VAT/revenue breakdown and persisted timeline, refunds update the remaining-revenue figure, and the AI assistant reports the same currency-aware totals.
 
 ## Security and reliability notes
 

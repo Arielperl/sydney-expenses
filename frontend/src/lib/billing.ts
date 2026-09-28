@@ -3,7 +3,7 @@ import type { BillingInterval, BillingOverview, BillingPlan } from '../services/
 import { intlLocale } from './format'
 
 /** Days before the trial ends when reminders to add a payment method start. */
-export const TRIAL_REMINDER_DAYS = 7
+const TRIAL_REMINDER_DAYS = 7
 
 /**
  * One display state per situation the owner can be in. Every screen (sidebar,
@@ -96,13 +96,8 @@ export function planPriceParts(minor: number, language: string, currency = 'ILS'
     .map((part) => ({ text: part.value.replace(/[\u200e\u200f]/g, ''), currency: part.type === 'currency' }))
 }
 
-/** The amount including VAT, for the small print only. The server's price excludes VAT. */
-export function withVat(minor: number, vatRate: string | number = '0.18'): number {
-  return Math.round(minor * (1 + Number(vatRate)))
-}
-
 /** Months a yearly price saves against paying monthly for twelve months (e.g. 2). */
-export function yearlySavingsMonths(plan: BillingPlan): number | null {
+function yearlySavingsMonths(plan: BillingPlan): number | null {
   const month = plan.prices.month
   const year = plan.prices.year
   if (!month || !year || year >= month * 12) return null
@@ -116,35 +111,8 @@ export function catalogSavingsMonths(plans: BillingPlan[]): number | null {
   return values.length > 0 && values.every((value) => value !== null && value === values[0]) ? values[0] : null
 }
 
-export type PlanChangeImpact = 'trial' | 'upgrade' | 'downgrade' | 'immediate'
-
-/**
- * When a plan change takes effect, mirroring SubscriptionService.change_plan:
- * a paid subscription upgrades now only for a pricier plan on the same cycle;
- * every other paid change waits for the period end. Unpaid ones apply at once.
- */
-export function planChangeImpact(overview: BillingOverview, target: BillingPlan, interval: BillingInterval): PlanChangeImpact {
-  const sub = overview.subscription
-  if (!sub) return 'immediate'
-  if (sub.status === 'trialing') return 'trial'
-  const paid = (sub.status === 'active' || sub.status === 'past_due') && sub.payment_method_on_file
-  if (!paid) return 'immediate'
-  const current = planByCode(overview.plans, sub.plan_code)
-  const currentPrice = current ? priceFor(current, sub.billing_interval) : null
-  const targetPrice = priceFor(target, interval)
-  const upgrade = interval === sub.billing_interval && currentPrice !== null && targetPrice !== null && targetPrice > currentPrice
-  return upgrade ? 'upgrade' : 'downgrade'
-}
-
-/** The next plan up that allows more sales sources than the given one, if any. */
-export function nextPlanWithMoreConnections(plans: BillingPlan[], code: string | null | undefined): BillingPlan | undefined {
-  const current = planByCode(plans, code)
-  if (!current) return undefined
-  return plans.filter((plan) => plan.max_connections > current.max_connections).sort((a, b) => a.max_connections - b.max_connections)[0]
-}
-
 /** Server timestamps are naive-UTC ISO strings ending in Z. */
-export function parseBillingDate(iso: string): Date {
+function parseBillingDate(iso: string): Date {
   return new Date(iso)
 }
 

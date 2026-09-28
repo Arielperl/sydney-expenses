@@ -142,16 +142,3 @@ export function SegmentedControl<T extends string>({
 export function Skeleton({ className }: { className?: string }) {
   return <span aria-hidden="true" className={cx('block animate-shimmer rounded-md bg-zinc-200/80 dark:bg-zinc-800', className)} />
 }
-
-/** A key/value row for detail panels. */
-export function DetailRow({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 gap-1 py-3 sm:grid-cols-[minmax(9rem,14rem)_1fr] sm:gap-4">
-      <dt className="text-sm text-zinc-500 dark:text-zinc-400">
-        {label}
-        {hint && <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-500">{hint}</span>}
-      </dt>
-      <dd className="min-w-0 text-sm text-zinc-900 dark:text-zinc-100">{children}</dd>
-    </div>
-  )
-}

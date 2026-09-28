@@ -1,6 +1,6 @@
 import type { DocumentCategory } from './sale'
 
-export interface ExtractedDocumentData {
+interface ExtractedDocumentData {
   business_name: string | null
   receipt_number: string | null
   date: string | null

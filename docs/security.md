@@ -13,7 +13,9 @@
 - **Provider-supplied documents (Grow's "Invoice creation" webhook, Cardcom's `DocumentInfo`)** never trust a URL beyond validating scheme (HTTPS only) and length before storing it — the backend never fetches a provider document URL itself (no SSRF surface), and the frontend only ever renders it as a plain external link (`target="_blank" rel="noopener noreferrer"`), never as a fetched/embedded resource. Cardcom's own `DocumentUrl` field is documented as broken and is never read, stored, or shown at all, for either provider's response shape it appears in. A Grow invoice event durably queues in `provider_document_events` (its own `connection_id`-scoped table, same `BusinessOwned`/RLS isolation as every other tenant-scoped table) before any matching is attempted, and correlates to a sale only by `(connection_id, external_transaction_id)` — never by transaction id alone — so a document can never cross a business or a different connection of the same provider, even on an id collision. Idempotent by the same key: a duplicate invoice delivery is recognized before any write and never creates a second row.
 - CSV confirmation is HMAC-signed over the business, file hash, filename, exact rows and expiration time.
 - Uploaded images use random server names, streamed byte limits, real image decoding, an explicit pixel limit and private storage or authenticated local delivery.
-- Production disables API documentation and the demo simulator, validates HTTPS origins and Supabase configuration, rejects unexpected Host headers and sends baseline security headers.
+- Production disables API documentation and development-only adapters, validates HTTPS origins and Supabase configuration, rejects unexpected Host headers and sends baseline security headers.
+- The Vercel-hosted main and support frontends send a restrictive CSP, deny framing, disable unused browser capabilities, prevent MIME sniffing and apply `no-store` to support pages.
+- New customer and staff accounts require passwords of at least 12 characters; existing accounts remain compatible at login.
 - Authentication and paid AI endpoints have bounded, thread-safe in-process rate limits.
 
 ## Required production configuration
@@ -29,7 +31,7 @@ Set `APP_ENVIRONMENT=production`, keep `AUTH_REQUIRED=true`, and configure:
 - `CARDCOM_WEBHOOK_ALLOWED_IPS` set to Cardcom's current published IP ranges, and a dedicated `CARDCOM_CREDENTIAL_ENCRYPTION_KEY` (Fernet key, never reused from any other secret) used to encrypt each connection's Cardcom API name/password at rest (production refuses to start if either is unset or invalid).
 - A private Supabase Storage bucket and a short signed-URL lifetime when using Supabase Storage.
 
-Terminate TLS at a trusted proxy and configure its maximum request size, connection/time limits and trusted forwarded-header sources. Serve the React application with its own CSP; backend response headers do not configure the separate frontend host.
+Terminate TLS at a trusted proxy and configure its maximum request size, connection/time limits and trusted forwarded-header sources. Keep the frontend security policy in `frontend/vercel.json` deployed on both the main and support hostnames.
 
 ## Controls required before horizontal scaling
 

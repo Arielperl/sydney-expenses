@@ -4,7 +4,7 @@ import type { TaxTreatment } from '../types/sale'
 // in the form before the user saves. The backend independently recomputes
 // and is the sole source of truth for what actually gets persisted; this
 // value is never sent to the API.
-export const STANDARD_VAT_RATE = 0.18
+const STANDARD_VAT_RATE = 0.18
 
 export function previewVat(grossAmount: number, taxTreatment: TaxTreatment): number {
   if (!Number.isFinite(grossAmount) || grossAmount < 0) return 0

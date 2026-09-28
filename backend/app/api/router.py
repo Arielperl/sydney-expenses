@@ -2,7 +2,7 @@ from app.api.routes import businesses
 from app.billing import routes as billing_routes
 from fastapi import APIRouter
 
-from app.api.routes import admin, auth, assistant, connections, dashboard, demo, documents, exceptions, health, imports, sales, support, system, webhooks
+from app.api.routes import admin, auth, assistant, connections, dashboard, documents, exceptions, health, imports, sales, support, system, webhooks
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
@@ -16,7 +16,6 @@ api_router.include_router(exceptions.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(connections.router)
 api_router.include_router(imports.router)
-api_router.include_router(demo.router)
 api_router.include_router(admin.router)
 api_router.include_router(support.router)
 

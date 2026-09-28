@@ -2,7 +2,7 @@ import { apiClient, toApiError } from './apiClient'
 
 export type BillingInterval = 'month' | 'year'
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'expired'
-export type AccessReason =
+type AccessReason =
   | 'plan_required'
   | 'trialing'
   | 'payment_processing'
@@ -37,7 +37,7 @@ export type PlanCatalog = {
 
 export type UsageMeter = { used: number; limit: number; period_start?: string; period_end?: string }
 
-export type BusinessSubscription = {
+type BusinessSubscription = {
   plan_code: string
   billing_interval: BillingInterval
   status: SubscriptionStatus

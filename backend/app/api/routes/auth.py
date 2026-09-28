@@ -49,7 +49,7 @@ async def auth_request(method: str, path: str, payload=None, token: str | None =
         raise HTTPException(503, "שירות ההתחברות אינו זמין כרגע. נסו שוב בעוד רגע.")
     if result.status_code >= 400:
         code = result.json().get("error_code", "") if "json" in result.headers.get("content-type", "") else ""
-        message = {"email_not_confirmed": "יש לאמת את כתובת האימייל לפני ההתחברות.", "weak_password": "בחרו סיסמה חזקה יותר, באורך שמונה תווים לפחות.", "over_email_send_rate_limit": "נשלחו יותר מדי בקשות. המתינו מספר דקות ונסו שוב.", "signup_disabled": "ההרשמה אינה זמינה כרגע."}.get(code, "לא ניתן להשלים את הבקשה. בדקו את הפרטים ונסו שוב.")
+        message = {"email_not_confirmed": "יש לאמת את כתובת האימייל לפני ההתחברות.", "weak_password": "בחרו סיסמה חזקה יותר, באורך 12 תווים לפחות.", "over_email_send_rate_limit": "נשלחו יותר מדי בקשות. המתינו מספר דקות ונסו שוב.", "signup_disabled": "ההרשמה אינה זמינה כרגע."}.get(code, "לא ניתן להשלים את הבקשה. בדקו את הפרטים ונסו שוב.")
         raise HTTPException(429 if result.status_code == 429 else 401 if result.status_code in (400, 401, 403, 422) else 503, message)
     return result.json() if result.content else {}
 
@@ -102,8 +102,8 @@ async def signup(payload: Credentials, response: Response, request: Request):
     _signup_by_ip.check(f"signup:{client_ip(request)}")
     if is_staff_login(payload.email):
         raise HTTPException(422, "שם התחברות לצוות ניתן ליצור רק דרך ממשק הסופר אדמין")
-    if len(payload.password) < 8:
-        raise HTTPException(422, "הסיסמה צריכה להכיל לפחות שמונה תווים")
+    if len(payload.password) < 12:
+        raise HTTPException(422, "הסיסמה צריכה להכיל לפחות 12 תווים")
     redirect = request.headers.get("origin", "") + "/login"
     data = await auth_request("POST", "signup?" + urlencode({"redirect_to": redirect}), {"email": payload.email, "password": payload.password, "data": {"full_name": payload.name}})
     if data.get("access_token"):

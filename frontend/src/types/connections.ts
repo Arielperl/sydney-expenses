@@ -1,6 +1,6 @@
 export type ConnectionProvider = 'demo-pay' | 'grow' | 'cardcom'
 
-export interface ConnectionEventCounts {
+interface ConnectionEventCounts {
   received: number
   processed: number
   duplicate: number

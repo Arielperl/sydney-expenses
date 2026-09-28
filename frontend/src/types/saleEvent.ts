@@ -1,4 +1,4 @@
-export const SALE_EVENT_TYPES = [
+const SALE_EVENT_TYPES = [
   'sale_received',
   'sale_created_manually',
   'sale_imported_from_csv',
@@ -14,8 +14,8 @@ export const SALE_EVENT_TYPES = [
 ] as const
 export type SaleEventType = (typeof SALE_EVENT_TYPES)[number]
 
-export const SALE_EVENT_SOURCES = ['manual', 'webhook', 'csv', 'demo', 'system'] as const
-export type SaleEventSourceType = (typeof SALE_EVENT_SOURCES)[number]
+const SALE_EVENT_SOURCES = ['manual', 'webhook', 'csv', 'demo', 'system'] as const
+type SaleEventSourceType = (typeof SALE_EVENT_SOURCES)[number]
 
 export interface SaleEvent {
   id: string

@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Production requests must use the current site's /api rewrite so session
 // cookies belong to whichever custom domain the user opened.
-export const API_BASE_URL = import.meta.env.PROD
+const API_BASE_URL = import.meta.env.PROD
   ? ''
   : (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000')
 
@@ -14,7 +14,6 @@ export const apiClient = axios.create({
   withCredentials: true,
 })
 
-export const UPLOADS_BASE_URL = API_BASE_URL
 
 export class ApiError extends Error {
   status?: number

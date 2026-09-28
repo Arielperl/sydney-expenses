@@ -13,13 +13,13 @@ const RECOVERED_CODES = new Set(['category_from_merchant_name'])
  * - "review": the vision model and the deterministic text parser disagreed —
  *   worth a second look before saving.
  * - "attention": nothing could be determined for this field at all. */
-export function classifyWarning(code: string): WarningGroup {
+function classifyWarning(code: string): WarningGroup {
   if (code.endsWith(REVIEW_SUFFIX)) return 'review'
   if (code.endsWith(RECOVERED_SUFFIX) || RECOVERED_CODES.has(code)) return 'recovered'
   return 'attention'
 }
 
-export function dedupeWarnings(warnings: string[]): string[] {
+function dedupeWarnings(warnings: string[]): string[] {
   return Array.from(new Set(warnings))
 }
 

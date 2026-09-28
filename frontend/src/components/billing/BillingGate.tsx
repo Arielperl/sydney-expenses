@@ -26,7 +26,7 @@ const BANNER_ICON: Partial<Record<BillingState, typeof CalendarClock>> = {
   past_due: CircleAlert,
 }
 
-export function TrialBanner({ overview, pathname }: { overview: BillingOverview; pathname: string }) {
+function TrialBanner({ overview, pathname }: { overview: BillingOverview; pathname: string }) {
   const { t, i18n } = useTranslation()
   const state = billingState(overview)
   const sub = overview.subscription
@@ -75,7 +75,7 @@ export function TrialBanner({ overview, pathname }: { overview: BillingOverview;
   )
 }
 
-export function SubscriptionRequiredScreen({ overview }: { overview: BillingOverview }) {
+function SubscriptionRequiredScreen({ overview }: { overview: BillingOverview }) {
   const { t, i18n } = useTranslation()
   const state = billingState(overview)
   const heading = state === 'canceled' ? 'canceled' : state === 'trial_unavailable' ? 'trial_unavailable' : 'trial_expired'

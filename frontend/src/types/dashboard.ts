@@ -28,7 +28,7 @@ export interface PeriodComparison {
   amount_change: number | string | null
 }
 
-export interface DashboardPeriodInfo {
+interface DashboardPeriodInfo {
   period: DashboardPeriodName
   start_date: string
   end_date: string

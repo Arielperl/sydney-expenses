@@ -19,10 +19,8 @@ class Settings(BaseSettings):
     auth_required: bool = True
 
     app_name: str = "Sydney Transaction Management API"
-    # Gates the in-product demo simulator's destructive reset action (see
-    # app/api/routes/demo.py) — "development" (the honest default, since
-    # this app has no real production deployment yet) allows it,
-    # "production" disables it outright regardless of any other setting.
+    # Selects strict production validation and disables development-only
+    # adapters. Development remains the honest local default.
     app_environment: Literal["development", "production"] = "development"
     database_url: str = f"sqlite:///{BACKEND_DIR / 'receiptly.db'}"
     uploads_dir: str = str(BACKEND_DIR / "uploads")

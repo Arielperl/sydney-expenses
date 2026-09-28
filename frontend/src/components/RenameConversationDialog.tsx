@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { buttonClasses } from './ui-classes'
 
-export const CONVERSATION_TITLE_MAX_LENGTH = 80
+const CONVERSATION_TITLE_MAX_LENGTH = 80
 
 export function RenameConversationDialog({
   currentTitle,
