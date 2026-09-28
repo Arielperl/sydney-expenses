@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
 import logoUrl from '../assets/investment-logo.svg'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { buttonClasses, cx } from '../components/ui-classes'
 import { useAuth } from '../contexts/AuthContext'
@@ -68,7 +67,6 @@ export function SupportPortalPage() {
             <p className="hidden truncate text-xs text-zinc-500 md:block dark:text-zinc-400">
               {t('supportPortal.signedInAs')}<bdi dir="ltr">{user?.email}</bdi>
             </p>
-            <LanguageSwitcher placement="bottom" />
             <ThemeSwitcher />
             <button type="button" className={buttonClasses('ghost', 'md', 'px-2.5 sm:px-3')} onClick={() => void logout()}>
               <LogOut className="h-4 w-4 rtl:-scale-x-100" aria-hidden="true" />

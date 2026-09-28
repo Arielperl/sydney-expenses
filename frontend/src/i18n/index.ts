@@ -17,6 +17,12 @@ function directionForLanguage(language: string): 'rtl' | 'ltr' {
 }
 
 function readStoredLanguage(): SupportedLanguage {
+  // Staff screens are Hebrew-only, including sessions that previously saved English.
+  if (window.location.hostname === 'support.sydneyexpenses.com'
+    || window.location.pathname === '/support'
+    || window.location.pathname === '/support/login') {
+    return 'he'
+  }
   try {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
     if (stored && (SUPPORTED_LANGUAGES as readonly string[]).includes(stored)) {

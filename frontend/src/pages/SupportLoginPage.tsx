@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { apiClient, toApiError } from '../services/apiClient'
 import { FormField, inputClasses } from '../components/FormField'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { Card } from '../components/ui'
 import { buttonClasses } from '../components/ui-classes'
@@ -45,7 +44,6 @@ export function SupportLoginPage() {
       <header className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
         <SupportBrand />
         <div className="flex items-center gap-1">
-          <LanguageSwitcher placement="bottom" />
           <ThemeSwitcher />
         </div>
       </header>
